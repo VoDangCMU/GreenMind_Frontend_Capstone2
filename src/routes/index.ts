@@ -1,12 +1,7 @@
 import { Router } from "express";
-import checkRoutes from "@root/routes/checkRoutes";
-import userRoutes from "@root/routes/userRoutes";
-import tokenRouter from "@root/routes/tokenRoutes";
-import locationRouter from "@root/routes/locationRoutes";
-import {jwtAuthMiddleware} from "@root/middlewares/jwtMiddleware";
-import caloriesRouter from "@root/routes/caloriesRoutes";
-import invoicesRouter from "@root/routes/invoicesRoutes";
-import questionRouter from "@root/routes/questionRoutes";
+import caloriesRouter from "../routes/caloriesRoutes";
+import invoicesRouter from "../routes/invoicesRoutes";
+import questionRouter from "../routes/questionRoutes";
 import checkRoutes from "./checkRoutes";
 import userRoutes from "./userRoutes";
 import tokenRouter from "./tokenRoutes";
