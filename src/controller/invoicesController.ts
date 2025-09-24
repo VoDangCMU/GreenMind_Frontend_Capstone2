@@ -12,7 +12,6 @@ const InvoicesRepo = AppDataSource.getRepository(Invoices);
 
 export class InvoicesController {
     public CreateInvoice: RequestHandler = async (req: Request, res: Response) => {
-
         const parsed = invoiceParamsSchemas.safeParse(req.body);
 
         if (!parsed.success) {
@@ -51,6 +50,7 @@ export class InvoicesController {
             })
             res.status(200).json({message: "Invoice found", data: invoice});
             return;
+
         } catch (e) {
             return res.status(500).json({message: "Internal Server Error"});
         }

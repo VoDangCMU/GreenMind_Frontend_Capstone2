@@ -1,7 +1,6 @@
 import {Router} from "express";
 import controller from "../controller";
 
-
 const caloriesRouter = Router();
 
 caloriesRouter.post('/calories/create-calories', controller.calories.CreateCalories);
