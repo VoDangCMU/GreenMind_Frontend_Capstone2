@@ -1,7 +1,7 @@
-import NUMBER from "@root/config/schemas/Number";
-import TEXT from "@root/config/schemas/Text";
-import { Questions } from "@root/entity/questions";
-import {AppDataSource} from "@root/infrastructure/database";
+import NUMBER from "../config/schemas/Number";
+import TEXT from "../config/schemas/Text";
+import {Questions} from "../entity/questions";
+import AppDataSource from "../infrastructure/database";
 import {Request, RequestHandler, Response} from "express";
 import {z} from "zod";
 

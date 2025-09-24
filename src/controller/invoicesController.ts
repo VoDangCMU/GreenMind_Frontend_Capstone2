@@ -1,8 +1,8 @@
-import { Request, Response, RequestHandler } from "express";
+import {Request, RequestHandler, Response} from "express";
 import {z} from "zod";
-import DATE_TIME from "@root/config/schemas/Datetime";
-import {Invoices} from "@root/entity/invoices";
-import {AppDataSource} from "@root/infrastructure/database";
+import DATE_TIME from "../config/schemas/Datetime";
+import {Invoices} from "../entity/invoices";
+import AppDataSource from "../infrastructure/database";
 
 const invoiceParamsSchemas = z.object({
     issued_at: DATE_TIME,

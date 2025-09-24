@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import {Request, Response} from "express";
 import {Locations} from "../entity/locations";
 import {User} from "../entity/user";
 import AppDataSource from "../infrastructure/database";

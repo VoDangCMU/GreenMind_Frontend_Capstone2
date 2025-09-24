@@ -13,7 +13,7 @@ export default {
     token,
     calories,
     invoices,
-    questions
+    questions,
     template,
     trait
 };
