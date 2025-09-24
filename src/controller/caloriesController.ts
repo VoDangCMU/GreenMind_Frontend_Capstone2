@@ -1,8 +1,8 @@
 import {Request, RequestHandler, Response} from "express";
 import {z} from "zod";
-import NUMBER from "@root/config/schemas/Number";
-import {AppDataSource} from "@root/infrastructure/database";
-import {Calories} from "@root/entity/calories";
+import NUMBER from "../config/schemas/Number";
+import AppDataSource from "../infrastructure/database";
+import {Calories} from "../entity/calories";
 
 
 const CaloriesParamsSchema = z.object({
