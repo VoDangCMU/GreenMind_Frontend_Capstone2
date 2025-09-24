@@ -5,7 +5,7 @@ import {Invoices} from "../entity/invoices";
 import AppDataSource from "../infrastructure/database";
 
 const invoiceParamsSchemas = z.object({
-    issued_at: DATE_TIME,
+    issued_at: z.string().time(),
 })
 
 const InvoicesRepo = AppDataSource.getRepository(Invoices);
@@ -13,8 +13,9 @@ const InvoicesRepo = AppDataSource.getRepository(Invoices);
 export class InvoicesController {
     public CreateInvoice: RequestHandler = async (req: Request, res: Response) => {
         const parsed = invoiceParamsSchemas.safeParse(req.body);
+
         if (!parsed.success) {
-            return res.status(400).json({message: "Invalid input"});
+            return res.status(400).json({message: "Invalid input", error: parsed.error.format()});
         }
 
         const newInvoice = InvoicesRepo.create({...parsed.data});
@@ -30,7 +31,7 @@ export class InvoicesController {
     public GetInvoices: RequestHandler = async (req: Request, res: Response) => {
         try {
             const invoices = await InvoicesRepo.find();
-            return res.status(200).json({invoices: invoices});
+            return res.status(200).json({data: invoices.length > 0 ? invoices : "No invoices yet"});
         } catch (error) {
             return res.status(500).json({message: "Internal Server Error"});
         }
@@ -42,12 +43,14 @@ export class InvoicesController {
             return res.status(400).json({message: "Invalid invoice ID"});
         }
         try {
-            const invoice = InvoicesRepo.findOne({
+            const invoice = await InvoicesRepo.findOne({
                 where: {
                     id: invoiceId
                 }
             })
             res.status(200).json({message: "Invoice found", data: invoice});
+            return;
+
         } catch (e) {
             return res.status(500).json({message: "Internal Server Error"});
         }
@@ -55,7 +58,7 @@ export class InvoicesController {
 
     public UpdateInvoice: RequestHandler = async (req: Request, res: Response) => {
         const newData = z.object({
-            issued_at: DATE_TIME.optional()
+            issued_at: z.string().time().optional()
         })
         const invoiceId = req.params.id;
         if (!invoiceId) {
@@ -94,7 +97,7 @@ export class InvoicesController {
                 return res.status(404).json({message: "Invoice not found"});
             }
             await InvoicesRepo.delete(invoiceId);
-            return res.status(200).json({message: "Invoice deleted successfully", deleted: invoiceId});
+            return res.status(200).json({message: "Invoice deleted successfully", deleted: invoice});
         } catch (e) {
             return res.status(500).json({message: "Internal Server Error"});
         }
