@@ -1,9 +1,9 @@
 import {Request, RequestHandler, Response} from "express";
 import {z} from "zod";
-import NUMBER from "@root/config/schemas/Number";
-import {AppDataSource} from "@root/infrastructure/database";
-import {Calories} from "@root/entity/calories";
-
+import NUMBER from "../config/schemas/Number";
+import AppDataSource from "../infrastructure/database";
+import {Calories} from "../entity/calories";
+import TEXT from "@root/config/schemas/Text";
 
 const CaloriesParamsSchema = z.object({
     energy_kcal: NUMBER,
@@ -34,25 +34,34 @@ export class CaloriesController {
     public GetCalories: RequestHandler = async (req: Request, res: Response) => {
         try {
             const calories = await CaloriesRepo.find();
-            return res.status(200).json({calories: calories});
+            return res.status(200).json({data: calories.length > 0 ? calories : "No calories yet"});
         } catch (error) {
             return res.status(500).json({message: "Internal Server Error"});
         }
     };
 
     public GetCaloriesById: RequestHandler = async (req: Request, res: Response) => {
+        const paramsSchema = z.object({
+            id: z.string().uuid()
+        })
 
-        const caloriesId = req.params.id;
-        if (!caloriesId) {
-            return res.status(400).json({message: "Invalid calories ID"});
+        const parsed = paramsSchema.safeParse(req.params);
+        if (!parsed.success) {
+            return res.status(400).json({message: "Invalid input"});
         }
+
+        const caloriesId = parsed.data.id;
         try {
-            const calories = CaloriesRepo.findOne({
+            const calories = await CaloriesRepo.findOne({
                 where: {
                     id: caloriesId
                 }
             })
-            res.status(200).json({message: "Calories found", data: calories});
+            if (!calories) {
+                return res.status(404).json({message: "Calories not found"});
+            }
+
+            return res.status(200).json({message: "Calories found", data: calories});
         } catch (e) {
             return res.status(500).json({message: "Internal Server Error"});
         }
@@ -73,6 +82,9 @@ export class CaloriesController {
 
         const parsed = newData.safeParse(req.body);
 
+        if (!parsed.success) {
+            return res.status(400).json({message: "Invalid input", error: parsed.error.format() });
+        }
         try {
             const calories = await CaloriesRepo.findOne({
                 where: {
@@ -92,20 +104,25 @@ export class CaloriesController {
     }
 
     public DeleteCalories: RequestHandler = async (req: Request, res: Response) => {
+
         const caloriesId = req.params.id;
         if (!caloriesId) {
             return res.status(400).json({message: "Invalid calories ID"});
         }
+
         try {
             const calories = await CaloriesRepo.findOne({
                 where: {
                     id: caloriesId
                 }
             })
+            console.log(calories);
             if (!calories) {
                 return res.status(404).json({message: "Calories not found"});
             }
             await CaloriesRepo.delete(caloriesId);
+            res.status(200).json({message: "Calories deleted successfully", deleted: calories});
+            return;
         } catch (e) {
             return res.status(500).json({message: "Internal Server Error"});
         }

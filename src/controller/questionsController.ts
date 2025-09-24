@@ -10,7 +10,6 @@ const questionsParamsSchemas = z.object({
     trait: NUMBER,
     placeholders: TEXT,
     expected_answer: TEXT,
-
 })
 
 const questionsRepo = AppDataSource.getRepository(Questions);
@@ -18,8 +17,9 @@ export class QuestionsController {
     public CreateQuestion: RequestHandler = async (req: Request, res: Response) => {
 
         const parsed = questionsParamsSchemas.safeParse(req.body);
+
         if (!parsed.success) {
-            return res.status(400).json({message: "Invalid input"});
+            return res.status(400).json({message: "Invalid input", error: parsed.error.format()});
         }
 
         const newQuestion = questionsRepo.create({...parsed.data});
@@ -35,7 +35,8 @@ export class QuestionsController {
     public GetQuestions: RequestHandler = async (req: Request, res: Response) => {
         try {
             const questions = await questionsRepo.find();
-            return res.status(200).json({questions: questions});
+
+            return res.status(200).json({questions: questions.length > 0 ? questions : "No questions yet"});
         } catch (error) {
             return res.status(500).json({message: "Internal Server Error"});
         }
@@ -47,7 +48,7 @@ export class QuestionsController {
             return res.status(400).json({message: "Invalid question ID"});
         }
         try {
-            const question = questionsRepo.findOne({
+            const question = await questionsRepo.findOne({
                 where: {
                     id: questionId
                 }
@@ -101,7 +102,8 @@ export class QuestionsController {
             if (!question) {
                 return res.status(404).json({message: "Question not found"});
             }
-            
+            await questionsRepo.delete(questionId);
+            return res.status(200).json({message: "Question deleted successfully", deleted: question});
         } catch (e) {
             return res.status(500).json({message: "Internal Server Error"});
         }
