@@ -6,7 +6,7 @@ import invoices from "./invoicesController";
 import questions from "./questionsController";
 import template from "./templateController";
 import trait from "./traitController";
-
+import foodItems from "./foodItemsController";
 export default {
     health,
     user,
@@ -15,5 +15,6 @@ export default {
     invoices,
     questions,
     template,
-    trait
+    trait,
+    foodItems
 };
