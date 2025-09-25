@@ -1,6 +1,5 @@
 import {Router} from "express";
 import controller from "../controller";
-
 const questionRouter = Router();
 
 questionRouter.get('/questions/get-question', controller.questions.GetQuestions);

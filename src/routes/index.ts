@@ -8,7 +8,7 @@ import tokenRouter from "./tokenRoutes";
 import locationRouter from "./locationRoutes";
 import templateRouter from "./templateRoutes";
 import traitRouter from "./traitRoutes";
-import {jwtAuthMiddleware} from "../middlewares/jwtMiddleware";
+import foodItemsRouter from "../routes/fooditemsRoutes";
 const router = Router();
 
 router.use(checkRoutes);
@@ -20,5 +20,5 @@ router.use(invoicesRouter)
 router.use(questionRouter);
 router.use(templateRouter);
 router.use(traitRouter)
-
+router.use(foodItemsRouter)
 export default router;
