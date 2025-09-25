@@ -1,10 +1,13 @@
-import { Router } from "express";
+import {Router} from "express";
 import locationController from "../controller/locationController";
 import {jwtAuthMiddleware} from "../middlewares/jwtMiddleware";
 
-const locationRouter = Router();
+const location = Router();
 
-locationRouter.use(jwtAuthMiddleware);
-locationRouter.post("/location/create", locationController.create);
+location.use(jwtAuthMiddleware)
+location.post("/location/create", locationController.createLocation);
+location.get("/location/:id", locationController.getLocationById);
+location.put("/location/update/:id", locationController.updateLocationById);
+location.delete("/location/delete/:id", locationController.deleteLocationById);
 
-export default locationRouter;
+export default location;

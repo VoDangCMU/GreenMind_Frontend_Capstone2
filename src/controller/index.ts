@@ -7,6 +7,7 @@ import questions from "./questionsController";
 import template from "./templateController";
 import trait from "./traitController";
 import foodItems from "./foodItemsController";
+import location from "./locationController";
 export default {
     health,
     user,
@@ -16,5 +17,6 @@ export default {
     questions,
     template,
     trait,
-    foodItems
+    foodItems,
+    location
 };
