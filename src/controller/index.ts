@@ -8,6 +8,11 @@ import template from "./templateController";
 import trait from "./traitController";
 import foodItems from "./foodItemsController";
 import location from "./locationController";
+import bigFive from "./bigFiveController";
+import behavior from "./behaviorController";
+import threadHall from "./threadHallController";
+import scans from "./scansController";
+import userAnswers from "./userAnswersController";
 export default {
     health,
     user,
@@ -18,5 +23,10 @@ export default {
     template,
     trait,
     foodItems,
-    location
+    location,
+    bigFive,
+    behavior,
+    threadHall,
+    scans,
+    userAnswers
 };

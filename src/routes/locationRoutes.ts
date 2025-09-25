@@ -1,13 +1,10 @@
-import {Router} from "express";
+import { Router } from "express";
 import locationController from "../controller/locationController";
-import {jwtAuthMiddleware} from "../middlewares/jwtMiddleware";
+import { jwtAuthMiddleware } from "../middlewares/jwtMiddleware";
 
-const location = Router();
+const router = Router();
 
-location.use(jwtAuthMiddleware)
-location.post("/location/create", locationController.createLocation);
-location.get("/location/:id", locationController.getLocationById);
-location.put("/location/update/:id", locationController.updateLocationById);
-location.delete("/location/delete/:id", locationController.deleteLocationById);
+router.use(jwtAuthMiddleware); // Re-enable JWT middleware for location routes
+router.post("/create", locationController.createLocation);
 
-export default location;
+export default router;
