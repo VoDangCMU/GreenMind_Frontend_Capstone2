@@ -6,11 +6,11 @@ export class InvoiceItems {
     @PrimaryGeneratedColumn("uuid")
     id!: string;
 
-    @ManyToOne(() => Invoices, invoice => invoice.items, { onDelete: "CASCADE" })
+    @ManyToOne(() => Invoices, (invoice) => invoice.items, { onDelete: "CASCADE" })
     invoice!: Invoices;
 
-    @Column({ type: "text" })
-    raw_name!: string;
+    @Column({ name: "raw_name", type: "text", nullable: true })
+    rawName!: string | null;
 
     @Column({ type: "text", nullable: true })
     brand!: string | null;
@@ -18,18 +18,18 @@ export class InvoiceItems {
     @Column({ type: "text", nullable: true })
     category!: string | null;
 
-    @Column({ type: "boolean", default: false })
-    plant_based!: boolean;
+    @Column({ name: "plant_based", type: "boolean", default: false })
+    plantBased!: boolean;
 
     @Column({ type: "int" })
     quantity!: number;
 
-    @Column({ type: "numeric" })
-    unit_price!: number;
+    @Column({ name: "unit_price", type: "numeric" })
+    unitPrice!: number;
 
-    @Column({ type: "numeric" })
-    line_total!: number;
+    @Column({ name: "line_total", type: "numeric" })
+    lineTotal!: number;
 
-    @Column({ type: "boolean", default: false })
-    matched_shopping_list!: boolean;
+    @Column({ name: "matched_shopping_list", type: "boolean", default: false })
+    matchedShoppingList!: boolean;
 }

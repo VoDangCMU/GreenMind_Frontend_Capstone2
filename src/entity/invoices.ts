@@ -28,39 +28,39 @@ export class Invoices {
     @ManyToOne(() => Scans, (scans) => scans.invoices, { onDelete: "CASCADE" })
     scans!: Scans;
 
-    @Column({ type: "text" })
+    @Column({ name: "currency", type: "text" })
     currency!: string;
 
-    @Column({ type: "text" })
-    payment_method!: string;
+    @Column({ name: "payment_method", type: "text" })
+    paymentMethod!: string;
 
-    @Column({ type: "text", nullable: true })
+    @Column({ name: "notes", type: "text", nullable: true })
     notes!: string | null;
 
-    @Column({ type: "date", nullable: true })
-    issued_date!: Date | null;
+    @Column({ name: "issued_date", type: "date", nullable: true })
+    issuedDate!: Date | null;
 
-    @Column({ type: "time", nullable: true })
-    issued_time!: string | null;
+    @Column({ name: "issued_time", type: "time", nullable: true })
+    issuedTime!: string | null;
 
-    @Column({ type: "numeric" })
+    @Column({ name: "subtotal", type: "numeric" })
     subtotal!: number;
 
-    @Column({ type: "numeric" })
+    @Column({ name: "discount", type: "numeric" })
     discount!: number;
 
-    @Column({ type: "numeric" })
+    @Column({ name: "tax", type: "numeric" })
     tax!: number;
 
-    @Column({ type: "numeric" })
-    grand_total!: number;
+    @Column({ name: "grand_total", type: "numeric" })
+    grandTotal!: number;
 
     @OneToMany(() => InvoiceItems, (item) => item.invoice, { cascade: true })
     items!: InvoiceItems[];
 
-    @CreateDateColumn({ type: "timestamp with time zone" })
+    @CreateDateColumn({ name: "created_at", type: "timestamp with time zone" })
     createdAt!: Date;
 
-    @UpdateDateColumn({ type: "timestamp with time zone" })
+    @UpdateDateColumn({ name: "updated_at", type: "timestamp with time zone" })
     updatedAt!: Date;
 }

@@ -14,8 +14,8 @@ export class Vendor {
     @Column({ type: "text" })
     address!: string;
 
-    @Column({ type: "text", nullable: true })
-    geo_hint!: string | null;
+    @Column({ name: "geo_hint", type: "text", nullable: true })
+    geoHint!: string | null;
 
     @OneToMany(() => Invoices, (invoice) => invoice.vendor)
     invoices!: Invoices[];

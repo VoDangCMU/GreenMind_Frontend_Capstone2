@@ -7,6 +7,7 @@ import { Vendor } from "../entity/vendor";
 import TEXT from "../config/schemas/Text";
 import NUMBER from "../config/schemas/Number";
 import BOOLEAN from "../config/schemas/Boolean";
+import type { DeepPartial } from "typeorm";
 
 const invoiceItemsParamsSchemas = z.object({
     raw_name: TEXT.nullish(),
@@ -33,7 +34,7 @@ const docSchema = z.object({
 });
 
 const datetimeSchema = z.object({
-    date: TEXT, // "02/06/2018"
+    date: TEXT,
     time: TEXT.nullish(),
 });
 
@@ -56,73 +57,72 @@ const InvoicesRepo = AppDataSource.getRepository(Invoices);
 const InvoiceItemsRepo = AppDataSource.getRepository(InvoiceItems);
 const VendorRepo = AppDataSource.getRepository(Vendor);
 
+
+async function findOrCreateVendor(vendor: any): Promise<Vendor | null> {
+    if (vendor?.name && vendor?.address) {
+        let found = await VendorRepo.findOne({
+            where: { name: vendor.name, address: vendor.address },
+        });
+        if (found) return found;
+
+        const newVendor = VendorRepo.create({
+            name: vendor.name,
+            address: vendor.address,
+            geoHint: vendor.geo_hint ?? null,
+        });
+        return await VendorRepo.save(newVendor);
+    }
+    return null;
+}
+
+function parseIssuedDate(datetime: any): Date | null {
+    if (!datetime?.date) return null;
+    const [day, month, year] = datetime.date.split("/");
+    if (datetime.time) {
+        return new Date(`${year}-${month}-${day}T${datetime.time}Z`);
+    }
+    return new Date(Date.UTC(+year, +month - 1, +day));
+}
+
 export class InvoicesController {
     public CreateInvoice: RequestHandler = async (req: Request, res: Response) => {
         const parsed = invoiceSchema.safeParse(req.body);
         if (!parsed.success) {
-            return res.status(400).json({
-                message: "Invalid input",
-                error: parsed.error.format(),
-            });
+            return res.status(400).json({ message: "Invalid input", error: parsed.error.format() });
         }
 
         try {
             const { doc, vendor, datetime, items, totals } = parsed.data;
 
-            let newVendor: Vendor | null = null;
-            if (vendor?.name && vendor?.address) {
-                const checkVendor = await VendorRepo.findOne({
-                    where: {
-                        name: vendor.name,
-                        address: vendor.address,
-                    },
-                });
-
-                if (checkVendor) {
-                    newVendor = checkVendor;
-                } else {
-                    newVendor = VendorRepo.create({
-                        name: vendor.name,
-                        address: vendor.address,
-                        geo_hint: vendor.geo_hint ?? null,
-                    });
-                    await VendorRepo.save(newVendor);
-                }
-            }
-            let issuedDate: Date | undefined;
-            if (datetime?.date) {
-                const [day, month, year] = datetime.date.split("/");
-                issuedDate = new Date(Date.UTC(+year, +month - 1, +day));
-            }
+            const newVendor = await findOrCreateVendor(vendor);
+            const issuedDate = parseIssuedDate(datetime);
 
             const newInvoice = InvoicesRepo.create({
                 currency: doc?.currency ?? "VND",
-                payment_method: doc?.payment_method ?? "unknown",
+                paymentMethod: doc?.payment_method ?? "unknown",
                 notes: doc?.notes ?? null,
                 subtotal: totals?.subtotal ?? 0,
                 discount: totals?.discount ?? 0,
                 tax: totals?.tax ?? 0,
-                grand_total: totals?.grand_total ?? 0,
-                issued_date: issuedDate,
+                grandTotal: totals?.grand_total ?? 0,
+                issuedDate,
                 vendor: newVendor ?? undefined,
             });
             await InvoicesRepo.save(newInvoice);
 
-            if (items && items.length > 0) {
-                for (const it of items) {
-                    const invoiceItem = InvoiceItemsRepo.create({
-                        raw_name: it.raw_name ?? "",
-                        brand: it.brand ?? null,
-                        category: it.category ?? null,
-                        plant_based: it.plant_based ?? false,
-                        quantity: it.quantity ?? 0,
-                        unit_price: it.unit_price ?? 0,
-                        line_total: it.line_total ?? 0,
-                        matched_shopping_list: it.matched_shopping_list ?? false,
-                        invoice: newInvoice,
-                    });
-                    await InvoiceItemsRepo.save(invoiceItem);
-                }
+            for (const it of items) {
+                const invoiceItem = InvoiceItemsRepo.create({
+                    rawName: it.raw_name ?? null,
+                    brand: it.brand ?? null,
+                    category: it.category ?? null,
+                    plantBased: it.plant_based ?? false,
+                    quantity: it.quantity ?? 0,
+                    unitPrice: it.unit_price ?? 0,
+                    lineTotal: it.line_total ?? 0,
+                    matchedShoppingList: it.matched_shopping_list ?? false,
+                    invoice: newInvoice,
+                } as DeepPartial<InvoiceItems>);
+                await InvoiceItemsRepo.save(invoiceItem);
             }
 
             const fullInvoice = await InvoicesRepo.findOne({
@@ -130,130 +130,84 @@ export class InvoicesController {
                 relations: { items: true, vendor: true },
             });
 
-            return res.status(201).json({
-                message: "Invoice created successfully",
-                data: fullInvoice,
-            });
+            return res.status(201).json({ message: "Invoice created successfully", data: fullInvoice });
         } catch (error) {
             console.error("CreateInvoice Error:", error);
             return res.status(500).json({ message: "Internal Server Error" });
         }
     };
 
-    public GetInvoices: RequestHandler = async (req: Request, res: Response) => {
+    public GetInvoices: RequestHandler = async (_req, res) => {
         try {
             const invoices = await InvoicesRepo.find({
-                relations: {
-                    items: true,
-                    vendor: true,
-                },
+                relations: { items: true, vendor: true },
                 order: { createdAt: "DESC" },
             });
-
-            return res.status(200).json({message: "Successfully", data: invoices.length > 0 ? invoices : "No invoices yet"});
+            return res.status(200).json({ message: "Successfully", data: invoices });
         } catch (error) {
             console.error("GetInvoices Error:", error);
             return res.status(500).json({ message: "Internal Server Error" });
         }
     };
-    public GetInvoiceById: RequestHandler = async (req: Request, res: Response) => {
-        const invoiceId = req.params.id;
-        if (!invoiceId) {
-            return res.status(400).json({ message: "Invalid invoice ID" });
-        }
+
+    public GetInvoiceById: RequestHandler = async (req, res) => {
         try {
             const invoice = await InvoicesRepo.findOne({
-                where: {
-                    id: invoiceId,
-                },
-                relations: {
-                    items: true,
-                    vendor: true,
-                },
-            })
-            if (!invoice) {
-                return res.status(404).json({ message: "Invoice not found" });
-            }
-            res.status(200).json({message: `Invoice with id = ${invoiceId} found`, data: invoice});
+                where: { id: req.params.id },
+                relations: { items: true, vendor: true },
+            });
+            if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+            return res.status(200).json({ message: "Invoice found", data: invoice });
         } catch (e) {
+            console.error("GetInvoiceById Error:", e);
             return res.status(500).json({ message: "Internal Server Error" });
         }
-    }
-    public UpdateInvoice: RequestHandler = async (req: Request, res: Response) => {
-        const invoiceId = req.params.id;
-        if (!invoiceId) {
-            return res.status(400).json({ message: "Missing invoice ID" });
-        }
+    };
 
+    public UpdateInvoice: RequestHandler = async (req, res) => {
         const parsed = invoiceSchema.safeParse(req.body);
         if (!parsed.success) {
-            return res.status(400).json({
-                message: "Invalid input",
-                error: parsed.error.format(),
-            });
+            return res.status(400).json({ message: "Invalid input", error: parsed.error.format() });
         }
 
         try {
             const { doc, vendor, datetime, items, totals } = parsed.data;
-
-            // --- Tìm invoice ---
             const existingInvoice = await InvoicesRepo.findOne({
-                where: { id: invoiceId },
+                where: { id: req.params.id },
                 relations: { items: true, vendor: true },
             });
-            if (!existingInvoice) {
-                return res.status(404).json({ message: "Invoice not found" });
-            }
+            if (!existingInvoice) return res.status(404).json({ message: "Invoice not found" });
 
-            let updatedVendor: Vendor | null = null;
-            if (vendor?.name && vendor?.address) {
-                const checkVendor = await VendorRepo.findOne({
-                    where: { name: vendor.name, address: vendor.address },
-                });
+            const updatedVendor = await findOrCreateVendor(vendor);
+            const issuedDate = parseIssuedDate(datetime);
 
-                if (checkVendor) {
-                    updatedVendor = checkVendor;
-                } else {
-                    updatedVendor = VendorRepo.create({
-                        name: vendor.name,
-                        address: vendor.address,
-                        geo_hint: vendor.geo_hint ?? null,
-                    });
-                    await VendorRepo.save(updatedVendor);
-                }
-            }
-
-            let issuedDate: Date | undefined;
-            if (datetime?.date) {
-                const [day, month, year] = datetime.date.split("/");
-                issuedDate = new Date(Date.UTC(+year, +month - 1, +day));
-            }
-            existingInvoice.currency = doc?.currency ?? existingInvoice.currency;
-            existingInvoice.payment_method = doc?.payment_method ?? existingInvoice.payment_method;
-            existingInvoice.notes = doc?.notes ?? existingInvoice.notes;
-            existingInvoice.subtotal = totals?.subtotal ?? existingInvoice.subtotal;
-            existingInvoice.discount = totals?.discount ?? existingInvoice.discount;
-            existingInvoice.tax = totals?.tax ?? existingInvoice.tax;
-            existingInvoice.grand_total = totals?.grand_total ?? existingInvoice.grand_total;
-            existingInvoice.issued_date = issuedDate ?? existingInvoice.issued_date;
-            existingInvoice.vendor = updatedVendor ?? existingInvoice.vendor;
+            Object.assign(existingInvoice, {
+                currency: doc?.currency ?? existingInvoice.currency,
+                paymentMethod: doc?.payment_method ?? existingInvoice.paymentMethod,
+                notes: doc?.notes ?? existingInvoice.notes,
+                subtotal: totals?.subtotal ?? existingInvoice.subtotal,
+                discount: totals?.discount ?? existingInvoice.discount,
+                tax: totals?.tax ?? existingInvoice.tax,
+                grandTotal: totals?.grand_total ?? existingInvoice.grandTotal,
+                issuedDate: issuedDate ?? existingInvoice.issuedDate,
+                vendor: updatedVendor ?? existingInvoice.vendor,
+            });
             await InvoicesRepo.save(existingInvoice);
 
             if (items && items.length > 0) {
                 await InvoiceItemsRepo.delete({ invoice: { id: existingInvoice.id } });
-
                 for (const it of items) {
                     const invoiceItem = InvoiceItemsRepo.create({
-                        raw_name: it.raw_name ?? "",
+                        rawName: it.raw_name ?? null,
                         brand: it.brand ?? null,
                         category: it.category ?? null,
-                        plant_based: it.plant_based ?? false,
+                        plantBased: it.plant_based ?? false,
                         quantity: it.quantity ?? 0,
-                        unit_price: it.unit_price ?? 0,
-                        line_total: it.line_total ?? 0,
-                        matched_shopping_list: it.matched_shopping_list ?? false,
+                        unitPrice: it.unit_price ?? 0,
+                        lineTotal: it.line_total ?? 0,
+                        matchedShoppingList: it.matched_shopping_list ?? false,
                         invoice: existingInvoice,
-                    });
+                    } as DeepPartial<InvoiceItems>);
                     await InvoiceItemsRepo.save(invoiceItem);
                 }
             }
@@ -262,36 +216,28 @@ export class InvoicesController {
                 where: { id: existingInvoice.id },
                 relations: { items: true, vendor: true },
             });
-
-            return res.status(200).json({
-                message: "Invoice updated successfully",
-                data: updatedInvoice,
-            });
+            return res.status(200).json({ message: "Invoice updated successfully", data: updatedInvoice });
         } catch (error) {
             console.error("UpdateInvoice Error:", error);
             return res.status(500).json({ message: "Internal Server Error" });
         }
     };
 
-    public DeleteInvoice: RequestHandler = async (req: Request, res: Response) => {
-        const invoiceId = req.params.id;
-        if (!invoiceId) {
-            return res.status(400).json({ message: "Missing invoice ID" });
-        }
+    public DeleteInvoice: RequestHandler = async (req, res) => {
         try {
             const invoice = await InvoicesRepo.findOne({
-                where: { id: invoiceId },
+                where: { id: req.params.id },
                 relations: { items: true, vendor: true },
             });
-            if (!invoice) {
-                return res.status(404).json({ message: "Invoice not found" });
-            }
-            await InvoicesRepo.delete(invoiceId);
-            res.status(200).json({ message: "Invoice deleted successfully", deleted: invoice });
+            if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+
+            await InvoicesRepo.delete(invoice.id);
+            return res.status(200).json({ message: "Invoice deleted successfully", deleted: invoice });
         } catch (e) {
+            console.error("DeleteInvoice Error:", e);
             return res.status(500).json({ message: "Internal Server Error" });
         }
-    }
+    };
 }
 
 export default new InvoicesController();
