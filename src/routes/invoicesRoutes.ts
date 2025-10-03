@@ -9,4 +9,5 @@ invoicesRouter.get('/invoices/get-invoices-by-id/:id', controller.invoices.GetIn
 invoicesRouter.put('/invoices/update-invoice/:id', controller.invoices.UpdateInvoice);
 invoicesRouter.delete('/invoices/delete-invoice/:id', controller.invoices.DeleteInvoice);
 
+
 export default invoicesRouter;
