@@ -8,6 +8,7 @@ import TEXT from "../config/schemas/Text";
 import NUMBER from "../config/schemas/Number";
 import BOOLEAN from "../config/schemas/Boolean";
 import type {DeepPartial} from "typeorm";
+import {Scans} from "../entity/scans";
 
 const invoiceItemsParamsSchemas = z.object({
     raw_name: TEXT.nullish(),
@@ -51,6 +52,7 @@ const invoiceSchema = z.object({
     datetime: datetimeSchema,
     items: z.array(invoiceItemsParamsSchemas),
     totals: totalsSchema,
+    scanId: TEXT,
 });
 
 function parseIssuedDate(dateStr?: string | null): Date | null {
@@ -89,12 +91,21 @@ export class InvoicesController {
         }
 
         try {
-            const { doc, vendor, datetime, items, totals } = parsed.data;
+            const { doc, vendor, datetime, items, totals, scanId } = parsed.data;
             const issuedDate = parseIssuedDate(datetime?.date);
             const issuedTime = parseIssuedTime(datetime?.time);
 
             const fullInvoice = await AppDataSource.transaction(async (manager) => {
                 let newVendor: Vendor | null = null;
+
+                let scan: Scans | null = null;
+                if (scanId) {
+                    scan = await AppDataSource.getRepository(Scans).findOne({where: {id: scanId}})
+                    if (!scan) {
+                        scan = null;
+                    }
+                }
+
                 if (vendor?.name && vendor?.address) {
                     const checkVendor = await manager.findOne(Vendor, {
                         where: {name: vendor.name, address: vendor.address},
@@ -121,7 +132,8 @@ export class InvoicesController {
                     issuedDate,
                     issuedTime,
                     vendor: newVendor ?? undefined,
-                });
+                    scans: scan ?? undefined,
+                } as DeepPartial<Invoices>);
                 await manager.save(newInvoice);
 
                 if (items && items.length > 0) {
@@ -157,10 +169,10 @@ export class InvoicesController {
     public GetInvoices: RequestHandler = async (_req, res) => {
         try {
             const invoices = await AppDataSource.getRepository(Invoices).find({
-                relations: { items: true, vendor: true },
+                relations: { items: true, vendor: true, scans: true },
                 order: { createdAt: "DESC" },
             });
-            return res.status(200).json({ message: "Successfully", data: invoices });
+            return res.status(200).json({ message: "Successfully", data: invoices.length > 0 ? invoices : "No invoices yet" });
         } catch (error) {
             console.error("GetInvoices Error:", error);
             return res.status(500).json({ message: "Internal Server Error" });
@@ -171,9 +183,10 @@ export class InvoicesController {
         try {
             const invoice = await AppDataSource.getRepository(Invoices).findOne({
                 where: { id: req.params.id },
-                relations: { items: true, vendor: true },
+                relations: { items: true, vendor: true, scans: true },
             });
             if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+
             return res.status(200).json({ message: "Invoice found", data: invoice });
         } catch (e) {
             console.error("GetInvoiceById Error:", e);
@@ -229,7 +242,6 @@ export class InvoicesController {
                 });
                 await manager.save(existingInvoice);
 
-                // replace items
                 if (items && items.length > 0) {
                     await manager.delete(InvoiceItems, {invoice: {id: existingInvoice.id}});
                     const invoiceItems = items.map((it) =>
@@ -270,7 +282,6 @@ export class InvoicesController {
                 relations: { items: true, vendor: true },
             });
             if (!invoice) return res.status(404).json({ message: "Invoice not found" });
-
             await repo.delete(invoice.id);
             return res.status(200).json({ message: "Invoice deleted successfully", deleted: invoice });
         } catch (e) {

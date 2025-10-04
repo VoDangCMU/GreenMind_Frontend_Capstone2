@@ -3,10 +3,10 @@ import controller from "../controller";
 
 const caloriesRouter = Router();
 
-caloriesRouter.post('/calories/create-calories', controller.calories.CreateCalories);
-caloriesRouter.get('/calories/get-calories', controller.calories.GetCalories);
-caloriesRouter.get('/calories/get-calories-by-id/:id', controller.calories.GetCaloriesById);
-caloriesRouter.put('/calories/update-calories/:id', controller.calories.UpdateCalories);
-caloriesRouter.delete('/calories/delete-calories/:id', controller.calories.DeleteCalories);
+caloriesRouter.post('/create-calories', controller.calories.CreateCalories);
+caloriesRouter.get('/get-calories', controller.calories.GetCalories);
+caloriesRouter.get('/get-calories-by-id/:id', controller.calories.GetCaloriesById);
+caloriesRouter.put('/update-calories/:id', controller.calories.UpdateCalories);
+caloriesRouter.delete('/delete-calories/:id', controller.calories.DeleteCalories);
 
 export default caloriesRouter;
