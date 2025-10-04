@@ -34,7 +34,7 @@ export class CaloriesController {
     public GetCalories: RequestHandler = async (req: Request, res: Response) => {
         try {
             const calories = await CaloriesRepo.find();
-            return res.status(200).json({calories: calories});
+            return res.status(200).json({message: "Successfully", data: calories.length > 0 ? calories : "No calories yet"});
         } catch (error) {
             return res.status(500).json({message: "Internal Server Error"});
         }
