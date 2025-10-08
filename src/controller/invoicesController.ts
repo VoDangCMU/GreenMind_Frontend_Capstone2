@@ -4,6 +4,7 @@ import AppDataSource from "../infrastructure/database";
 import {Invoices} from "../entity/invoices";
 import {InvoiceItems} from "../entity/invoice_items";
 import {Vendor} from "../entity/vendor";
+import {User} from "../entity/user";
 import TEXT from "../config/schemas/Text";
 import NUMBER from "../config/schemas/Number";
 import BOOLEAN from "../config/schemas/Boolean";
@@ -289,6 +290,36 @@ export class InvoicesController {
             return res.status(500).json({ message: "Internal Server Error" });
         }
     };
+
+    public GetInvoicesByUser: RequestHandler = async (req, res) => {
+        try {
+            const parsedUserId = invoiceSchema.safeParse(req.params.userId);
+            if (!parsedUserId.success) {
+                return res.status(400).json({ message: "Invalid input", error: parsedUserId.error.format() });
+            }
+
+            const userId = req.params.userId;
+
+            const existedUser = await AppDataSource.getRepository(User).findOne({
+                where: {
+                    id: userId
+                },
+            })
+
+            if (!existedUser) {
+                return res.status(404).json({message: "User not found"});
+            }
+
+            const invoices = await AppDataSource.getRepository(Invoices).find({
+                where: { user: { id: userId } },
+            });
+
+            return res.status(200).json({invoices});
+        } catch (e) {
+            console.error("Getnvoice Error:", e);
+            return res.status(500).json({message: "Internal Server Error"});
+        }
+    }
 }
 
 export default new InvoicesController();
