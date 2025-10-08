@@ -90,7 +90,7 @@ class UserController {
                 duration
             });
 
-            res.status(201).json({
+            res.status(200).json({
                 message: "Register successful",
                 user: {
                     id: newUser.id,
@@ -130,25 +130,35 @@ class UserController {
                 email: email ? "provided" : "missing",
                 password: password ? "provided" : "missing"
             });
-            res.status(400).json({ message: "Email and password are required" });
-            return;
+            return res.status(400).json({ message: "Email and password are required" });
         }
 
         try {
             const userRepository = AppDataSource.getRepository(User);
             const user = await userRepository.findOne({
-                where: { email }
+                where: { email },
+                select: ['id', 'email', 'username', 'password', 'role', 'fullName']
             });
 
             const duration = Date.now() - startTime;
 
-            if (!user || !await bcrypt.compare(password, user.password)) {
+            // ✅ Check user existence and password presence first
+            if (!user || !user.password) {
                 logger.warn("Login failed - invalid credentials", {
                     email: email?.substring(0, 3) + "***",
                     duration
                 });
-                res.status(400).json({ message: "Invalid email or password" });
-                return;
+                return res.status(400).json({ message: "Invalid email or password" });
+            }
+
+            // ✅ Compare password safely
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                logger.warn("Login failed - invalid credentials", {
+                    email: email?.substring(0, 3) + "***",
+                    duration
+                });
+                return res.status(400).json({ message: "Invalid email or password" });
             }
 
             const payload = {
@@ -168,7 +178,7 @@ class UserController {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'strict',
-                maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+                maxAge: 1000 * 60 * 60 * 24 * 7
             });
 
             logger.info("User login successful", {
@@ -177,7 +187,7 @@ class UserController {
                 duration
             });
 
-            res.status(200).json({
+            return res.status(200).json({
                 message: "Login successful",
                 user: {
                     id: user.id,
@@ -189,17 +199,16 @@ class UserController {
                 access_token: tokenPair.accessToken,
                 refresh_token: tokenPair.refreshToken
             });
-            return;
+
         } catch (error) {
             const duration = Date.now() - startTime;
             logger.error("Login error", error as Error, {
                 email: email?.substring(0, 3) + "***",
                 duration
             });
-            res.status(500).json({ message: "Internal server error" });
-            return;
+            return res.status(500).json({ message: "Internal server error" });
         }
-    }
+    };
 
     public LoginWithGoogle: RequestHandler = async (req: Request, res: Response) => {
         const logger = getLogger();
