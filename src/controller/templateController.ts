@@ -28,6 +28,29 @@ const TemplateIdSchema = z.object({
     id: z.string(),
 });
 
+// Updated schema for createTemplates - expects direct templates array
+const PlaceholdersSchema = z.object({
+    required: z.array(z.string()),
+    optional: z.array(z.string()),
+    used_placeholders: z.array(z.string()),
+});
+
+const TemplateFromPayloadSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    intent: z.string(),
+    placeholders: PlaceholdersSchema,
+    prompt: z.string(),
+    question_type: z.string(),
+    answer: TemplateAnswerSchema,
+    filled_prompt: z.string().optional(),
+});
+
+const CreateTemplatesRequestSchema = z.object({
+    templates: z.array(TemplateFromPayloadSchema).min(1, "At least one template is required"),
+});
+
 const TemplateRepository = AppDataSource.getRepository(Template);
 const TemplateAnswerRepository = AppDataSource.getRepository(TemplateAnswer);
 
@@ -46,6 +69,19 @@ function validateTemplateParams(req: Request, res: Response) {
 
 function validateTemplateIdParams(req: Request, res: Response) {
     const parsed = TemplateIdSchema.safeParse(req.params);
+    if (!parsed.success) {
+        logger.error("Zod validation error", undefined, { details: parsed.error });
+        res.status(400).json({
+            message: "Validation error",
+            errors: parsed.error.format(),
+        });
+        return null;
+    }
+    return parsed.data;
+}
+
+function validateCreateTemplatesParams(req: Request, res: Response) {
+    const parsed = CreateTemplatesRequestSchema.safeParse(req.body);
     if (!parsed.success) {
         logger.error("Zod validation error", undefined, { details: parsed.error });
         res.status(400).json({
@@ -97,6 +133,83 @@ class TemplateController {
             return res.status(200).json({ createdTemplate });
         } catch (e) {
             logger.error("Error creating template", e as Error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
+    public async createTemplates(req: Request, res: Response) {
+        const data = validateCreateTemplatesParams(req, res);
+        if (!data) return;
+
+        try {
+            const savedTemplates = [];
+            const errors: string[] = [];
+
+            // Process each template from the payload
+            for (let i = 0; i < data.templates.length; i++) {
+                const templateData = data.templates[i];
+
+                try {
+                    // Check if template already exists
+                    const existedTemplate = await TemplateRepository.findOne({
+                        where: { id: templateData.id },
+                        relations: ["answer"]
+                    });
+
+                    if (!existedTemplate) {
+                        const newTemplateAnswer = TemplateAnswerRepository.create({
+                            type: templateData.answer.type,
+                            scale: templateData.answer.scale,
+                            labels: templateData.answer.labels,
+                            options: templateData.answer.options,
+                        });
+
+                        const newTemplate = TemplateRepository.create({
+                            id: templateData.id,
+                            name: templateData.name,
+                            description: templateData.description,
+                            intent: templateData.intent,
+                            prompt: templateData.prompt,
+                            used_placeholders: templateData.placeholders.used_placeholders,
+                            question_type: templateData.question_type,
+                            filled_prompt: templateData.filled_prompt,
+                            answer: newTemplateAnswer,
+                        });
+
+                        const savedTemplate = await TemplateRepository.save(newTemplate);
+                        savedTemplates.push(savedTemplate);
+                    } else {
+                        // Template exists, add to saved list
+                        savedTemplates.push(existedTemplate);
+                        errors.push(`Template ${templateData.id} already exists, skipped creation`);
+                    }
+                } catch (e) {
+                    errors.push(`Template ${i + 1} (${templateData.id}): ${(e as Error).message}`);
+                    logger.error(`Error processing template ${templateData.id}`, e as Error);
+                }
+            }
+
+            if (savedTemplates.length === 0) {
+                return res.status(400).json({
+                    message: "No templates were created",
+                    errors: errors
+                });
+            }
+
+            const response: any = {
+                message: `${savedTemplates.length} templates processed successfully`,
+                count: savedTemplates.length,
+                templates: savedTemplates
+            };
+
+            if (errors.length > 0) {
+                response.warnings = errors;
+                response.message = `${savedTemplates.length} templates processed with ${errors.length} warnings`;
+            }
+
+            return res.status(200).json(response);
+        } catch (e) {
+            logger.error("Error creating templates", e as Error);
             return res.status(500).json({ message: "Internal server error" });
         }
     }

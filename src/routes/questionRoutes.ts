@@ -13,6 +13,9 @@ router.post('/', jwtAuthMiddleware, staffOrAdminMiddleware, controller.questions
 // Create multiple questions at once (staff/admin only) - for frontend batch upload
 router.post('/batch', jwtAuthMiddleware, staffOrAdminMiddleware, controller.questions.CreateBatchQuestions);
 
+// Create multiple questions from direct payload (staff/admin only)
+router.post('/createQuestions', jwtAuthMiddleware, staffOrAdminMiddleware, controller.questions.createQuestions);
+
 // Get all questions (requires authentication)
 router.get('/', jwtAuthMiddleware, controller.questions.GetQuestions);
 

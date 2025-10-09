@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import AppDataSource from '../infrastructure/database';
 import { Questions } from '../entity/questions';
+import { QuestionOptions } from '../entity/question_options';
 import { Template } from '../entity/templates';
 import { ThreadHall } from '../entity/thread_halls';
 import { logger } from '../infrastructure/logger';
@@ -27,7 +28,29 @@ const BatchQuestionSchema = z.object({
     questions: z.array(QuestionSchema).min(1, "At least one question is required")
 });
 
+// New schema for createQuestions API
+const AnswerSchema = z.object({
+    type: z.string(),
+    scale: z.array(z.number()).optional(),
+    labels: z.array(z.string()).optional(),
+    options: z.array(z.string()).optional(),
+});
+
+const QuestionFromPayloadSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    intent: z.string(),
+    question_type: z.string(),
+    filled_prompt: z.string(),
+    answer: AnswerSchema,
+});
+
+const CreateQuestionsRequestSchema = z.object({
+    questions: z.array(QuestionFromPayloadSchema).min(1, "At least one question is required")
+});
+
 const QuestionsRepository = AppDataSource.getRepository(Questions);
+const QuestionOptionsRepository = AppDataSource.getRepository(QuestionOptions);
 const TemplateRepository = AppDataSource.getRepository(Template);
 const ThreadHallRepository = AppDataSource.getRepository(ThreadHall);
 
@@ -61,6 +84,19 @@ function validateQuestionUpdateParams(req: Request, res: Response) {
     const parsed = QuestionUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
         logger.error('Question update validation error', undefined, { details: parsed.error });
+        res.status(400).json({
+            message: "Validation error",
+            errors: parsed.error.format()
+        });
+        return null;
+    }
+    return parsed.data;
+}
+
+function validateCreateQuestionsParams(req: Request, res: Response) {
+    const parsed = CreateQuestionsRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+        logger.error('Create questions validation error', undefined, { details: parsed.error });
         res.status(400).json({
             message: "Validation error",
             errors: parsed.error.format()
@@ -189,6 +225,111 @@ export class QuestionsController {
             return res.status(201).json(response);
         } catch (e) {
             logger.error('Error creating batch questions', e as Error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
+    // Create multiple questions from direct payload
+    public async createQuestions(req: Request, res: Response) {
+        const data = validateCreateQuestionsParams(req, res);
+        if (!data) return;
+
+        try {
+            const savedQuestions = [];
+            const errors: string[] = [];
+
+            // Process each question from the payload
+            for (let i = 0; i < data.questions.length; i++) {
+                const questionData = data.questions[i];
+
+                try {
+                    // Check if question already exists by templateId
+                    const existedQuestion = await QuestionsRepository.findOne({
+                        where: { templateId: questionData.id },
+                        relations: ["questionOptions"]
+                    });
+
+                    if (!existedQuestion) {
+                        // Create new question
+                        const newQuestion = QuestionsRepository.create({
+                            question: questionData.filled_prompt,
+                            templateId: questionData.id,
+                            behaviorInput: questionData.name,
+                            behaviorNormalized: questionData.intent,
+                        });
+
+                        const savedQuestion = await QuestionsRepository.save(newQuestion);
+
+                        // Create question options based on answer type
+                        const questionOptions = [];
+
+                        if (questionData.answer.type === 'scale' && questionData.answer.labels) {
+                            // For scale type with labels
+                            for (let j = 0; j < questionData.answer.labels.length; j++) {
+                                const option = QuestionOptionsRepository.create({
+                                    question: savedQuestion,
+                                    text: questionData.answer.labels[j],
+                                    value: questionData.answer.scale ? questionData.answer.scale[j].toString() : (j + 1).toString(),
+                                    order: j
+                                });
+                                questionOptions.push(option);
+                            }
+                        } else if (questionData.answer.type === 'binary' && questionData.answer.options) {
+                            // For binary type with options
+                            for (let j = 0; j < questionData.answer.options.length; j++) {
+                                const option = QuestionOptionsRepository.create({
+                                    question: savedQuestion,
+                                    text: questionData.answer.options[j],
+                                    value: j.toString(),
+                                    order: j
+                                });
+                                questionOptions.push(option);
+                            }
+                        }
+
+                        if (questionOptions.length > 0) {
+                            await QuestionOptionsRepository.save(questionOptions);
+                        }
+
+                        // Reload question with options
+                        const questionWithOptions = await QuestionsRepository.findOne({
+                            where: { id: savedQuestion.id },
+                            relations: ["questionOptions"]
+                        });
+
+                        savedQuestions.push(questionWithOptions);
+                    } else {
+                        // Question exists, add to saved list
+                        savedQuestions.push(existedQuestion);
+                        errors.push(`Question ${questionData.id} already exists, skipped creation`);
+                    }
+                } catch (e) {
+                    errors.push(`Question ${i + 1} (${questionData.id}): ${(e as Error).message}`);
+                    logger.error(`Error processing question ${questionData.id}`, e as Error);
+                }
+            }
+
+            if (savedQuestions.length === 0) {
+                return res.status(400).json({
+                    message: "No questions were created",
+                    errors: errors
+                });
+            }
+
+            const response: any = {
+                message: `${savedQuestions.length} questions processed successfully`,
+                count: savedQuestions.length,
+                data: savedQuestions
+            };
+
+            if (errors.length > 0) {
+                response.warnings = errors;
+                response.message = `${savedQuestions.length} questions processed with ${errors.length} warnings`;
+            }
+
+            return res.status(200).json(response);
+        } catch (e) {
+            logger.error("Error creating questions", e as Error);
             return res.status(500).json({ message: "Internal server error" });
         }
     }
