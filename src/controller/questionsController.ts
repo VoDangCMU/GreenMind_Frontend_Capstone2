@@ -726,8 +726,8 @@ export class QuestionsController {
             const groupedQuestions: any = {};
 
             for (const question of questions) {
-                const ocean = question.template?.trait || 'O';
-                const qtype = question.template?.questionType || 'frequency';
+                const ocean = 'O'; // Default ocean value since trait property doesn't exist in Template
+                const qtype = question.template?.question_type || 'frequency';
 
                 // Initialize ocean group if not exists
                 if (!groupedQuestions[ocean]) {
@@ -739,8 +739,8 @@ export class QuestionsController {
                     groupedQuestions[ocean][qtype] = [];
                 }
 
-                // Extract slot from template text (find text between {})
-                const slotMatch = question.template?.text?.match(/{(\w+)}/);
+                // Extract slot from template prompt (find text between {})
+                const slotMatch = question.template?.prompt?.match(/{(\w+)}/);
                 const slot = slotMatch ? slotMatch[1] : 'behavior';
 
                 // Get question options values, sorted by order
