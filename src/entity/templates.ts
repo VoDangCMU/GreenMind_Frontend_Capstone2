@@ -1,4 +1,4 @@
-import {Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateColumn} from "typeorm";
+import {Column, CreateDateColumn, Entity, OneToMany, OneToOne,PrimaryColumn, UpdateDateColumn, JoinColumn} from "typeorm";
 import {Questions} from "./questions";
 import {TemplateAnswer} from "./template_answers";
 
@@ -30,10 +30,10 @@ export class Template {
     @Column({type: "text", nullable: true})
     filled_prompt?: string;
 
-    @OneToMany(() => TemplateAnswer, (answers) => answers.template, {cascade: true})
-    answers!: TemplateAnswer[];
+    @OneToOne(() => TemplateAnswer, (answer) => answer.template, { cascade: true, onDelete: "CASCADE" })
+    answer!: TemplateAnswer;
 
-    @OneToMany(() => Questions, questions => questions.template)
+    @OneToMany(() => Questions, questions => questions.template, {onDelete: "CASCADE"})
     questions!: Questions[];
 
     @CreateDateColumn({type: 'timestamp'})

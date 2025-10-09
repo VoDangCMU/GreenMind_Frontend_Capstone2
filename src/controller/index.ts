@@ -13,7 +13,6 @@ import behavior from "./behaviorController";
 import threadHall from "./threadHallController";
 import scans from "./scansController";
 import userAnswers from "./userAnswersController";
-import templateAnswer from "./templateAnswerController";
 
 export default {
     health,
@@ -31,5 +30,4 @@ export default {
     threadHall,
     scans,
     userAnswers,
-    templateAnswer
 };

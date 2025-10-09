@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class CreateTemplateAnswerAndRefactorTemplateEntity1759929847027 implements MigrationInterface {
-    name = 'CreateTemplateAnswerAndRefactorTemplateEntity1759929847027'
+export class RefactorTemplateAndTemplateAnswerEntity1760018154418 implements MigrationInterface {
+    name = 'RefactorTemplateAndTemplateAnswerEntity1760018154418'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "locations" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "latitude" double precision NOT NULL, "longitude" double precision NOT NULL, "address" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "userId" uuid, CONSTRAINT "PK_7cc1c9e3853b94816c094825e74" PRIMARY KEY ("id"))`);
@@ -13,14 +13,14 @@ export class CreateTemplateAnswerAndRefactorTemplateEntity1759929847027 implemen
         await queryRunner.query(`CREATE TABLE "invoice_items" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "raw_name" text, "brand" text, "category" text, "plant_based" boolean NOT NULL DEFAULT false, "quantity" integer NOT NULL, "unit_price" numeric NOT NULL, "line_total" numeric NOT NULL, "matched_shopping_list" boolean NOT NULL DEFAULT false, "invoiceId" uuid, CONSTRAINT "PK_53b99f9e0e2945e69de1a12b75a" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "invoices" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "currency" text NOT NULL, "payment_method" text NOT NULL, "notes" text, "issued_date" date, "issued_time" TIME, "subtotal" numeric NOT NULL, "discount" numeric NOT NULL, "tax" numeric NOT NULL, "grand_total" numeric NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "vendorId" uuid, "userId" uuid, "scansId" uuid, CONSTRAINT "PK_668cef7c22a427fd822cc1be3ce" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "vendors" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" text NOT NULL, "address" text NOT NULL, "geo_hint" text, CONSTRAINT "PK_9c956c9797edfae5c6ddacc4e6e" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "template_answers" ("id" character varying NOT NULL, "type" character varying NOT NULL, "scale" json, "labels" json, "options" json, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "templateId" character varying, CONSTRAINT "PK_c9347cc8e36d2995a6512a245c4" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "templates" ("id" character varying NOT NULL, "name" character varying NOT NULL, "description" text, "intent" character varying NOT NULL, "prompt" text NOT NULL, "used_placeholders" json, "question_type" character varying, "filled_prompt" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_515948649ce0bbbe391de702ae5" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "behaviors" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" text NOT NULL, "type" text NOT NULL, "keywords" text array NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "description" text, "threadHallId" uuid, CONSTRAINT "PK_dc34a2b981fe38b508ba9957255" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "traits" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" text NOT NULL, "description" text NOT NULL, "label" text NOT NULL, CONSTRAINT "PK_3956071aa0a8eb8210aa1c6a563" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "thread_halls" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" text NOT NULL, "description" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "traitsId" uuid, CONSTRAINT "PK_09adb0fdf43ef0228e7568631af" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "template_answers" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "type" character varying NOT NULL, "scale" json, "labels" json, "options" json, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_c9347cc8e36d2995a6512a245c4" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "templates" ("id" character varying NOT NULL, "name" character varying NOT NULL, "description" text, "intent" character varying NOT NULL, "prompt" text NOT NULL, "used_placeholders" json, "question_type" character varying, "filled_prompt" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_515948649ce0bbbe391de702ae5" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "user_answers" ("user_id" uuid NOT NULL, "question_id" uuid NOT NULL, "answer" text NOT NULL, "timestamp" TIMESTAMP NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_6b98aee2579df632ccb8b36ba49" PRIMARY KEY ("user_id", "question_id"))`);
         await queryRunner.query(`CREATE TABLE "question_options" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "text" text NOT NULL, "value" text NOT NULL, "order" integer NOT NULL DEFAULT '0', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "questionId" uuid, CONSTRAINT "PK_13be20e51c0738def32f00cf7d5" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "questions" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "question" text NOT NULL, "templateId" character varying, "behaviorInput" text, "behaviorNormalized" text, "normalizeScore" numeric(5,2), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "threadHallId" uuid, CONSTRAINT "PK_08a6d4b0f49ff300bf3a0ca60ac" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "user_answers" ("user_id" uuid NOT NULL, "question_id" uuid NOT NULL, "answer" text NOT NULL, "timestamp" TIMESTAMP NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_6b98aee2579df632ccb8b36ba49" PRIMARY KEY ("user_id", "question_id"))`);
+        await queryRunner.query(`CREATE TABLE "thread_halls" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" text NOT NULL, "description" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "traitsId" uuid, CONSTRAINT "PK_09adb0fdf43ef0228e7568631af" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "traits" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" text NOT NULL, "description" text NOT NULL, "label" text NOT NULL, CONSTRAINT "PK_3956071aa0a8eb8210aa1c6a563" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "tokens" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "token" character varying(255) NOT NULL, "deviceID" character varying(50), "expiredAt" TIMESTAMP NOT NULL, "userId" uuid NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_6a8ca5961656d13c16c04079dd3" UNIQUE ("token"), CONSTRAINT "UQ_6e88a0a447be3fa009b4051c196" UNIQUE ("deviceID"), CONSTRAINT "PK_3001e89ada36263dabf1fb6210a" PRIMARY KEY ("id"))`);
         await queryRunner.query(`ALTER TABLE "locations" ADD CONSTRAINT "FK_78eda52dc27b7ad20350c4a752d" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "big_five" ADD CONSTRAINT "FK_f5c79764cf690eaa88773726593" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
@@ -31,27 +31,25 @@ export class CreateTemplateAnswerAndRefactorTemplateEntity1759929847027 implemen
         await queryRunner.query(`ALTER TABLE "invoices" ADD CONSTRAINT "FK_754b22c515e4b1ee18ed31f0b07" FOREIGN KEY ("vendorId") REFERENCES "vendors"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "invoices" ADD CONSTRAINT "FK_fcbe490dc37a1abf68f19c5ccb9" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "invoices" ADD CONSTRAINT "FK_02cd4a1e7eefac58057c27e1454" FOREIGN KEY ("scansId") REFERENCES "scans"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "template_answers" ADD CONSTRAINT "FK_89e4150c9659d3c5b38d40d9634" FOREIGN KEY ("templateId") REFERENCES "templates"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "behaviors" ADD CONSTRAINT "FK_5afc686724620f4c13d4cf1a29c" FOREIGN KEY ("threadHallId") REFERENCES "thread_halls"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "thread_halls" ADD CONSTRAINT "FK_204ecc176a8ce3f0d835a85840f" FOREIGN KEY ("traitsId") REFERENCES "traits"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_answers" ADD CONSTRAINT "FK_d84d10f2e3b97a037d5479bf669" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "user_answers" ADD CONSTRAINT "FK_adae59e684b873b084be36c5a7a" FOREIGN KEY ("question_id") REFERENCES "questions"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "question_options" ADD CONSTRAINT "FK_c654af7759a681f1b1addbe35bf" FOREIGN KEY ("questionId") REFERENCES "questions"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "questions" ADD CONSTRAINT "FK_f4e45583cbe6aaa143cdfeaae09" FOREIGN KEY ("templateId") REFERENCES "templates"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "questions" ADD CONSTRAINT "FK_900ccfcf91e174e7e275de127f1" FOREIGN KEY ("threadHallId") REFERENCES "thread_halls"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "user_answers" ADD CONSTRAINT "FK_d84d10f2e3b97a037d5479bf669" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "user_answers" ADD CONSTRAINT "FK_adae59e684b873b084be36c5a7a" FOREIGN KEY ("question_id") REFERENCES "questions"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "thread_halls" ADD CONSTRAINT "FK_204ecc176a8ce3f0d835a85840f" FOREIGN KEY ("traitsId") REFERENCES "traits"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "tokens" ADD CONSTRAINT "FK_d417e5d35f2434afc4bd48cb4d2" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "tokens" DROP CONSTRAINT "FK_d417e5d35f2434afc4bd48cb4d2"`);
-        await queryRunner.query(`ALTER TABLE "user_answers" DROP CONSTRAINT "FK_adae59e684b873b084be36c5a7a"`);
-        await queryRunner.query(`ALTER TABLE "user_answers" DROP CONSTRAINT "FK_d84d10f2e3b97a037d5479bf669"`);
+        await queryRunner.query(`ALTER TABLE "thread_halls" DROP CONSTRAINT "FK_204ecc176a8ce3f0d835a85840f"`);
         await queryRunner.query(`ALTER TABLE "questions" DROP CONSTRAINT "FK_900ccfcf91e174e7e275de127f1"`);
         await queryRunner.query(`ALTER TABLE "questions" DROP CONSTRAINT "FK_f4e45583cbe6aaa143cdfeaae09"`);
         await queryRunner.query(`ALTER TABLE "question_options" DROP CONSTRAINT "FK_c654af7759a681f1b1addbe35bf"`);
-        await queryRunner.query(`ALTER TABLE "thread_halls" DROP CONSTRAINT "FK_204ecc176a8ce3f0d835a85840f"`);
+        await queryRunner.query(`ALTER TABLE "user_answers" DROP CONSTRAINT "FK_adae59e684b873b084be36c5a7a"`);
+        await queryRunner.query(`ALTER TABLE "user_answers" DROP CONSTRAINT "FK_d84d10f2e3b97a037d5479bf669"`);
         await queryRunner.query(`ALTER TABLE "behaviors" DROP CONSTRAINT "FK_5afc686724620f4c13d4cf1a29c"`);
-        await queryRunner.query(`ALTER TABLE "template_answers" DROP CONSTRAINT "FK_89e4150c9659d3c5b38d40d9634"`);
         await queryRunner.query(`ALTER TABLE "invoices" DROP CONSTRAINT "FK_02cd4a1e7eefac58057c27e1454"`);
         await queryRunner.query(`ALTER TABLE "invoices" DROP CONSTRAINT "FK_fcbe490dc37a1abf68f19c5ccb9"`);
         await queryRunner.query(`ALTER TABLE "invoices" DROP CONSTRAINT "FK_754b22c515e4b1ee18ed31f0b07"`);
@@ -62,14 +60,14 @@ export class CreateTemplateAnswerAndRefactorTemplateEntity1759929847027 implemen
         await queryRunner.query(`ALTER TABLE "big_five" DROP CONSTRAINT "FK_f5c79764cf690eaa88773726593"`);
         await queryRunner.query(`ALTER TABLE "locations" DROP CONSTRAINT "FK_78eda52dc27b7ad20350c4a752d"`);
         await queryRunner.query(`DROP TABLE "tokens"`);
-        await queryRunner.query(`DROP TABLE "user_answers"`);
+        await queryRunner.query(`DROP TABLE "traits"`);
+        await queryRunner.query(`DROP TABLE "thread_halls"`);
         await queryRunner.query(`DROP TABLE "questions"`);
         await queryRunner.query(`DROP TABLE "question_options"`);
-        await queryRunner.query(`DROP TABLE "thread_halls"`);
-        await queryRunner.query(`DROP TABLE "traits"`);
-        await queryRunner.query(`DROP TABLE "behaviors"`);
+        await queryRunner.query(`DROP TABLE "user_answers"`);
         await queryRunner.query(`DROP TABLE "templates"`);
         await queryRunner.query(`DROP TABLE "template_answers"`);
+        await queryRunner.query(`DROP TABLE "behaviors"`);
         await queryRunner.query(`DROP TABLE "vendors"`);
         await queryRunner.query(`DROP TABLE "invoices"`);
         await queryRunner.query(`DROP TABLE "invoice_items"`);

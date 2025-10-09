@@ -1,11 +1,11 @@
-import {Column, CreateDateColumn, Entity, ManyToOne, PrimaryColumn, UpdateDateColumn} from "typeorm";
+import {Column, CreateDateColumn, Entity, OneToOne, JoinColumn, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm";
 import {Template} from "./templates";
 
 export const TEMPLATE_ANSWER_TABLE_NAME = 'template_answers';
 
 @Entity(TEMPLATE_ANSWER_TABLE_NAME)
 export class TemplateAnswer {
-    @PrimaryColumn({type:"varchar"})
+    @PrimaryGeneratedColumn("uuid")
     id!: string;
 
     @Column({type: "varchar"})
@@ -20,7 +20,8 @@ export class TemplateAnswer {
     @Column({type: "json", nullable: true})
     options?: string[];
 
-    @ManyToOne(() => Template, (template) => template.answers, {onDelete: "CASCADE"})
+    @OneToOne(() => Template, (template) => template.answer, {onDelete: "CASCADE",})
+    @JoinColumn()
     template!: Template;
 
     @CreateDateColumn({type: 'timestamp'})
