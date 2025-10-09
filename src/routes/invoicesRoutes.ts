@@ -9,6 +9,7 @@ invoicesRouter.get('/get-invoices', jwtAuthMiddleware, controller.invoices.GetIn
 invoicesRouter.get('/get-invoices-by-id/:id',jwtAuthMiddleware, controller.invoices.GetInvoiceById);
 invoicesRouter.put('/update-invoice/:id', jwtAuthMiddleware,controller.invoices.UpdateInvoice);
 invoicesRouter.delete('/delete-invoice/:id', jwtAuthMiddleware, controller.invoices.DeleteInvoice);
+invoicesRouter.get('/get-invoices-by-user/:id',jwtAuthMiddleware, controller.invoices.GetInvoicesByUser);
 
 
 export default invoicesRouter;
