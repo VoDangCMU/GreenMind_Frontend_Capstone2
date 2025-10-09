@@ -10,6 +10,7 @@ import NUMBER from "../config/schemas/Number";
 import BOOLEAN from "../config/schemas/Boolean";
 import type {DeepPartial} from "typeorm";
 import {Scans} from "../entity/scans";
+import {logger} from "../infrastructure/logger";
 
 const invoiceItemsParamsSchemas = z.object({
     raw_name: TEXT.nullish(),
@@ -53,7 +54,7 @@ const invoiceSchema = z.object({
     datetime: datetimeSchema,
     items: z.array(invoiceItemsParamsSchemas),
     totals: totalsSchema,
-    scanId: TEXT,
+    scanId: TEXT.nullish(),
 });
 
 function parseIssuedDate(dateStr?: string | null): Date | null {
@@ -92,6 +93,16 @@ export class InvoicesController {
         }
 
         try {
+            const user = await AppDataSource.getRepository(User).findOne({
+                where: {
+                    id: req.user?.userId
+                },
+            })
+
+            if (!user) {
+                return res.status(404).json({message: "User not found"});
+            }
+
             const { doc, vendor, datetime, items, totals, scanId } = parsed.data;
             const issuedDate = parseIssuedDate(datetime?.date);
             const issuedTime = parseIssuedTime(datetime?.time);
@@ -134,6 +145,7 @@ export class InvoicesController {
                     issuedTime,
                     vendor: newVendor ?? undefined,
                     scans: scan ?? undefined,
+                    user: user,
                 } as DeepPartial<Invoices>);
                 await manager.save(newInvoice);
 
@@ -156,7 +168,7 @@ export class InvoicesController {
 
                 return await manager.findOne(Invoices, {
                     where: {id: newInvoice.id},
-                    relations: {items: true, vendor: true},
+                    relations: {items: true, vendor: true, scans: true, user: true},
                 });
             });
 
@@ -170,7 +182,7 @@ export class InvoicesController {
     public GetInvoices: RequestHandler = async (_req, res) => {
         try {
             const invoices = await AppDataSource.getRepository(Invoices).find({
-                relations: { items: true, vendor: true, scans: true },
+                relations: { items: true, vendor: true, scans: true, user: true },
                 order: { createdAt: "DESC" },
             });
             return res.status(200).json({ message: "Successfully", data: invoices.length > 0 ? invoices : "No invoices yet" });
@@ -184,7 +196,7 @@ export class InvoicesController {
         try {
             const invoice = await AppDataSource.getRepository(Invoices).findOne({
                 where: { id: req.params.id },
-                relations: { items: true, vendor: true, scans: true },
+                relations: { items: true, vendor: true, scans: true, user: true },
             });
             if (!invoice) return res.status(404).json({ message: "Invoice not found" });
 
@@ -263,7 +275,7 @@ export class InvoicesController {
 
                 return await manager.findOne(Invoices, {
                     where: {id: existingInvoice.id},
-                    relations: {items: true, vendor: true},
+                    relations: {items: true, vendor: true, user: true},
                 });
             });
 
@@ -280,7 +292,7 @@ export class InvoicesController {
             const repo = AppDataSource.getRepository(Invoices);
             const invoice = await repo.findOne({
                 where: { id: req.params.id },
-                relations: { items: true, vendor: true },
+                relations: { items: true, vendor: true, user: true },
             });
             if (!invoice) return res.status(404).json({ message: "Invoice not found" });
             await repo.delete(invoice.id);
@@ -293,16 +305,14 @@ export class InvoicesController {
 
     public GetInvoicesByUser: RequestHandler = async (req, res) => {
         try {
-            const parsedUserId = invoiceSchema.safeParse(req.params.userId);
+            const parsedUserId = z.object({ id: z.string().uuid() }).safeParse(req.params);
             if (!parsedUserId.success) {
                 return res.status(400).json({ message: "Invalid input", error: parsedUserId.error.format() });
             }
 
-            const userId = req.params.userId;
-
             const existedUser = await AppDataSource.getRepository(User).findOne({
                 where: {
-                    id: userId
+                    id: req.user?.userId,
                 },
             })
 
@@ -311,12 +321,14 @@ export class InvoicesController {
             }
 
             const invoices = await AppDataSource.getRepository(Invoices).find({
-                where: { user: { id: userId } },
+                where: { user: { id: req.user?.userId, } },
+                relations: { items: true, vendor: true, scans: true, user: true },
+                order: { createdAt: "DESC" },
             });
 
             return res.status(200).json({invoices});
         } catch (e) {
-            console.error("Getnvoice Error:", e);
+            logger.error("Get voice Error:", undefined, { error: e });
             return res.status(500).json({message: "Internal Server Error"});
         }
     }
