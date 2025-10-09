@@ -1,7 +1,7 @@
 import cors from 'cors';
-import { Request, Response, NextFunction } from 'express';
-import { config } from '../config/env';
-import { logger } from '../infrastructure/logger';
+import {Request, Response, NextFunction} from 'express';
+import {config} from '../config/env';
+import {logger} from '../infrastructure/logger';
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
@@ -18,12 +18,7 @@ const corsOptions: cors.CorsOptions = {
 
         // In production, define allowed origins
         const allowedOrigins = [
-            'http://localhost:3000',
-            'http://localhost:5173',
-            'http://localhost:3001',
-            'http://localhost:3002',
-            'http://100.91.11.25:3002',
-            'https://*.khoav4.com',
+            '*'
         ];
 
         if (allowedOrigins.indexOf(origin) !== -1) {
@@ -35,13 +30,7 @@ const corsOptions: cors.CorsOptions = {
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
-        'Origin',
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'Cache-Control',
-        'X-Access-Token'
+        '*'
     ],
     credentials: true, // Allow cookies to be sent with requests
     optionsSuccessStatus: 200, // Some legacy browsers choke on 204
