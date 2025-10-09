@@ -5,34 +5,12 @@ import {logger} from '../infrastructure/logger';
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps, Postman, etc.)
-        if (!origin) {
-            return callback(null, true);
-        }
-
-        // In development, allow all origins
-        if (config.app.env === 'development') {
-            return callback(null, true);
-        }
-
-        // In production, define allowed origins
-        const allowedOrigins = [
-            '*'
-        ];
-
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            logger.warn(`CORS blocked request from origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'), false);
-        }
-    },
+    origin: '*', // Allow all origins for all environments
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
         '*'
     ],
-    credentials: true, // Allow cookies to be sent with requests
+    credentials: false, // Set to false when using origin: '*'
     optionsSuccessStatus: 200, // Some legacy browsers choke on 204
     maxAge: 86400 // Cache preflight response for 24 hours
 };
