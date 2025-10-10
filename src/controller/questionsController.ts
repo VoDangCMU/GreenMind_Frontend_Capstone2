@@ -1039,7 +1039,7 @@ export class QuestionsController {
                     (questionType === 'likert5' && options.length < 5) ||
                     (questionType === 'rating' && options.length < 5)) {
 
-                    const defaultOptions = generateDefaultOptions(questionType);
+                    const defaultOptions = questionType ? generateDefaultOptions(questionType) : [];
                     if (defaultOptions.length > 0) {
                         options = defaultOptions;
                         logger.warn(`Generated default options for question ${question.id} with type ${questionType}`);

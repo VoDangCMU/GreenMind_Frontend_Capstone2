@@ -1,21 +1,21 @@
-# Hướng dẫn thêm API Endpoints vào Postman
+# Green MindMap Backend - Postman API Documentation
 
 ## Authentication Endpoints
 
-### [Auth] POST /api/users/register
+### [Auth] POST /api/auth/register
 ```json
 {
   "email": "user@example.com",
-  "username": "testuser",
   "password": "password123",
-  "fullName": "Test User",
-  "phoneNumber": "0123456789",
-  "location": "Hà Nội",
-  "dateOfBirth": "1990-01-01"
+  "fullName": "John Doe",
+  "username": "johndoe",
+  "phoneNumber": "+84901234567",
+  "dateOfBirth": "1990-01-01",
+  "location": "Ho Chi Minh City"
 }
 ```
 
-### [Auth] POST /api/users/login
+### [Auth] POST /api/auth/login
 ```json
 {
   "email": "user@example.com",
@@ -23,51 +23,56 @@
 }
 ```
 
-### [Auth] POST /api/users/login-email
+### [Auth] POST /api/auth/logout
 ```json
 {
-  "email": "user@example.com",
-  "password": "password123"
+  "token": "your_jwt_token_here"
 }
 ```
 
-### [Auth] POST /api/tokens/refresh
-```json
-{
-  "refreshToken": "your_refresh_token"
-}
-```
-
-## User Management Endpoints
+## User Management
 
 ### [User] GET /api/users/profile
-Headers: `Authorization: Bearer {token}`
+Headers: `Authorization: Bearer <token>`
 
 ### [User] PUT /api/users/profile
-Headers: `Authorization: Bearer {token}`
 ```json
 {
-  "fullName": "Updated Name",
-  "phoneNumber": "0987654321",
-  "location": "TP.HCM",
-  "dateOfBirth": "1995-05-15"
+  "fullName": "John Smith",
+  "phoneNumber": "+84901234567",
+  "location": "Da Nang"
 }
 ```
 
-### [User] GET /api/users (Admin only)
-Headers: `Authorization: Bearer {admin_token}`
+### [User] GET /api/users
+Headers: `Authorization: Bearer <token>` (Admin only)
 
-## Template Management Endpoints
+## Big Five Personality
 
-### [Template] POST /api/templates/createTemplates
-Headers: `Authorization: Bearer {token}`
+### [BigFive] POST /api/big-five
+```json
+{
+  "openness": 4.2,
+  "conscientiousness": 3.8,
+  "extraversion": 3.5,
+  "agreeableness": 4.0,
+  "neuroticism": 2.3
+}
+```
+
+### [BigFive] GET /api/big-five/:userId
+Headers: `Authorization: Bearer <token>`
+
+## Templates Management
+
+### [Templates] POST /api/templates/create-templates
 ```json
 {
   "templates": [
     {
       "id": "T_FREQ_01",
       "name": "Tần suất thực hiện hành động 1",
-      "description": "Khảo sát tần suất người tham gia một hành động cụ thể.",
+      "description": "Khảo sát tần suất người tham gia một hành động cụ thể",
       "intent": "frequency",
       "placeholders": {
         "required": ["ocean", "keywords"],
@@ -87,27 +92,28 @@ Headers: `Authorization: Bearer {token}`
 }
 ```
 
-### [Template] GET /api/templates
-Headers: `Authorization: Bearer {token}`
+### [Templates] GET /api/templates
+Headers: `Authorization: Bearer <token>`
 
-### [Template] GET /api/templates/{id}
-Headers: `Authorization: Bearer {token}`
+### [Templates] GET /api/templates/:id
+Headers: `Authorization: Bearer <token>`
 
-### [Template] POST /api/templates
-Headers: `Authorization: Bearer {token}`
+### [Templates] PUT /api/templates/:id
 ```json
 {
-  "text": "Template text with {placeholder}",
-  "trait": "frequency",
+  "text": "Updated template text",
+  "trait": "E",
   "placeholder": ["behavior", "location"],
   "questionType": "frequency"
 }
 ```
 
-## Question Management Endpoints
+### [Templates] DELETE /api/templates/:id
+Headers: `Authorization: Bearer <token>`
 
-### [Question] POST /api/questions/createQuestions
-Headers: `Authorization: Bearer {token}`
+## Questions Management
+
+### [Questions] POST /api/questions/create-questions
 ```json
 {
   "questions": [
@@ -127,38 +133,34 @@ Headers: `Authorization: Bearer {token}`
 }
 ```
 
-### [Question] GET /api/questions/survey
-Headers: `Authorization: Bearer {token}`
-Query: `?limit=20`
+### [Questions] GET /api/questions
+Headers: `Authorization: Bearer <token>`
 
-### [Question] GET /api/questions/random
-Headers: `Authorization: Bearer {token}`
-Query: `?limit=10`
+### [Questions] GET /api/questions/:id
+Headers: `Authorization: Bearer <token>`
 
-### [Question] GET /api/questions/random-simple
-Headers: `Authorization: Bearer {token}`
-Query: `?limit=10`
+### [Questions] GET /api/questions/random
+Headers: `Authorization: Bearer <token>`
+Query params: `?limit=10`
 
-### [Question] GET /api/questions
-Headers: `Authorization: Bearer {token}`
+### [Questions] GET /api/questions/survey
+Headers: `Authorization: Bearer <token>`
+Query params: `?limit=20`
 
-### [Question] GET /api/questions/{id}
-Headers: `Authorization: Bearer {token}`
-
-### [Question] POST /api/questions
-Headers: `Authorization: Bearer {token}`
+### [Questions] PUT /api/questions/:id
 ```json
 {
-  "question": "Bạn có thường xuyên ăn uống lành mạnh không?",
-  "templateId": "template-uuid",
-  "threadHallId": "threadhall-uuid"
+  "question": "Updated question text",
+  "templateId": "template-uuid-here"
 }
 ```
 
-## Model Management Endpoints
+### [Questions] DELETE /api/questions/:id
+Headers: `Authorization: Bearer <token>`
 
-### [Model] POST /api/models/create
-Headers: `Authorization: Bearer {token}`
+## Models Management
+
+### [Models] POST /api/models
 ```json
 {
   "ocean": "E",
@@ -170,136 +172,240 @@ Headers: `Authorization: Bearer {token}`
 }
 ```
 
-### [Model] GET /api/models/all
-Headers: `Authorization: Bearer {token}`
+### [Models] GET /api/models
+Headers: `Authorization: Bearer <token>`
 
-## Location Management Endpoints
+## User Answers
 
-### [Location] GET /api/locations
-Headers: `Authorization: Bearer {token}`
-
-### [Location] POST /api/locations
-Headers: `Authorization: Bearer {token}`
+### [UserAnswers] POST /api/user-answers
 ```json
 {
-  "latitude": 16.047079,
-  "longitude": 108.206230,
-  "address": "Đà Nẵng, Việt Nam"
+  "questionId": "question-uuid-here",
+  "answer": "Thường xuyên"
 }
 ```
 
-## Big Five Personality Endpoints
+### [UserAnswers] GET /api/user-answers/user/:userId
+Headers: `Authorization: Bearer <token>`
 
-### [BigFive] POST /api/big-five
-Headers: `Authorization: Bearer {token}`
+### [UserAnswers] GET /api/user-answers/question/:questionId
+Headers: `Authorization: Bearer <token>`
+
+## Behaviors Management
+
+### [Behaviors] POST /api/behaviors
 ```json
 {
-  "openness": 4.2,
-  "conscientiousness": 3.8,
-  "extraversion": 3.5,
-  "agreeableness": 4.0,
-  "neuroticism": 2.5
+  "name": "ăn uống",
+  "type": "daily_activity",
+  "keywords": ["ăn", "uống", "thức ăn", "đồ uống"],
+  "description": "Hành vi liên quan đến việc ăn uống hàng ngày"
 }
 ```
 
-### [BigFive] GET /api/big-five/my-scores
-Headers: `Authorization: Bearer {token}`
+### [Behaviors] GET /api/behaviors
+Headers: `Authorization: Bearer <token>`
 
-## User Answers Endpoints
+### [Behaviors] GET /api/behaviors/:id
+Headers: `Authorization: Bearer <token>`
 
-### [UserAnswer] POST /api/user-answers
-Headers: `Authorization: Bearer {token}`
+### [Behaviors] PUT /api/behaviors/:id
 ```json
 {
-  "questionId": "question-uuid",
-  "answer": "Có"
+  "name": "Updated behavior name",
+  "keywords": ["keyword1", "keyword2"]
 }
 ```
 
-### [UserAnswer] GET /api/user-answers/my-answers
-Headers: `Authorization: Bearer {token}`
+### [Behaviors] DELETE /api/behaviors/:id
+Headers: `Authorization: Bearer <token>`
 
-## Thread Hall Endpoints
+## Thread Halls Management
 
-### [ThreadHall] GET /api/thread-halls
-Headers: `Authorization: Bearer {token}`
-
-### [ThreadHall] POST /api/thread-halls
-Headers: `Authorization: Bearer {token}`
+### [ThreadHalls] POST /api/thread-halls
 ```json
 {
-  "name": "Nhóm thảo luận ăn uống",
-  "description": "Thảo luận về thói quen ăn uống lành mạnh",
-  "traitsId": "trait-uuid"
+  "name": "Extraversion Discussion",
+  "description": "Thread hall for discussing extraversion traits",
+  "traitsId": "trait-uuid-here"
 }
 ```
 
-## Behavior Endpoints
+### [ThreadHalls] GET /api/thread-halls
+Headers: `Authorization: Bearer <token>`
 
-### [Behavior] GET /api/behaviors
-Headers: `Authorization: Bearer {token}`
+### [ThreadHalls] GET /api/thread-halls/:id
+Headers: `Authorization: Bearer <token>`
 
-### [Behavior] POST /api/behaviors
-Headers: `Authorization: Bearer {token}`
+### [ThreadHalls] PUT /api/thread-halls/:id
 ```json
 {
-  "name": "Ăn uống lành mạnh",
-  "type": "dietary",
-  "keywords": ["ăn sạch", "thực phẩm organic", "rau xanh"],
-  "description": "Thói quen ăn uống tốt cho sức khỏe"
+  "name": "Updated thread hall name",
+  "description": "Updated description"
 }
 ```
 
-## Trait Endpoints
+### [ThreadHalls] DELETE /api/thread-halls/:id
+Headers: `Authorization: Bearer <token>`
 
-### [Trait] GET /api/traits
-Headers: `Authorization: Bearer {token}`
+## Traits Management
 
-### [Trait] POST /api/traits
-Headers: `Authorization: Bearer {token}`
+### [Traits] POST /api/traits
 ```json
 {
   "name": "Extraversion",
-  "description": "Mức độ hướng ngoại của cá nhân",
+  "description": "Tendency to be sociable and outgoing",
   "label": "E"
 }
 ```
 
-## Food & Nutrition Endpoints
+### [Traits] GET /api/traits
+Headers: `Authorization: Bearer <token>`
 
-### [FoodItem] GET /api/food-items
-Headers: `Authorization: Bearer {token}`
+### [Traits] GET /api/traits/:id
+Headers: `Authorization: Bearer <token>`
 
-### [FoodItem] POST /api/food-items
-Headers: `Authorization: Bearer {token}`
+### [Traits] PUT /api/traits/:id
 ```json
 {
-  "name": "Cơm gạo lứt",
-  "barcode": "1234567890123"
+  "name": "Updated trait name",
+  "description": "Updated description"
 }
 ```
 
-### [Calorie] GET /api/calories
-Headers: `Authorization: Bearer {token}`
+### [Traits] DELETE /api/traits/:id
+Headers: `Authorization: Bearer <token>`
 
-### [Scan] POST /api/scans
-Headers: `Authorization: Bearer {token}`
+## Locations Management
+
+### [Locations] POST /api/locations
 ```json
 {
-  "foodItemsId": "food-item-uuid",
-  "scanTime": "2024-01-01T12:00:00Z"
+  "latitude": 10.8231,
+  "longitude": 106.6297,
+  "address": "Ho Chi Minh City, Vietnam"
 }
 ```
 
-## Health Check Endpoints
+### [Locations] GET /api/locations
+Headers: `Authorization: Bearer <token>`
 
-### [Health] GET /api/check/health
+### [Locations] GET /api/locations/user/:userId
+Headers: `Authorization: Bearer <token>`
 
-### [Health] GET /api/check/database
+## Food & Nutrition
 
-## Notes:
-- Tất cả API cần authentication (trừ register, login, health check) đều cần header: `Authorization: Bearer {token}`
-- Thay thế `{token}` bằng JWT token nhận được từ login
-- Thay thế các UUID placeholder bằng UUID thực từ database
-- Admin endpoints cần token của user có role admin
-- Các query parameters là optional
+### [Calories] POST /api/calories
+```json
+{
+  "energy_kcal": 250.5,
+  "protein_g": 12.3,
+  "fat_g": 8.7,
+  "carbs_g": 35.2
+}
+```
+
+### [FoodItems] POST /api/food-items
+```json
+{
+  "name": "Banana",
+  "barcode": "1234567890123",
+  "caloriesId": "calories-uuid-here"
+}
+```
+
+### [Scans] POST /api/scans
+```json
+{
+  "foodItemsId": "food-item-uuid-here",
+  "scan_time": "2024-01-15T10:30:00Z"
+}
+```
+
+### [Invoices] POST /api/invoices
+```json
+{
+  "issued_at": "2024-01-15T10:30:00Z",
+  "scansId": "scan-uuid-here"
+}
+```
+
+## Health Check
+
+### [Health] GET /api/health
+No authentication required
+
+## Token Management
+
+### [Tokens] POST /api/tokens/refresh
+```json
+{
+  "refreshToken": "your_refresh_token_here"
+}
+```
+
+### [Tokens] DELETE /api/tokens/revoke
+```json
+{
+  "token": "token_to_revoke"
+}
+```
+
+## Common Response Formats
+
+### Success Response
+```json
+{
+  "message": "Operation completed successfully",
+  "data": {},
+  "count": 1
+}
+```
+
+### Error Response
+```json
+{
+  "message": "Error message",
+  "errors": {
+    "field_name": {
+      "_errors": ["Error description"]
+    }
+  }
+}
+```
+
+### Validation Error Response
+```json
+{
+  "message": "Validation error",
+  "errors": {
+    "_errors": [],
+    "field_name": {
+      "_errors": ["Field is required"]
+    }
+  }
+}
+```
+
+## Environment Variables Required
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=password
+DB_NAME=greenmind
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=24h
+NODE_ENV=development
+PORT=3000
+```
+
+## Notes
+
+- All endpoints require valid JWT token in Authorization header (except auth and health endpoints)
+- Admin endpoints require admin role
+- UUIDs should be valid v4 format
+- Dates should be in ISO 8601 format
+- All responses are in JSON format
+- CORS is enabled for all origins (*)
