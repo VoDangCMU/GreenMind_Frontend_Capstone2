@@ -892,7 +892,8 @@ export class QuestionsController {
             // Query questions with location or age matching - ONLY filtered results
             const queryBuilder = QuestionsRepository.createQueryBuilder('question')
                 .leftJoinAndSelect('question.template', 'template')
-                .leftJoinAndSelect('question.questionOptions', 'options');
+                .leftJoinAndSelect('question.questionOptions', 'options')
+                .orderBy('options.order', 'ASC'); // Ensure options are ordered correctly
 
             const conditions = [];
 
@@ -978,18 +979,72 @@ export class QuestionsController {
             // Get ONLY filtered questions - NO random fallback
             const filteredQuestions = await queryBuilder
                 .orderBy('RANDOM()')
+                .addOrderBy('options.order', 'ASC')
                 .limit(limit)
                 .getMany();
 
-            // Transform questions to response format
+            // Helper function to generate default options based on question type
+            const generateDefaultOptions = (questionType: string) => {
+                switch (questionType?.toLowerCase()) {
+                    case 'yesno':
+                    case 'binary':
+                        return [
+                            { text: 'Có', value: 'yes', order: 0 },
+                            { text: 'Không', value: 'no', order: 1 }
+                        ];
+                    case 'frequency':
+                        return [
+                            { text: 'Không bao giờ', value: '1', order: 0 },
+                            { text: 'Thỉnh thoảng', value: '2', order: 1 },
+                            { text: 'Thường xuyên', value: '3', order: 2 },
+                            { text: 'Rất thường xuyên', value: '4', order: 3 }
+                        ];
+                    case 'likert5':
+                        return [
+                            { text: 'Rất không thích', value: '1', order: 0 },
+                            { text: 'Không thích', value: '2', order: 1 },
+                            { text: 'Bình thường', value: '3', order: 2 },
+                            { text: 'Thích', value: '4', order: 3 },
+                            { text: 'Rất thích', value: '5', order: 4 }
+                        ];
+                    case 'rating':
+                        return [
+                            { text: 'Rất tệ', value: '1', order: 0 },
+                            { text: 'Tệ', value: '2', order: 1 },
+                            { text: 'Bình thường', value: '3', order: 2 },
+                            { text: 'Tốt', value: '4', order: 3 },
+                            { text: 'Rất tốt', value: '5', order: 4 }
+                        ];
+                    default:
+                        return [];
+                }
+            };
+
+            // Transform questions to response format with fallback options
             const transformedQuestions = filteredQuestions.map(question => {
-                const options = question.questionOptions
+                let options = question.questionOptions
                     ?.sort((a, b) => a.order - b.order)
                     ?.map(option => ({
                         text: option.text,
                         value: option.value,
                         order: option.order
                     })) || [];
+
+                // If no options found or incomplete options, generate default ones
+                const questionType = question.template?.question_type;
+                if (!options.length ||
+                    (questionType === 'yesno' && options.length < 2) ||
+                    (questionType === 'binary' && options.length < 2) ||
+                    (questionType === 'frequency' && options.length < 4) ||
+                    (questionType === 'likert5' && options.length < 5) ||
+                    (questionType === 'rating' && options.length < 5)) {
+
+                    const defaultOptions = generateDefaultOptions(questionType);
+                    if (defaultOptions.length > 0) {
+                        options = defaultOptions;
+                        logger.warn(`Generated default options for question ${question.id} with type ${questionType}`);
+                    }
+                }
 
                 return {
                     id: question.id,
@@ -1010,17 +1065,21 @@ export class QuestionsController {
                 };
             });
 
+            // Filter out questions that still have no options after fallback
+            const validQuestions = transformedQuestions.filter(q => q.options.length > 0);
+
             return res.status(200).json({
-                message: filteredQuestions.length > 0
+                message: validQuestions.length > 0
                     ? "Survey questions retrieved successfully"
                     : "No questions found matching user's location or age",
-                data: transformedQuestions,
-                count: transformedQuestions.length,
+                data: validQuestions,
+                count: validQuestions.length,
                 userInfo: {
                     userId: userId,
                     location: userLocation,
                     age: userAge,
                     filteredCount: filteredQuestions.length,
+                    validCount: validQuestions.length,
                     randomCount: 0  // No random questions added
                 }
             });

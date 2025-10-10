@@ -1,200 +1,164 @@
-# API Endpoints Documentation for Postman
+# Hướng dẫn thêm API Endpoints vào Postman
 
-## Authentication
-All endpoints require JWT authentication. Include the following header:
-```
-Authorization: Bearer <your_jwt_token>
-```
+## Authentication Endpoints
 
-## User Authentication Endpoints
-
-### 1. Register with Email
-- **Method**: POST
-- **Endpoint**: `/api/auth/register`
-- **Description**: Register a new user account
-- **Required Fields**: email, password, full_name, date_of_birth, location
-- **Payload**:
+### [Auth] POST /api/users/register
 ```json
 {
   "email": "user@example.com",
-  "password": "securePassword123",
-  "confirm_password": "securePassword123",
-  "full_name": "Nguyen Van A",
-  "date_of_birth": "1990-01-15",
-  "location": "Ho Chi Minh City"
-}
-```
-- **Response**:
-```json
-{
-  "message": "Register successful",
-  "user": {
-    "id": "user-uuid",
-    "username": "generated_username",
-    "email": "user@example.com",
-    "fullName": "Nguyen Van A",
-    "dateOfBirth": "1990-01-15T00:00:00.000Z",
-    "location": "Ho Chi Minh City",
-    "role": "user"
-  },
-  "access_token": "jwt_access_token",
-  "refresh_token": "jwt_refresh_token"
+  "username": "testuser",
+  "password": "password123",
+  "fullName": "Test User",
+  "phoneNumber": "0123456789",
+  "location": "Hà Nội",
+  "dateOfBirth": "1990-01-01"
 }
 ```
 
-### 2. Login with Email
-- **Method**: POST
-- **Endpoint**: `/api/auth/login`
-- **Payload**:
+### [Auth] POST /api/users/login
 ```json
 {
   "email": "user@example.com",
-  "password": "securePassword123"
+  "password": "password123"
 }
 ```
 
-### 3. Get User Profile
-- **Method**: GET
-- **Endpoint**: `/api/auth/profile`
-- **Headers**: Authorization: Bearer <token>
-
-### 4. Logout
-- **Method**: POST
-- **Endpoint**: `/api/auth/logout`
-- **Headers**: Authorization: Bearer <token>
-
-## Questions API Endpoints
-
-### 1. Get All Questions
-- **Method**: GET
-- **Endpoint**: `/api/questions/`
-- **Description**: Get all questions with templates and relationships
-- **Response**: Array of all questions
-
-### 2. Get Random Questions (Simple Format)
-- **Method**: GET  
-- **Endpoint**: `/api/questions/random-simple`
-- **Query Parameters**: 
-  - `limit` (optional): Number of questions to return (default: 10, max: 50)
-- **Example**: `/api/questions/random-simple?limit=15`
-- **Response Format**:
+### [Auth] POST /api/users/login-email
 ```json
 {
-  "message": "Random questions retrieved successfully",
-  "data": [
-    {
-      "id": "question-uuid",
-      "question": "Question text here",
-      "templateId": "T_FREQ_01",
-      "behaviorInput": "Behavior description",
-      "behaviorNormalized": "frequency",
-      "template": {
-        "id": "T_FREQ_01",
-        "name": "Template name",
-        "description": "Template description",
-        "intent": "frequency",
-        "question_type": "frequency"
-      },
-      "options": [
-        {"text": "Option 1", "value": "1", "order": 0},
-        {"text": "Option 2", "value": "2", "order": 1}
-      ],
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    }
-  ],
-  "count": 10
+  "email": "user@example.com",
+  "password": "password123"
 }
 ```
 
-### 3. Get Random Questions (Grouped Format)
-- **Method**: GET
-- **Endpoint**: `/api/questions/random`
-- **Query Parameters**: 
-  - `limit` (optional): Number of questions to return (default: 10, max: 50)
-- **Response**: Questions grouped by OCEAN traits and question types
+### [Auth] POST /api/tokens/refresh
+```json
+{
+  "refreshToken": "your_refresh_token"
+}
+```
 
-### 4. Get Questions for Client (Static Format)
-- **Method**: GET
-- **Endpoint**: `/api/questions/for-client`
-- **Description**: Returns predefined static questions format
-- **Response**: Predefined question structure grouped by OCEAN traits
+## User Management Endpoints
 
-### 5. Get Question by ID
-- **Method**: GET
-- **Endpoint**: `/api/questions/{question-id}`
-- **Description**: Get a specific question by its UUID
-- **Example**: `/api/questions/123e4567-e89b-12d3-a456-426614174000`
+### [User] GET /api/users/profile
+Headers: `Authorization: Bearer {token}`
 
-### 6. Get Questions by Template ID
-- **Method**: GET
-- **Endpoint**: `/api/questions/template/{template-id}`
-- **Description**: Get all questions for a specific template
+### [User] PUT /api/users/profile
+Headers: `Authorization: Bearer {token}`
+```json
+{
+  "fullName": "Updated Name",
+  "phoneNumber": "0987654321",
+  "location": "TP.HCM",
+  "dateOfBirth": "1995-05-15"
+}
+```
 
-### 7. Get Questions by Thread Hall ID
-- **Method**: GET
-- **Endpoint**: `/api/questions/threadhall/{threadhall-id}`
-- **Description**: Get all questions for a specific thread hall
+### [User] GET /api/users (Admin only)
+Headers: `Authorization: Bearer {admin_token}`
 
-### 8. Create Templates
-- **Method**: POST
-- **Endpoint**: `/api/templates/createTemplates`
-- **Payload**:
+## Template Management Endpoints
+
+### [Template] POST /api/templates/createTemplates
+Headers: `Authorization: Bearer {token}`
 ```json
 {
   "templates": [
     {
       "id": "T_FREQ_01",
-      "name": "Template name",
-      "description": "Template description",
+      "name": "Tần suất thực hiện hành động 1",
+      "description": "Khảo sát tần suất người tham gia một hành động cụ thể.",
       "intent": "frequency",
       "placeholders": {
         "required": ["ocean", "keywords"],
         "optional": ["behavior", "age", "gender", "location"],
         "used_placeholders": ["ocean", "gender", "age", "keywords"]
       },
-      "prompt": "Template prompt with {placeholders}",
+      "prompt": "Người có tính cách {ocean}, giới tính {gender}, độ tuổi {age}, mức độ yêu thích hành động {keywords} là như thế nào?",
       "question_type": "frequency",
       "answer": {
         "type": "scale",
         "scale": [1, 2, 3, 4],
-        "labels": ["Label 1", "Label 2", "Label 3", "Label 4"]
+        "labels": ["Không bao giờ", "Thỉnh thoảng", "Thường xuyên", "Rất thường xuyên"]
       },
-      "filled_prompt": "Filled template prompt"
+      "filled_prompt": "Người có tính cách E, giới tính Nữ, độ tuổi 34, mức độ yêu thích hành động ăn mỳ quảng ở quảng nam là như thế nào?"
     }
   ]
 }
 ```
 
-### 9. Create Questions
-- **Method**: POST
-- **Endpoint**: `/api/questions/createQuestions`
-- **Payload**:
+### [Template] GET /api/templates
+Headers: `Authorization: Bearer {token}`
+
+### [Template] GET /api/templates/{id}
+Headers: `Authorization: Bearer {token}`
+
+### [Template] POST /api/templates
+Headers: `Authorization: Bearer {token}`
+```json
+{
+  "text": "Template text with {placeholder}",
+  "trait": "frequency",
+  "placeholder": ["behavior", "location"],
+  "questionType": "frequency"
+}
+```
+
+## Question Management Endpoints
+
+### [Question] POST /api/questions/createQuestions
+Headers: `Authorization: Bearer {token}`
 ```json
 {
   "questions": [
     {
       "id": "T_FREQ_01",
-      "name": "Question name",
+      "name": "Tần suất thực hiện hành động 1",
       "intent": "frequency",
       "question_type": "frequency",
-      "filled_prompt": "The actual question text",
+      "filled_prompt": "Người có tính cách E, giới tính Nữ, độ tuổi 34, mức độ yêu thích hành động ăn mỳ quảng ở quảng nam là như thế nào?",
       "answer": {
         "type": "scale",
         "scale": [1, 2, 3, 4],
-        "labels": ["Option 1", "Option 2", "Option 3", "Option 4"]
+        "labels": ["Không bao giờ", "Thỉnh thoảng", "Thường xuyên", "Rất thường xuyên"]
       }
     }
   ]
 }
 ```
 
-## Models API Endpoints
+### [Question] GET /api/questions/survey
+Headers: `Authorization: Bearer {token}`
+Query: `?limit=20`
 
-### 10. Create Model
-- **Method**: POST
-- **Endpoint**: `/api/models/create`
-- **Payload**:
+### [Question] GET /api/questions/random
+Headers: `Authorization: Bearer {token}`
+Query: `?limit=10`
+
+### [Question] GET /api/questions/random-simple
+Headers: `Authorization: Bearer {token}`
+Query: `?limit=10`
+
+### [Question] GET /api/questions
+Headers: `Authorization: Bearer {token}`
+
+### [Question] GET /api/questions/{id}
+Headers: `Authorization: Bearer {token}`
+
+### [Question] POST /api/questions
+Headers: `Authorization: Bearer {token}`
+```json
+{
+  "question": "Bạn có thường xuyên ăn uống lành mạnh không?",
+  "templateId": "template-uuid",
+  "threadHallId": "threadhall-uuid"
+}
+```
+
+## Model Management Endpoints
+
+### [Model] POST /api/models/create
+Headers: `Authorization: Bearer {token}`
 ```json
 {
   "ocean": "E",
@@ -206,107 +170,136 @@ Authorization: Bearer <your_jwt_token>
 }
 ```
 
-### 11. Get All Models
-- **Method**: GET
-- **Endpoint**: `/api/models/`
-- **Description**: Get all models from database
+### [Model] GET /api/models/all
+Headers: `Authorization: Bearer {token}`
 
-### 12. Get Survey Questions (Personalized)
-- **Method**: GET
-- **Endpoint**: `/api/questions/survey`
-- **Headers**: Authorization: Bearer <token>
-- **Query Parameters**: 
-  - `limit` (optional): Number of questions to return (default: 20, max: 50)
-- **Example**: `/api/questions/survey?limit=25`
-- **Description**: Get questions filtered by user's location and age from JWT token
-- **Response Format**:
+## Location Management Endpoints
+
+### [Location] GET /api/locations
+Headers: `Authorization: Bearer {token}`
+
+### [Location] POST /api/locations
+Headers: `Authorization: Bearer {token}`
 ```json
 {
-  "message": "Survey questions retrieved successfully",
-  "data": [
-    {
-      "id": "question-uuid",
-      "question": "Người có tính cách E, giới tính Nữ, độ tuổi 34, yêu thích hành động ăn mỳ quảng ở Quảng Nam ở mức nào?",
-      "templateId": "T_LIKERT_01",
-      "behaviorInput": "Mức độ yêu thích hành động 1",
-      "behaviorNormalized": "likert5",
-      "template": {
-        "id": "T_LIKERT_01",
-        "name": "Mức độ yêu thích hành động 1",
-        "description": "Đánh giá mức độ yêu thích hành động cụ thể.",
-        "intent": "likert5",
-        "question_type": "likert5"
-      },
-      "options": [
-        {"text": "Rất không thích", "value": "1", "order": 0},
-        {"text": "Không thích", "value": "2", "order": 1},
-        {"text": "Bình thường", "value": "3", "order": 2},
-        {"text": "Thích", "value": "4", "order": 3},
-        {"text": "Rất thích", "value": "5", "order": 4}
-      ],
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    }
-  ],
-  "count": 20,
-  "userInfo": {
-    "userId": "user-uuid",
-    "location": "Quảng Nam",
-    "age": 34,
-    "filteredCount": 15,
-    "randomCount": 5
-  }
+  "latitude": 16.047079,
+  "longitude": 108.206230,
+  "address": "Đà Nẵng, Việt Nam"
 }
 ```
 
-## Important Notes
+## Big Five Personality Endpoints
 
-1. **Route Order**: Specific routes (like `/random-simple`) must be defined before parameterized routes (like `/:id`) in Express.js
-2. **Authentication**: All endpoints require valid JWT token
-3. **CORS**: API accepts requests from any origin (`*`)
-4. **Error Handling**: All endpoints return consistent error format with message and details
-
-## Common Error Responses
-
-### Invalid ID Format
+### [BigFive] POST /api/big-five
+Headers: `Authorization: Bearer {token}`
 ```json
 {
-  "message": "Invalid question ID format",
-  "errors": {
-    "_errors": [],
-    "id": {
-      "_errors": ["Invalid question ID"]
-    }
-  }
+  "openness": 4.2,
+  "conscientiousness": 3.8,
+  "extraversion": 3.5,
+  "agreeableness": 4.0,
+  "neuroticism": 2.5
 }
 ```
 
-### Unauthorized
+### [BigFive] GET /api/big-five/my-scores
+Headers: `Authorization: Bearer {token}`
+
+## User Answers Endpoints
+
+### [UserAnswer] POST /api/user-answers
+Headers: `Authorization: Bearer {token}`
 ```json
 {
-  "message": "Unauthorized"
+  "questionId": "question-uuid",
+  "answer": "Có"
 }
 ```
 
-### Not Found
+### [UserAnswer] GET /api/user-answers/my-answers
+Headers: `Authorization: Bearer {token}`
+
+## Thread Hall Endpoints
+
+### [ThreadHall] GET /api/thread-halls
+Headers: `Authorization: Bearer {token}`
+
+### [ThreadHall] POST /api/thread-halls
+Headers: `Authorization: Bearer {token}`
 ```json
 {
-  "message": "Question not found"
+  "name": "Nhóm thảo luận ăn uống",
+  "description": "Thảo luận về thói quen ăn uống lành mạnh",
+  "traitsId": "trait-uuid"
 }
 ```
 
-## Testing with Postman
+## Behavior Endpoints
 
-1. First authenticate to get JWT token
-2. Add `Authorization: Bearer <token>` header to all requests
-3. Use correct HTTP methods (GET, POST, PUT, DELETE)
-4. For POST requests, set `Content-Type: application/json`
-5. Ensure you're calling the correct endpoint URLs
+### [Behavior] GET /api/behaviors
+Headers: `Authorization: Bearer {token}`
 
-## Troubleshooting
+### [Behavior] POST /api/behaviors
+Headers: `Authorization: Bearer {token}`
+```json
+{
+  "name": "Ăn uống lành mạnh",
+  "type": "dietary",
+  "keywords": ["ăn sạch", "thực phẩm organic", "rau xanh"],
+  "description": "Thói quen ăn uống tốt cho sức khỏe"
+}
+```
 
-If you get "Invalid question ID format" error:
-1. Check that you're calling the correct endpoint
-2. Ensure specific routes like `/random-simple` don't have typos
-3. Verify your JWT token is valid
-4. Check that the route order in the backend is correct (specific routes before parameterized routes)
+## Trait Endpoints
+
+### [Trait] GET /api/traits
+Headers: `Authorization: Bearer {token}`
+
+### [Trait] POST /api/traits
+Headers: `Authorization: Bearer {token}`
+```json
+{
+  "name": "Extraversion",
+  "description": "Mức độ hướng ngoại của cá nhân",
+  "label": "E"
+}
+```
+
+## Food & Nutrition Endpoints
+
+### [FoodItem] GET /api/food-items
+Headers: `Authorization: Bearer {token}`
+
+### [FoodItem] POST /api/food-items
+Headers: `Authorization: Bearer {token}`
+```json
+{
+  "name": "Cơm gạo lứt",
+  "barcode": "1234567890123"
+}
+```
+
+### [Calorie] GET /api/calories
+Headers: `Authorization: Bearer {token}`
+
+### [Scan] POST /api/scans
+Headers: `Authorization: Bearer {token}`
+```json
+{
+  "foodItemsId": "food-item-uuid",
+  "scanTime": "2024-01-01T12:00:00Z"
+}
+```
+
+## Health Check Endpoints
+
+### [Health] GET /api/check/health
+
+### [Health] GET /api/check/database
+
+## Notes:
+- Tất cả API cần authentication (trừ register, login, health check) đều cần header: `Authorization: Bearer {token}`
+- Thay thế `{token}` bằng JWT token nhận được từ login
+- Thay thế các UUID placeholder bằng UUID thực từ database
+- Admin endpoints cần token của user có role admin
+- Các query parameters là optional
