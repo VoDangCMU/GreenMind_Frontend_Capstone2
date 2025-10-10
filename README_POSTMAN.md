@@ -1,3 +1,83 @@
+
+## Health Check
+
+### [Health] GET /api/health
+No authentication required
+
+## Token Management
+
+### [Tokens] POST /api/tokens/refresh
+```json
+{
+  "refreshToken": "your_refresh_token_here"
+}
+```
+
+### [Tokens] DELETE /api/tokens/revoke
+```json
+{
+  "token": "token_to_revoke"
+}
+```
+
+## Common Response Formats
+
+### Success Response
+```json
+{
+  "message": "Operation completed successfully",
+  "data": {},
+  "count": 1
+}
+```
+
+### Error Response
+```json
+{
+  "message": "Error message",
+  "errors": {
+    "field_name": {
+      "_errors": ["Error description"]
+    }
+  }
+}
+```
+
+### Validation Error Response
+```json
+{
+  "message": "Validation error",
+  "errors": {
+    "_errors": [],
+    "field_name": {
+      "_errors": ["Field is required"]
+    }
+  }
+}
+```
+
+## Environment Variables Required
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=password
+DB_NAME=greenmind
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=24h
+NODE_ENV=development
+PORT=3000
+```
+
+## Notes
+
+- All endpoints require valid JWT token in Authorization header (except auth and health endpoints)
+- Admin endpoints require admin role
+- UUIDs should be valid v4 format
+- Dates should be in ISO 8601 format
+- All responses are in JSON format
+- CORS is enabled for all origins (*)
 # Green MindMap Backend - Postman API Documentation
 
 ## Authentication Endpoints
@@ -329,83 +409,3 @@ Headers: `Authorization: Bearer <token>`
   "scansId": "scan-uuid-here"
 }
 ```
-
-## Health Check
-
-### [Health] GET /api/health
-No authentication required
-
-## Token Management
-
-### [Tokens] POST /api/tokens/refresh
-```json
-{
-  "refreshToken": "your_refresh_token_here"
-}
-```
-
-### [Tokens] DELETE /api/tokens/revoke
-```json
-{
-  "token": "token_to_revoke"
-}
-```
-
-## Common Response Formats
-
-### Success Response
-```json
-{
-  "message": "Operation completed successfully",
-  "data": {},
-  "count": 1
-}
-```
-
-### Error Response
-```json
-{
-  "message": "Error message",
-  "errors": {
-    "field_name": {
-      "_errors": ["Error description"]
-    }
-  }
-}
-```
-
-### Validation Error Response
-```json
-{
-  "message": "Validation error",
-  "errors": {
-    "_errors": [],
-    "field_name": {
-      "_errors": ["Field is required"]
-    }
-  }
-}
-```
-
-## Environment Variables Required
-
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=password
-DB_NAME=greenmind
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=24h
-NODE_ENV=development
-PORT=3000
-```
-
-## Notes
-
-- All endpoints require valid JWT token in Authorization header (except auth and health endpoints)
-- Admin endpoints require admin role
-- UUIDs should be valid v4 format
-- Dates should be in ISO 8601 format
-- All responses are in JSON format
-- CORS is enabled for all origins (*)

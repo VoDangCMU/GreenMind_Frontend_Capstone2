@@ -182,7 +182,7 @@ class UserController {
             const userRepository = AppDataSource.getRepository(User);
             const user = await userRepository.findOne({
                 where: { email },
-                select: ['id', 'email', 'username', 'password', 'role', 'fullName']
+                select: ['id', 'email', 'username', 'password', 'role', 'fullName', 'location', 'dateOfBirth']
             });
 
             const duration = Date.now() - startTime;
@@ -204,6 +204,18 @@ class UserController {
                     duration
                 });
                 return res.status(400).json({ message: "Invalid email or password" });
+            }
+
+            // Calculate age from dateOfBirth
+            let age = null;
+            if (user.dateOfBirth) {
+                const today = new Date();
+                const birthDate = new Date(user.dateOfBirth);
+                age = today.getFullYear() - birthDate.getFullYear();
+                const monthDiff = today.getMonth() - birthDate.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
             }
 
             const payload = {
@@ -239,7 +251,9 @@ class UserController {
                     username: user.username,
                     email: user.email,
                     fullName: user.fullName,
-                    role: user.role
+                    role: user.role,
+                    location: user.location,
+                    age: age
                 },
                 access_token: tokenPair.accessToken,
                 refresh_token: tokenPair.refreshToken
