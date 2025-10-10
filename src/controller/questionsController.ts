@@ -707,8 +707,8 @@ export class QuestionsController {
     // Get random questions from database in specific format
     public async getRandomQuestionsForClient(req: Request, res: Response) {
         try {
-            // Get limit from query params, default 10, max 10
-            const limit = Math.min(parseInt(req.query.limit as string) || 10, 10);
+            // Get limit from query params, default 10, max 50
+            const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
 
             // Fetch random questions with templates and options from database
             const questions = await QuestionsRepository.createQueryBuilder('question')
@@ -719,14 +719,19 @@ export class QuestionsController {
                 .getMany();
 
             if (questions.length === 0) {
-                return res.status(200).json({});
+                return res.status(200).json({
+                    message: "No questions found",
+                    data: [],
+                    count: 0
+                });
             }
 
             // Group questions by ocean trait and question type
             const groupedQuestions: any = {};
 
             for (const question of questions) {
-                const ocean = 'O'; // Default ocean value since trait property doesn't exist in Template
+                // Extract ocean from template intent or use default
+                const ocean = question.template?.intent?.charAt(0)?.toUpperCase() || 'O';
                 const qtype = question.template?.question_type || 'frequency';
 
                 // Initialize ocean group if not exists
@@ -746,7 +751,7 @@ export class QuestionsController {
                 // Get question options values, sorted by order
                 const optionValues = question.questionOptions
                     ?.sort((a, b) => a.order - b.order)
-                    ?.map(option => option.value) || [];
+                    ?.map(option => option.text) || [];
 
                 // Create question object in the format you specified
                 const questionObj = {
@@ -761,9 +766,266 @@ export class QuestionsController {
                 groupedQuestions[ocean][qtype].push(questionObj);
             }
 
-            return res.status(200).json(groupedQuestions);
+            return res.status(200).json({
+                message: "Random questions retrieved successfully",
+                data: groupedQuestions,
+                count: questions.length
+            });
         } catch (e) {
             logger.error('Error fetching random questions from database', e as Error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
+    // Get simple random questions - simpler format for general use
+    public async getRandomQuestions(req: Request, res: Response) {
+        try {
+            // Get limit from query params, default 10, max 50
+            const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+
+            // Fetch random questions with templates and options from database
+            const questions = await QuestionsRepository.createQueryBuilder('question')
+                .leftJoinAndSelect('question.template', 'template')
+                .leftJoinAndSelect('question.questionOptions', 'options')
+                .orderBy('RANDOM()') // PostgreSQL random function
+                .limit(limit)
+                .getMany();
+
+            if (questions.length === 0) {
+                return res.status(200).json({
+                    message: "No questions found",
+                    data: [],
+                    count: 0
+                });
+            }
+
+            // Transform questions to a simpler format
+            const transformedQuestions = questions.map(question => {
+                // Get question options sorted by order
+                const options = question.questionOptions
+                    ?.sort((a, b) => a.order - b.order)
+                    ?.map(option => ({
+                        text: option.text,
+                        value: option.value,
+                        order: option.order
+                    })) || [];
+
+                return {
+                    id: question.id,
+                    question: question.question,
+                    templateId: question.templateId,
+                    behaviorInput: question.behaviorInput,
+                    behaviorNormalized: question.behaviorNormalized,
+                    template: {
+                        id: question.template?.id,
+                        name: question.template?.name,
+                        description: question.template?.description,
+                        intent: question.template?.intent,
+                        question_type: question.template?.question_type
+                    },
+                    options: options,
+                    createdAt: question.createdAt,
+                    updatedAt: question.updatedAt
+                };
+            });
+
+            return res.status(200).json({
+                message: "Random questions retrieved successfully",
+                data: transformedQuestions,
+                count: transformedQuestions.length
+            });
+        } catch (e) {
+            logger.error('Error fetching random questions', e as Error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
+    // Get survey questions based on user's location and age
+    public async getSurveyQuestions(req: Request, res: Response) {
+        try {
+            if (!req.user || !req.user.userId) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
+
+            const userId = req.user.userId;
+            const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+
+            // Import User entity and get user information
+            const { User } = await import('../entity/user');
+            const userRepository = AppDataSource.getRepository(User);
+            const user = await userRepository.findOne({
+                where: { id: userId },
+                select: ['id', 'location', 'dateOfBirth', 'fullName']
+            });
+
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            // Calculate user's age
+            const currentDate = new Date();
+            const birthDate = new Date(user.dateOfBirth);
+            let age = currentDate.getFullYear() - birthDate.getFullYear();
+            const monthDiff = currentDate.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && currentDate.getDate() < birthDate.getDate())) {
+                age--;
+            }
+
+            const userLocation = user.location || '';
+            const userAge = age;
+
+            if (!userLocation.trim() && (!userAge || userAge <= 0)) {
+                return res.status(200).json({
+                    message: "No filtering criteria available - user has no location or valid age",
+                    data: [],
+                    count: 0,
+                    userInfo: {
+                        userId: userId,
+                        location: userLocation,
+                        age: userAge,
+                        filteredCount: 0,
+                        randomCount: 0
+                    }
+                });
+            }
+
+            // Query questions with location or age matching - ONLY filtered results
+            const queryBuilder = QuestionsRepository.createQueryBuilder('question')
+                .leftJoinAndSelect('question.template', 'template')
+                .leftJoinAndSelect('question.questionOptions', 'options');
+
+            const conditions = [];
+
+            // Add location filter - questions containing user's location
+            if (userLocation.trim()) {
+                conditions.push(
+                    `(LOWER(question.question) LIKE LOWER(:location) OR LOWER(template.prompt) LIKE LOWER(:locationPrompt) OR LOWER(template.filled_prompt) LIKE LOWER(:locationFilled))`
+                );
+            }
+
+            // Add age filter - questions containing user's age
+            if (userAge && userAge > 0) {
+                const ageConditions = [
+                    `question.question LIKE '%${userAge}%'`,
+                    `template.prompt LIKE '%${userAge}%'`,
+                    `template.filled_prompt LIKE '%${userAge}%'`
+                ];
+
+                // Also check for age ranges (e.g., 30-40, 20s, etc.)
+                const ageRange = Math.floor(userAge / 10) * 10; // e.g., 30 for ages 30-39
+                ageConditions.push(
+                    `question.question LIKE '%${ageRange}%'`,
+                    `template.prompt LIKE '%${ageRange}%'`,
+                    `template.filled_prompt LIKE '%${ageRange}%'`
+                );
+
+                // Check for age group terms in Vietnamese
+                if (userAge >= 18 && userAge <= 25) {
+                    ageConditions.push(
+                        `LOWER(question.question) LIKE '%tuổi trẻ%'`,
+                        `LOWER(question.question) LIKE '%thanh niên%'`,
+                        `LOWER(template.prompt) LIKE '%tuổi trẻ%'`,
+                        `LOWER(template.prompt) LIKE '%thanh niên%'`,
+                        `LOWER(template.filled_prompt) LIKE '%tuổi trẻ%'`,
+                        `LOWER(template.filled_prompt) LIKE '%thanh niên%'`
+                    );
+                } else if (userAge >= 26 && userAge <= 40) {
+                    ageConditions.push(
+                        `LOWER(question.question) LIKE '%trung niên%'`,
+                        `LOWER(question.question) LIKE '%người lớn%'`,
+                        `LOWER(template.prompt) LIKE '%trung niên%'`,
+                        `LOWER(template.prompt) LIKE '%người lớn%'`,
+                        `LOWER(template.filled_prompt) LIKE '%trung niên%'`,
+                        `LOWER(template.filled_prompt) LIKE '%người lớn%'`
+                    );
+                } else if (userAge > 40) {
+                    ageConditions.push(
+                        `LOWER(question.question) LIKE '%trung niên%'`,
+                        `LOWER(question.question) LIKE '%người già%'`,
+                        `LOWER(template.prompt) LIKE '%trung niên%'`,
+                        `LOWER(template.prompt) LIKE '%người già%'`,
+                        `LOWER(template.filled_prompt) LIKE '%trung niên%'`,
+                        `LOWER(template.filled_prompt) LIKE '%người già%'`
+                    );
+                }
+
+                conditions.push(`(${ageConditions.join(' OR ')})`);
+            }
+
+            // If no conditions, return empty result
+            if (conditions.length === 0) {
+                return res.status(200).json({
+                    message: "No filtering criteria available",
+                    data: [],
+                    count: 0,
+                    userInfo: {
+                        userId: userId,
+                        location: userLocation,
+                        age: userAge,
+                        filteredCount: 0,
+                        randomCount: 0
+                    }
+                });
+            }
+
+            // Apply filters with OR condition (questions matching location OR age)
+            queryBuilder.where(`(${conditions.join(' OR ')})`, {
+                location: `%${userLocation.toLowerCase()}%`,
+                locationPrompt: `%${userLocation.toLowerCase()}%`,
+                locationFilled: `%${userLocation.toLowerCase()}%`
+            });
+
+            // Get ONLY filtered questions - NO random fallback
+            const filteredQuestions = await queryBuilder
+                .orderBy('RANDOM()')
+                .limit(limit)
+                .getMany();
+
+            // Transform questions to response format
+            const transformedQuestions = filteredQuestions.map(question => {
+                const options = question.questionOptions
+                    ?.sort((a, b) => a.order - b.order)
+                    ?.map(option => ({
+                        text: option.text,
+                        value: option.value,
+                        order: option.order
+                    })) || [];
+
+                return {
+                    id: question.id,
+                    question: question.question,
+                    templateId: question.templateId,
+                    behaviorInput: question.behaviorInput,
+                    behaviorNormalized: question.behaviorNormalized,
+                    template: {
+                        id: question.template?.id,
+                        name: question.template?.name,
+                        description: question.template?.description,
+                        intent: question.template?.intent,
+                        question_type: question.template?.question_type
+                    },
+                    options: options,
+                    createdAt: question.createdAt,
+                    updatedAt: question.updatedAt
+                };
+            });
+
+            return res.status(200).json({
+                message: filteredQuestions.length > 0
+                    ? "Survey questions retrieved successfully"
+                    : "No questions found matching user's location or age",
+                data: transformedQuestions,
+                count: transformedQuestions.length,
+                userInfo: {
+                    userId: userId,
+                    location: userLocation,
+                    age: userAge,
+                    filteredCount: filteredQuestions.length,
+                    randomCount: 0  // No random questions added
+                }
+            });
+        } catch (e) {
+            logger.error('Error fetching survey questions', e as Error);
             return res.status(500).json({ message: "Internal server error" });
         }
     }

@@ -30,6 +30,9 @@ export class User {
     @Column({type: 'timestamp'})
     dateOfBirth!: Date;
 
+    @Column({type: 'varchar', length: 255, nullable: true})
+    location?: string;
+
     @CreateDateColumn({type: 'timestamp'})
     createdAt!: Date;
 

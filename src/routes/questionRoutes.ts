@@ -19,8 +19,17 @@ router.post('/createQuestions', jwtAuthMiddleware, staffOrAdminMiddleware, contr
 // Get all questions (requires authentication)
 router.get('/', jwtAuthMiddleware, controller.questions.GetQuestions);
 
-// Get question by ID (requires authentication)
-router.get('/:id', jwtAuthMiddleware, controller.questions.GetQuestionById);
+// Get questions for client in predefined format - requires authentication
+router.get('/for-client', jwtAuthMiddleware, controller.questions.getQuestionsForClient);
+
+// Get random questions from database in specific format - requires authentication
+router.get('/random', jwtAuthMiddleware, controller.questions.getRandomQuestionsForClient);
+
+// Get simple random questions - requires authentication
+router.get('/random-simple', jwtAuthMiddleware, controller.questions.getRandomQuestions);
+
+// Get survey questions based on user's location and age - requires authentication
+router.get('/survey', jwtAuthMiddleware, controller.questions.getSurveyQuestions);
 
 // Get questions by template ID (requires authentication)
 router.get('/template/:templateId', jwtAuthMiddleware, controller.questions.GetQuestionsByTemplate);
@@ -28,16 +37,13 @@ router.get('/template/:templateId', jwtAuthMiddleware, controller.questions.GetQ
 // Get questions by thread hall ID (requires authentication)
 router.get('/threadhall/:threadHallId', jwtAuthMiddleware, controller.questions.GetQuestionsByThreadHall);
 
+// Get question by ID (requires authentication) - MUST be after specific routes
+router.get('/:id', jwtAuthMiddleware, controller.questions.GetQuestionById);
+
 // Update question by ID (staff/admin only)
 router.put('/:id', jwtAuthMiddleware, staffOrAdminMiddleware, controller.questions.UpdateQuestion);
 
 // Delete question by ID (admin only)
 router.delete('/:id', jwtAuthMiddleware, adminMiddleware, controller.questions.DeleteQuestion);
-
-// Get questions for client in predefined format - requires authentication
-router.get('/for-client', jwtAuthMiddleware, controller.questions.getQuestionsForClient);
-
-// Get random questions from database in specific format - requires authentication
-router.get('/random', jwtAuthMiddleware, controller.questions.getRandomQuestionsForClient);
 
 export default router;

@@ -3,17 +3,17 @@ import bcrypt from "bcrypt";
 import AppDataSource from "../infrastructure/database";
 import { User } from "../entity/user";
 import { Token } from "../entity/token";
+import { Locations } from "../entity/locations";
 import { JWTHelper } from "../utils/jwtHelper";
 import { GoogleLoginHelper } from "../utils/googleLoginHelper";
 import { BitmapHelper } from "../utils/bitmapHelper";
 import { getLogger } from "../infrastructure/logger";
 import { UsernameHelper } from "../utils/usernameHelper";
-
 class UserController {
     public RegisterWithEmail: RequestHandler = async (req: Request, res: Response) => {
         const logger = getLogger();
         const startTime = Date.now();
-        const { email, password, confirm_password ,full_name, date_of_birth } = req.body;
+        const { email, password, confirm_password, full_name, date_of_birth, location } = req.body;
 
         logger.info("User registration attempt", {
             email: email?.substring(0, 3) + "***",
@@ -21,13 +21,17 @@ class UserController {
             userAgent: req.get('User-Agent')
         });
 
-        if (!email || !password || !full_name) {
+        if (!email || !password || !full_name || !date_of_birth || !location) {
             logger.warn("Registration failed - missing required fields", {
                 email: email ? "provided" : "missing",
                 password: password ? "provided" : "missing",
-                fullName: full_name ? "provided" : "missing"
+                fullName: full_name ? "provided" : "missing",
+                dateOfBirth: date_of_birth ? "provided" : "missing",
+                location: location ? "provided" : "missing"
             });
-            res.status(400).json({ message: "Email, password, and full name are required" });
+            res.status(400).json({
+                message: "Email, password, full name, date of birth, and location are required"
+            });
             return;
         }
 
@@ -52,20 +56,59 @@ class UserController {
             const saltRounds = 10;
             const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+            // Parse date of birth
+            const parsedDateOfBirth = new Date(date_of_birth);
+            if (isNaN(parsedDateOfBirth.getTime())) {
+                logger.warn("Registration failed - invalid date of birth", {
+                    email: email?.substring(0, 3) + "***",
+                    dateOfBirth: date_of_birth
+                });
+                res.status(400).json({ message: "Invalid date of birth format" });
+                return;
+            }
+
             const newUser = userRepository.create({
                 email,
                 password: hashedPassword,
                 fullName: full_name,
                 username,
-                dateOfBirth: date_of_birth || null,
+                dateOfBirth: parsedDateOfBirth,
+                location: location,
                 role: 'user'
             });
 
-            await userRepository.save(newUser);
+            const savedUser = await userRepository.save(newUser);
+
+            // Save location to locations table if not exists
+            const locationsRepository = AppDataSource.getRepository(Locations);
+
+            // Check if this location already exists for this user
+            const existingLocation = await locationsRepository.findOne({
+                where: {
+                    user: { id: savedUser.id },
+                    address: location
+                }
+            });
+
+            if (!existingLocation) {
+                const newLocationRecord = locationsRepository.create({
+                    user: savedUser,
+                    address: location,
+                    latitude: 0, // Default values - could be updated later with geocoding
+                    longitude: 0
+                });
+
+                await locationsRepository.save(newLocationRecord);
+
+                logger.info("Location saved to locations table", {
+                    userId: savedUser.id,
+                    location: location
+                });
+            }
 
             const payload = {
-                userId: newUser.id,
-                role: newUser.role
+                userId: savedUser.id,
+                role: savedUser.role
             };
 
             const tokenPair = JWTHelper.createTokenPair(payload);
@@ -85,7 +128,7 @@ class UserController {
 
             const duration = Date.now() - startTime;
             logger.info("User registration successful", {
-                userId: newUser.id,
+                userId: savedUser.id,
                 email: email?.substring(0, 3) + "***",
                 duration
             });
@@ -93,11 +136,13 @@ class UserController {
             res.status(200).json({
                 message: "Register successful",
                 user: {
-                    id: newUser.id,
-                    username: newUser.username,
-                    email: newUser.email,
-                    fullName: newUser.fullName,
-                    role: newUser.role
+                    id: savedUser.id,
+                    username: savedUser.username,
+                    email: savedUser.email,
+                    fullName: savedUser.fullName,
+                    dateOfBirth: savedUser.dateOfBirth,
+                    location: savedUser.location,
+                    role: savedUser.role
                 },
                 access_token: tokenPair.accessToken,
                 refresh_token: tokenPair.refreshToken
