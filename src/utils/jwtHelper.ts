@@ -17,7 +17,7 @@ export class JWTHelper {
     public static createAccessToken(payload: JWTPayload): string {
         const options: jwt.SignOptions = {
             algorithm: config.jwt.algorithm as jwt.Algorithm,
-            expiresIn: '1h' // Access token có thời hạn ngắn
+            expiresIn: (config.jwt.expire || '1h') as jwt.SignOptions['expiresIn'],
         };
 
         return jwt.sign(payload, config.jwt.secretKey, options);
@@ -26,7 +26,7 @@ export class JWTHelper {
     public static createRefreshToken(payload: JWTPayload): string {
         const options: jwt.SignOptions = {
             algorithm: config.jwt.algorithm as jwt.Algorithm,
-            expiresIn: '7d' // Refresh token có thời hạn dài hơn
+            expiresIn: (config.jwt.expire || '1h') as jwt.SignOptions['expiresIn'],
         };
 
         return jwt.sign(payload, config.jwt.secretKey || config.jwt.secretKey, options);
