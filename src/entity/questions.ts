@@ -1,7 +1,7 @@
 import {
     Column,
     CreateDateColumn,
-    Entity,
+    Entity, ManyToMany,
     ManyToOne,
     OneToMany,
     PrimaryGeneratedColumn,
@@ -11,6 +11,7 @@ import {Template} from "./templates";
 import {ThreadHall} from "./thread_halls";
 import {UserAnswers} from "./user_answers";
 import {QuestionOptions} from "./question_options";
+import {SurveyScenario} from "../entity/survey_scenario";
 
 export const QUESTIONS_TABLE_NAME = 'questions';
 
@@ -25,9 +26,8 @@ export class Questions {
     @Column({type: 'text'})
     question!: string;
 
-    // Additional fields for complex template processing
     @Column({type: 'text', nullable: true})
-    templateId?: string; // External template ID from request
+    templateId?: string;
 
     @Column({type: 'text', nullable: true})
     behaviorInput?: string;
@@ -47,9 +47,13 @@ export class Questions {
     @ManyToOne(() => ThreadHall, {onDelete: 'CASCADE'})
     threadHall!: ThreadHall;
 
+    @ManyToMany(() => SurveyScenario, (s) => s.questions)
+    scenarios!: SurveyScenario[];
+
     @OneToMany(() => UserAnswers, userAnswers => userAnswers.question)
     userAnswers?: UserAnswers[];
 
     @OneToMany(() => QuestionOptions, questionOptions => questionOptions.question)
     questionOptions?: QuestionOptions[];
+
 }
