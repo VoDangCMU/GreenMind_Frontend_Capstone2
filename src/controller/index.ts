@@ -14,6 +14,8 @@ import threadHall from "./threadHallController";
 import scans from "./scansController";
 import userAnswers from "./userAnswersController";
 import surveyScenarios from "./surveyScenarioController";
+import {modelController as model} from "./modelController";
+
 export default {
     health,
     user,
@@ -31,4 +33,5 @@ export default {
     scans,
     userAnswers,
     surveyScenarios,
+    model,
 };

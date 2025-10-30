@@ -1,406 +1,479 @@
-# Green MindMap Backend API Documentation
-
-## Overview
-Green MindMap Backend is a RESTful API built with TypeScript, Express.js, and TypeORM that provides comprehensive functionality for personality assessment, food tracking, and user management system.
-
-## Base URL
-```
-http://localhost:3000/api
-```
+# Green MindMap Backend API - Postman Guide
 
 ## Authentication
-Most endpoints require JWT authentication. Include the access token in:
-- **Cookie**: `access_token`
-- **Header**: `Authorization: Bearer <token>`
+Tất cả các API đều yêu cầu JWT token trong header:
+```
+Authorization: Bearer <your_jwt_token>
+```
 
 ## API Endpoints
 
-### 🔐 Authentication & Users
-
-#### POST `/api/users/register`
-Register a new user with email and password.
+### [Users] POST /api/users/register
 ```json
 {
-  "email": "user@example.com",
+  "username": "john_doe",
+  "email": "john@example.com",
   "password": "password123",
-  "confirm_password": "password123",
-  "full_name": "John Doe",
-  "date_of_birth": "1990-01-01"
+  "fullName": "John Doe",
+  "phoneNumber": "0901234567",
+  "dateOfBirth": "1990-01-01T00:00:00.000Z"
 }
 ```
 
-#### POST `/api/users/login`
-Login with email and password.
+### [Users] POST /api/users/login
 ```json
 {
-  "email": "user@example.com",
+  "email": "john@example.com",
   "password": "password123"
 }
 ```
 
-#### GET `/api/users/profile`
-Get current user profile (requires authentication).
+### [Users] GET /api/users/profile
 
-#### PUT `/api/users/profile`
-Update user profile (requires authentication).
-
-### 🧠 Big Five Personality Assessment
-
-#### POST `/api/big-five`
-Create Big Five personality data (requires authentication).
+### [Users] PUT /api/users/update
 ```json
 {
-  "openness": 0.8,
-  "conscientiousness": 0.7,
-  "extraversion": 0.6,
-  "agreeableness": 0.9,
-  "neuroticism": 0.3,
-  "userId": "user-uuid"
+  "fullName": "John Doe Updated",
+  "phoneNumber": "0987654321"
 }
 ```
 
-#### GET `/api/big-five/:id`
-Get Big Five data by ID (requires authentication).
+### [Users] DELETE /api/users/delete
 
-#### GET `/api/big-five/user/:userId`
-Get Big Five data by User ID (requires authentication).
-
-#### PUT `/api/big-five/:id`
-Update Big Five data (requires authentication).
-
-#### DELETE `/api/big-five/:id`
-Delete Big Five data (requires authentication).
-
-#### GET `/api/big-five`
-Get all Big Five data (admin only).
-
-### ❓ Questions Management
-
-#### POST `/api/questions/create-question`
-Create a new question (requires staff/admin privileges).
+### [Templates] POST /api/templates/create
 ```json
 {
-  "question": "How do you handle stressful situations?",
-  "trait": 4,
-  "placeholders": "stress, coping",
-  "expected_answer": "Calm and collected approach"
+  "id": "T_CUSTOM_01",
+  "name": "Custom Template",
+  "description": "Template description",
+  "intent": "frequency",
+  "prompt": "How often do you {keywords}?",
+  "used_placeholders": ["keywords"],
+  "question_type": "frequency",
+  "filled_prompt": "How often do you eat healthy food?",
+  "answer": {
+    "type": "scale",
+    "scale": [1, 2, 3, 4],
+    "labels": ["Never", "Sometimes", "Often", "Always"]
+  }
 }
 ```
 
-#### GET `/api/questions/get-question`
-Get all questions.
-
-#### GET `/api/questions/get-question-by-id/:id`
-Get specific question by ID.
-
-#### PUT `/api/questions/update-question/:id`
-Update question (requires staff/admin privileges).
+### [Templates] POST /api/templates/createTemplates
 ```json
 {
+  "templates": [
+    {
+      "id": "T_FREQ_01",
+      "name": "Tần suất thực hiện hành động 1",
+      "description": "Khảo sát tần suất người tham gia một hành động cụ thể.",
+      "intent": "frequency",
+      "placeholders": {
+        "required": ["ocean", "keywords"],
+        "optional": ["behavior", "age", "gender", "location"],
+        "used_placeholders": ["ocean", "gender", "age", "keywords"]
+      },
+      "prompt": "Người có tính cách {ocean}, giới tính {gender}, độ tuổi {age}, mức độ yêu thích hành động {keywords} là như thế nào?",
+      "question_type": "frequency",
+      "answer": {
+        "type": "scale",
+        "scale": [1, 2, 3, 4],
+        "labels": ["Không bao giờ", "Thỉnh thoảng", "Thường xuyên", "Rất thường xuyên"]
+      },
+      "filled_prompt": "Người có tính cách E, giới tính Nữ, độ tuổi 34, mức độ yêu thích hành động ăn mỳ quảng ở quảng nam là như thế nào?"
+    },
+    {
+      "id": "T_YN_01",
+      "name": "Thói quen hành động 1",
+      "description": "Xác định người có thực hiện hành động hay không.",
+      "intent": "yesno",
+      "placeholders": {
+        "required": ["ocean", "keywords"],
+        "optional": ["behavior", "age", "gender", "location"],
+        "used_placeholders": ["ocean", "gender", "age", "keywords"]
+      },
+      "prompt": "Người có tính cách {ocean}, giới tính {gender}, độ tuổi {age}, có thực hiện {keywords} không?",
+      "question_type": "yesno",
+      "answer": {
+        "type": "binary",
+        "options": ["Có", "Không"]
+      },
+      "filled_prompt": "Người có tính cách E, giới tính Nữ, độ tuổi 34, có thực hiện ăn mỳ quảng ở quảng nam không?"
+    }
+  ]
+}
+```
+
+### [Templates] GET /api/templates/getAll
+
+### [Templates] GET /api/templates/getById/:id
+
+### [Templates] PUT /api/templates/update
+```json
+{
+  "id": "T_CUSTOM_01",
+  "name": "Updated Template Name",
+  "description": "Updated description",
+  "intent": "likert5",
+  "prompt": "Updated prompt text",
+  "answer": {
+    "type": "scale",
+    "scale": [1, 2, 3, 4, 5],
+    "labels": ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+  }
+}
+```
+
+### [Templates] DELETE /api/templates/delete/:id
+
+### [Behaviors] POST /api/behaviors/create
+```json
+{
+  "name": "Eating Behavior",
+  "type": "daily",
+  "keywords": ["eat", "food", "meal"],
+  "description": "Daily eating habits"
+}
+```
+
+### [Behaviors] GET /api/behaviors/getAll
+
+### [Behaviors] GET /api/behaviors/getById/:id
+
+### [Behaviors] PUT /api/behaviors/update
+```json
+{
+  "id": "behavior_id",
+  "name": "Updated Behavior",
+  "type": "weekly",
+  "keywords": ["updated", "keywords"],
+  "description": "Updated description"
+}
+```
+
+### [Behaviors] DELETE /api/behaviors/delete/:id
+
+### [Questions] POST /api/questions/create
+```json
+{
+  "question": "How often do you exercise?",
+  "templateId": "template_uuid",
+  "behaviorInput": "exercise",
+  "behaviorNormalized": "physical_activity",
+  "normalizeScore": 4.5
+}
+```
+
+### [Questions] POST /api/questions/createQuestions
+```json
+{
+  "questions": [
+    {
+      "id": "T_FREQ_01",
+      "name": "Tần suất thực hiện hành động 1",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người có tính cách E, giới tính Nữ, độ tuổi 34, mức độ yêu thích hành động ăn mỳ quảng ở quảng nam là như thế nào?",
+      "answer": {
+        "type": "scale",
+        "scale": [1, 2, 3, 4],
+        "labels": ["Không bao giờ", "Thỉnh thoảng", "Thường xuyên", "Rất thường xuyên"]
+      }
+    },
+    {
+      "id": "T_YN_01",
+      "name": "Thói quen hành động 1",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người có tính cách E, giới tính Nữ, độ tuổi 34, có thực hiện ăn mỳ quảng ở quảng nam không?",
+      "answer": {
+        "type": "binary",
+        "options": ["Có", "Không"]
+      }
+    },
+    {
+      "id": "T_LIKERT_01",
+      "name": "Mức độ yêu thích hành động 1",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người có tính cách E, giới tính Nữ, độ tuổi 34, yêu thích hành động ăn mỳ quảng ở quảng nam ở mức nào?",
+      "answer": {
+        "type": "scale",
+        "scale": [1, 2, 3, 4, 5],
+        "labels": ["Rất không thích", "Không thích", "Bình thường", "Thích", "Rất thích"]
+      }
+    }
+  ]
+}
+```
+
+### [Questions] GET /api/questions/getAll
+
+### [Questions] GET /api/questions/getById/:id
+
+### [Questions] PUT /api/questions/update
+```json
+{
+  "id": "question_uuid",
   "question": "Updated question text",
-  "trait": 3,
-  "placeholders": "updated, keywords",
-  "expected_answer": "Updated expected answer"
+  "behaviorInput": "updated input",
+  "normalizeScore": 3.8
 }
 ```
 
-#### DELETE `/api/questions/delete-question/:id`
-Delete question (admin only).
+### [Questions] DELETE /api/questions/delete/:id
 
-### 📝 User Answers
-
-#### POST `/api/user-answers`
-Submit answer to a question (requires authentication).
+### [UserAnswers] POST /api/userAnswers/create
 ```json
 {
-  "userId": "user-uuid",
-  "questionId": "question-uuid",
-  "answer": "My detailed answer to the question",
-  "timestamp": "2025-01-01T10:00:00Z"
+  "question_id": "question_uuid",
+  "answer": "Often",
+  "timestamp": "2025-01-10T10:00:00.000Z"
 }
 ```
 
-#### GET `/api/user-answers/user/:userId`
-Get all answers by user ID (requires authentication).
+### [UserAnswers] GET /api/userAnswers/getAll
 
-#### GET `/api/user-answers/:userId/:questionId`
-Get specific user answer (requires authentication).
+### [UserAnswers] GET /api/userAnswers/getById/:userId/:questionId
 
-#### PUT `/api/user-answers/:userId/:questionId`
-Update user answer (requires authentication).
+### [UserAnswers] PUT /api/userAnswers/update
+```json
+{
+  "user_id": "user_uuid",
+  "question_id": "question_uuid",
+  "answer": "Updated answer",
+  "timestamp": "2025-01-10T11:00:00.000Z"
+}
+```
 
-#### DELETE `/api/user-answers/:userId/:questionId`
-Delete user answer (requires authentication).
+### [UserAnswers] DELETE /api/userAnswers/delete/:userId/:questionId
 
-### 🏷️ Traits Management
+### [ThreadHalls] POST /api/threadHalls/create
+```json
+{
+  "name": "Personality Thread",
+  "description": "Thread for personality assessment",
+  "traitsId": "trait_uuid"
+}
+```
 
-#### POST `/api/traits`
-Create new trait (staff/admin only).
+### [ThreadHalls] GET /api/threadHalls/getAll
+
+### [ThreadHalls] GET /api/threadHalls/getById/:id
+
+### [ThreadHalls] PUT /api/threadHalls/update
+```json
+{
+  "id": "threadhall_uuid",
+  "name": "Updated Thread Name",
+  "description": "Updated description"
+}
+```
+
+### [ThreadHalls] DELETE /api/threadHalls/delete/:id
+
+### [Traits] POST /api/traits/create
 ```json
 {
   "name": "Openness",
-  "description": "Openness to experience trait",
-  "label": "openness"
+  "description": "Openness to experience",
+  "label": "O"
 }
 ```
 
-#### GET `/api/traits/:id`
-Get trait by ID.
+### [Traits] GET /api/traits/getAll
 
-#### PUT `/api/traits/:id`
-Update trait (staff/admin only).
+### [Traits] GET /api/traits/getById/:id
 
-#### DELETE `/api/traits/:id`
-Delete trait (admin only).
-
-### 🧵 Thread Halls
-
-#### POST `/api/thread-halls`
-Create thread hall (staff/admin only).
+### [Traits] PUT /api/traits/update
 ```json
 {
-  "name": "Creativity Discussion",
-  "description": "Discussion about creative thinking",
-  "traitsId": "trait-uuid"
+  "id": "trait_uuid",
+  "name": "Updated Trait",
+  "description": "Updated description",
+  "label": "UT"
 }
 ```
 
-#### GET `/api/thread-halls/:id`
-Get thread hall by ID.
+### [Traits] DELETE /api/traits/delete/:id
 
-#### GET `/api/thread-halls/trait/:traitId`
-Get thread halls by trait ID.
-
-### 🎭 Behaviors
-
-#### POST `/api/behaviors`
-Create behavior (staff/admin only).
+### [BigFive] POST /api/bigFive/create
 ```json
 {
-  "name": "Creative Problem Solving",
-  "type": "cognitive",
-  "keywords": ["creative", "innovative", "problem-solving"],
-  "description": "Ability to find creative solutions",
-  "threadHallId": "threadhall-uuid"
+  "openness": 4.2,
+  "conscientiousness": 3.8,
+  "extraversion": 4.5,
+  "agreeableness": 4.0,
+  "neuroticism": 2.3
 }
 ```
 
-#### GET `/api/behaviors/:id`
-Get behavior by ID.
+### [BigFive] GET /api/bigFive/getByUserId/:userId
 
-#### GET `/api/behaviors/threadhall/:threadHallId`
-Get behaviors by thread hall ID.
-
-### 🍎 Food Tracking
-
-#### POST `/api/food-items`
-Create food item (staff/admin only).
+### [BigFive] PUT /api/bigFive/update
 ```json
 {
-  "name": "Apple",
-  "calories_per_100g": 52,
-  "protein": 0.3,
-  "carbs": 14,
-  "fat": 0.2
+  "openness": 4.5,
+  "conscientiousness": 4.0,
+  "extraversion": 4.2,
+  "agreeableness": 4.3,
+  "neuroticism": 2.1
 }
 ```
 
-#### GET `/api/food-items`
-Get all food items.
+### [BigFive] DELETE /api/bigFive/delete/:userId
 
-#### POST `/api/scans`
-Create food scan (requires authentication).
+### [Locations] POST /api/locations/create
 ```json
 {
-  "userId": "user-uuid",
-  "foodItemsId": "food-item-uuid",
-  "scan_time": "2025-01-01T12:00:00Z"
+  "latitude": 15.5753,
+  "longitude": 108.4834,
+  "address": "Quảng Nam, Vietnam"
 }
 ```
 
-#### GET `/api/scans/user/:userId`
-Get user's scans (requires authentication).
+### [Locations] GET /api/locations/getAll
 
-### 📊 Templates & Locations
+### [Locations] GET /api/locations/getById/:id
 
-#### GET `/api/templates`
-Get all templates.
-
-#### GET `/api/locations`
-Get user locations (requires authentication).
-
-#### POST `/api/locations`
-Create location (requires authentication).
-
-## Question Creation Flow
-
-### 1. Prerequisites
-- Admin or Staff role required
-- Valid JWT token
-- Understanding of trait system (1-5 scale)
-
-### 2. Question Creation Process
-
-```mermaid
-graph TD
-    A[Admin/Staff Login] --> B[Create Question]
-    B --> C[Validate Input]
-    C --> D[Check Trait Association]
-    D --> E[Save to Database]
-    E --> F[Return Question ID]
-    F --> G[Question Available for Users]
-    G --> H[Users Can Answer]
-    H --> I[Store User Answers]
-```
-
-### 3. Question Structure
-
-```typescript
-interface Question {
-  id: string;                    // Auto-generated UUID
-  question: string;              // The actual question text
-  trait: number;                 // Trait ID (1-5): 1=Openness, 2=Conscientiousness, etc.
-  placeholders: string;          // Keywords for question categorization
-  expected_answer: string;       // Expected type of answer
-  template: Template;            // Associated template
-  threadHall: ThreadHall;        // Associated discussion thread
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
-
-### 4. Answer Collection Flow
-
-```mermaid
-graph TD
-    A[User Views Question] --> B[User Submits Answer]
-    B --> C[Validate Answer Format]
-    C --> D[Check Duplicate Answers]
-    D --> E[Store Answer with Timestamp]
-    E --> F[Link to Big Five Analysis]
-    F --> G[Update User Profile]
-```
-
-### 5. Question Management
-
-#### Creating Questions
-1. **Authentication**: Ensure user has staff/admin role
-2. **Validation**: Validate question text and trait association
-3. **Storage**: Save question with relationships
-4. **Availability**: Question becomes available to users
-
-#### Answer Processing
-1. **User Submission**: Users submit answers through `/api/user-answers`
-2. **Validation**: Check answer format and user authentication
-3. **Storage**: Store answer with user and question relationship
-4. **Analysis**: Process answers for personality insights
-
-## Error Handling
-
-All endpoints return consistent error responses:
-
+### [Locations] PUT /api/locations/update
 ```json
 {
-  "message": "Error description",
-  "error": "Detailed error information (development only)"
+  "id": "location_uuid",
+  "latitude": 15.6000,
+  "longitude": 108.5000,
+  "address": "Updated address"
 }
 ```
 
-### Common HTTP Status Codes
-- `200`: Success
-- `201`: Created
-- `400`: Bad Request (validation error)
-- `401`: Unauthorized (missing/invalid token)
-- `403`: Forbidden (insufficient privileges)
-- `404`: Not Found
-- `500`: Internal Server Error
+### [Locations] DELETE /api/locations/delete/:id
 
-## Data Models
-
-### User
-```typescript
+### [FoodItems] POST /api/foodItems/create
+```json
 {
-  id: string;
-  username: string;
-  email: string;
-  fullName: string;
-  role: "user" | "staff" | "admin";
-  dateOfBirth: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  "name": "Mỳ Quảng",
+  "barcode": "123456789",
+  "caloriesId": "calories_uuid"
 }
 ```
 
-### Question
-```typescript
+### [FoodItems] GET /api/foodItems/getAll
+
+### [FoodItems] GET /api/foodItems/getById/:id
+
+### [FoodItems] PUT /api/foodItems/update
+```json
 {
-  id: string;
-  question: string;
-  trait: number;
-  placeholders: string;
-  expected_answer: string;
-  createdAt: Date;
-  updatedAt: Date;
+  "id": "fooditem_uuid",
+  "name": "Updated Food Name",
+  "barcode": "987654321"
 }
 ```
 
-### UserAnswer
-```typescript
+### [FoodItems] DELETE /api/foodItems/delete/:id
+
+### [Calories] POST /api/calories/create
+```json
 {
-  userId: string;
-  questionId: string;
-  answer: string;
-  timestamp: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  "energy_kcal": 350.5,
+  "protein_g": 12.3,
+  "fat_g": 8.7,
+  "carbs_g": 45.2
 }
 ```
 
-### BigFive
-```typescript
+### [Calories] GET /api/calories/getAll
+
+### [Calories] GET /api/calories/getById/:id
+
+### [Calories] PUT /api/calories/update
+```json
 {
-  id: string;
-  openness: number;        // 0-1 scale
-  conscientiousness: number;
-  extraversion: number;
-  agreeableness: number;
-  neuroticism: number;
-  userId: string;
+  "id": "calories_uuid",
+  "energy_kcal": 400.0,
+  "protein_g": 15.0,
+  "fat_g": 10.0,
+  "carbs_g": 50.0
 }
 ```
 
-## Rate Limiting & Security
+### [Calories] DELETE /api/calories/delete/:id
 
-- JWT token expiration: 24 hours
-- Token blacklisting supported
-- Input validation with Zod schemas
-- SQL injection protection via TypeORM
-- CORS enabled for frontend integration
-
-## Development
-
-### Environment Variables
-```
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=password
-DB_DATABASE=mindmap
-JWT_SECRET=your-secret-key
-JWT_EXPIRES_IN=24h
+### [Scans] POST /api/scans/create
+```json
+{
+  "scan_time": "2025-01-10T10:00:00.000Z",
+  "foodItemsId": "fooditem_uuid"
+}
 ```
 
-### Running the Application
-```bash
-npm install
-npm run dev
+### [Scans] GET /api/scans/getAll
+
+### [Scans] GET /api/scans/getById/:id
+
+### [Scans] PUT /api/scans/update
+```json
+{
+  "id": "scan_uuid",
+  "scan_time": "2025-01-10T11:00:00.000Z",
+  "foodItemsId": "updated_fooditem_uuid"
+}
 ```
 
-### Testing
-```bash
-npm test
+### [Scans] DELETE /api/scans/delete/:id
+
+### [Invoices] POST /api/invoices/create
+```json
+{
+  "issued_at": "10:00:00+07:00",
+  "scansId": "scan_uuid"
+}
 ```
 
-## Support
+### [Invoices] GET /api/invoices/getAll
 
-For questions and support, please contact the development team or refer to the project documentation.
+### [Invoices] GET /api/invoices/getById/:id
+
+### [Invoices] PUT /api/invoices/update
+```json
+{
+  "id": "invoice_uuid",
+  "issued_at": "11:00:00+07:00",
+  "scansId": "updated_scan_uuid"
+}
+```
+
+### [Invoices] DELETE /api/invoices/delete/:id
+
+### [Tokens] POST /api/tokens/create
+```json
+{
+  "token": "jwt_token_here",
+  "deviceID": "device123",
+  "expiredAt": "2025-02-10T10:00:00.000Z"
+}
+```
+
+### [Tokens] GET /api/tokens/getAll
+
+### [Tokens] GET /api/tokens/getById/:id
+
+### [Tokens] PUT /api/tokens/update
+```json
+{
+  "id": "token_uuid",
+  "token": "updated_token",
+  "deviceID": "updated_device",
+  "expiredAt": "2025-03-10T10:00:00.000Z"
+}
+```
+
+### [Tokens] DELETE /api/tokens/delete/:id
+
+### [Health] GET /api/health/check
+
+## Notes
+- Tất cả timestamp phải theo format ISO 8601
+- UUID sẽ được tự động generate nếu không cung cấp
+- CORS đã được cấu hình cho phép tất cả origins (*)
+- Tất cả API (trừ register/login) đều cần JWT token

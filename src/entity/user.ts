@@ -24,11 +24,17 @@ export class User {
     @Column({type: 'varchar', length: 100, nullable: true})
     fullName!: string;
 
+    @Column({type: 'varchar', length: 10, nullable: true})
+    gender?: string;
+
     @Column({type: 'varchar', length: 50, nullable: true})
     role!: string;
 
     @Column({type: 'timestamp'})
     dateOfBirth!: Date;
+
+    @Column({type: 'varchar', length: 255, nullable: true})
+    location?: string;
 
     @CreateDateColumn({type: 'timestamp'})
     createdAt!: Date;

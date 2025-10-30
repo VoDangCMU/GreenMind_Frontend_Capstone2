@@ -11,6 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -33,17 +34,19 @@ services:
       REDIS_PASSWORD: 12345678
     ports:
       - "6379:6379"
+    restart:
+      unless-stopped
 
-  otel-lgtm:
-    image: grafana/otel-lgtm:latest
-    container_name: otel-lgtm
-    ports:
-      - "3001:3000"
-      - "4317:4317"
-      - "4318:4318"
-    volumes:
-      - otel_data:/var/lib/otel-lgtm
-    restart: unless-stopped
+#  otel-lgtm:
+#    image: grafana/otel-lgtm:latest
+#    container_name: otel-lgtm
+#    ports:
+#      - "3001:3000"
+#      - "4317:4317"
+#      - "4318:4318"
+#    volumes:
+#      - otel_data:/var/lib/otel-lgtm
+#    restart: unless-stopped
 
 volumes:
   pgadmin_data:

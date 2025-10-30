@@ -3,17 +3,17 @@ import bcrypt from "bcrypt";
 import AppDataSource from "../infrastructure/database";
 import { User } from "../entity/user";
 import { Token } from "../entity/token";
+import { Locations } from "../entity/locations";
 import { JWTHelper } from "../utils/jwtHelper";
 import { GoogleLoginHelper } from "../utils/googleLoginHelper";
 import { BitmapHelper } from "../utils/bitmapHelper";
 import { getLogger } from "../infrastructure/logger";
 import { UsernameHelper } from "../utils/usernameHelper";
-
 class UserController {
     public RegisterWithEmail: RequestHandler = async (req: Request, res: Response) => {
         const logger = getLogger();
         const startTime = Date.now();
-        const { email, password, confirm_password ,full_name, date_of_birth } = req.body;
+        const { email, password, confirm_password, full_name, date_of_birth, location } = req.body;
 
         logger.info("User registration attempt", {
             email: email?.substring(0, 3) + "***",
@@ -21,13 +21,17 @@ class UserController {
             userAgent: req.get('User-Agent')
         });
 
-        if (!email || !password || !full_name) {
+        if (!email || !password || !full_name || !date_of_birth || !location) {
             logger.warn("Registration failed - missing required fields", {
                 email: email ? "provided" : "missing",
                 password: password ? "provided" : "missing",
-                fullName: full_name ? "provided" : "missing"
+                fullName: full_name ? "provided" : "missing",
+                dateOfBirth: date_of_birth ? "provided" : "missing",
+                location: location ? "provided" : "missing"
             });
-            res.status(400).json({ message: "Email, password, and full name are required" });
+            res.status(400).json({
+                message: "Email, password, full name, date of birth, and location are required"
+            });
             return;
         }
 
@@ -52,20 +56,59 @@ class UserController {
             const saltRounds = 10;
             const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+            // Parse date of birth
+            const parsedDateOfBirth = new Date(date_of_birth);
+            if (isNaN(parsedDateOfBirth.getTime())) {
+                logger.warn("Registration failed - invalid date of birth", {
+                    email: email?.substring(0, 3) + "***",
+                    dateOfBirth: date_of_birth
+                });
+                res.status(400).json({ message: "Invalid date of birth format" });
+                return;
+            }
+
             const newUser = userRepository.create({
                 email,
                 password: hashedPassword,
                 fullName: full_name,
                 username,
-                dateOfBirth: date_of_birth || null,
+                dateOfBirth: parsedDateOfBirth,
+                location: location,
                 role: 'user'
             });
 
-            await userRepository.save(newUser);
+            const savedUser = await userRepository.save(newUser);
+
+            // Save location to locations table if not exists
+            const locationsRepository = AppDataSource.getRepository(Locations);
+
+            // Check if this location already exists for this user
+            const existingLocation = await locationsRepository.findOne({
+                where: {
+                    user: { id: savedUser.id },
+                    address: location
+                }
+            });
+
+            if (!existingLocation) {
+                const newLocationRecord = locationsRepository.create({
+                    user: savedUser,
+                    address: location,
+                    latitude: 0, // Default values - could be updated later with geocoding
+                    longitude: 0
+                });
+
+                await locationsRepository.save(newLocationRecord);
+
+                logger.info("Location saved to locations table", {
+                    userId: savedUser.id,
+                    location: location
+                });
+            }
 
             const payload = {
-                userId: newUser.id,
-                role: newUser.role
+                userId: savedUser.id,
+                role: savedUser.role
             };
 
             const tokenPair = JWTHelper.createTokenPair(payload);
@@ -85,19 +128,21 @@ class UserController {
 
             const duration = Date.now() - startTime;
             logger.info("User registration successful", {
-                userId: newUser.id,
+                userId: savedUser.id,
                 email: email?.substring(0, 3) + "***",
                 duration
             });
 
-            res.status(201).json({
+            res.status(200).json({
                 message: "Register successful",
                 user: {
-                    id: newUser.id,
-                    username: newUser.username,
-                    email: newUser.email,
-                    fullName: newUser.fullName,
-                    role: newUser.role
+                    id: savedUser.id,
+                    username: savedUser.username,
+                    email: savedUser.email,
+                    fullName: savedUser.fullName,
+                    dateOfBirth: savedUser.dateOfBirth,
+                    location: savedUser.location,
+                    role: savedUser.role
                 },
                 access_token: tokenPair.accessToken,
                 refresh_token: tokenPair.refreshToken
@@ -130,25 +175,47 @@ class UserController {
                 email: email ? "provided" : "missing",
                 password: password ? "provided" : "missing"
             });
-            res.status(400).json({ message: "Email and password are required" });
-            return;
+            return res.status(400).json({ message: "Email and password are required" });
         }
 
         try {
             const userRepository = AppDataSource.getRepository(User);
             const user = await userRepository.findOne({
-                where: { email }
+                where: { email },
+                select: ['id', 'email', 'username', 'password', 'role', 'fullName', 'location', 'dateOfBirth']
             });
 
             const duration = Date.now() - startTime;
 
-            if (!user || !await bcrypt.compare(password, user.password)) {
+            // ✅ Check user existence and password presence first
+            if (!user || !user.password) {
                 logger.warn("Login failed - invalid credentials", {
                     email: email?.substring(0, 3) + "***",
                     duration
                 });
-                res.status(400).json({ message: "Invalid email or password" });
-                return;
+                return res.status(400).json({ message: "Invalid email or password" });
+            }
+
+            // ✅ Compare password safely
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                logger.warn("Login failed - invalid credentials", {
+                    email: email?.substring(0, 3) + "***",
+                    duration
+                });
+                return res.status(400).json({ message: "Invalid email or password" });
+            }
+
+            // Calculate age from dateOfBirth
+            let age = null;
+            if (user.dateOfBirth) {
+                const today = new Date();
+                const birthDate = new Date(user.dateOfBirth);
+                age = today.getFullYear() - birthDate.getFullYear();
+                const monthDiff = today.getMonth() - birthDate.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
             }
 
             const payload = {
@@ -168,7 +235,7 @@ class UserController {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'strict',
-                maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+                maxAge: 1000 * 60 * 60 * 24 * 7
             });
 
             logger.info("User login successful", {
@@ -177,29 +244,30 @@ class UserController {
                 duration
             });
 
-            res.status(200).json({
+            return res.status(200).json({
                 message: "Login successful",
                 user: {
                     id: user.id,
                     username: user.username,
                     email: user.email,
                     fullName: user.fullName,
-                    role: user.role
+                    role: user.role,
+                    location: user.location,
+                    age: age
                 },
                 access_token: tokenPair.accessToken,
                 refresh_token: tokenPair.refreshToken
             });
-            return;
+
         } catch (error) {
             const duration = Date.now() - startTime;
             logger.error("Login error", error as Error, {
                 email: email?.substring(0, 3) + "***",
                 duration
             });
-            res.status(500).json({ message: "Internal server error" });
-            return;
+            return res.status(500).json({ message: "Internal server error" });
         }
-    }
+    };
 
     public LoginWithGoogle: RequestHandler = async (req: Request, res: Response) => {
         const logger = getLogger();
@@ -294,6 +362,18 @@ class UserController {
                 return;
             }
 
+            // Calculate age from dateOfBirth
+            let age = null;
+            if (user.dateOfBirth) {
+                const today = new Date();
+                const birthDate = new Date(user.dateOfBirth);
+                age = today.getFullYear() - birthDate.getFullYear();
+                const monthDiff = today.getMonth() - birthDate.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+            }
+
             logger.info("GetProfile successful", {
                 userId: user.id,
                 duration
@@ -303,9 +383,15 @@ class UserController {
                 id: user.id,
                 username: user.username,
                 email: user.email,
-                fullName: user.fullName,
+                phone_number: user.phoneNumber,
+                full_name: user.fullName,
+                gender: user.gender,
                 role: user.role,
-                date_of_birth: user.dateOfBirth
+                date_of_birth: user.dateOfBirth,
+                age: age,
+                location: user.location,
+                created_at: user.createdAt,
+                updated_at: user.updatedAt
             });
             return;
 
