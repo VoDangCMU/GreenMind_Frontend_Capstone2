@@ -1,0 +1,912 @@
+{
+  "questions": [
+    {
+      "id": "Q001_T_FREQ_01",
+      "template_id": "T_FREQ_01",
+      "name": "Tần suất đá bóng của sinh viên hướng ngoại",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Sinh viên 20 tuổi, tính cách E, giới tính Nam, thường đá bóng cùng bạn bè vào buổi chiều với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q002_T_FREQ_02",
+      "template_id": "T_FREQ_02",
+      "name": "Tần suất đi trekking của người trẻ cởi mở",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 25 tuổi, tính cách O, giới tính Nữ, tham gia trekking khám phá núi rừng với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q003_T_FREQ_03",
+      "template_id": "T_FREQ_03",
+      "name": "Tần suất đọc sách kỹ năng của người đi làm",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người đi làm 32 tuổi, tính cách C, giới tính Nam, đọc sách phát triển kỹ năng mềm với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q004_T_YN_01",
+      "template_id": "T_YN_01",
+      "name": "Thói quen tham gia câu lạc bộ thể thao của người hướng ngoại",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 22 tuổi, tính cách E, giới tính Nữ, có tham gia câu lạc bộ thể thao trong trường không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q005_T_YN_02",
+      "template_id": "T_YN_02",
+      "name": "Thói quen giúp đỡ người lạ của người dễ chịu",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 29 tuổi, tính cách A, giới tính Nam, có sẵn lòng giúp đỡ người lạ khi họ gặp khó khăn không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q006_T_YN_03",
+      "template_id": "T_YN_03",
+      "name": "Thói quen lo lắng trước kỳ thi của người nhạy cảm",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Sinh viên 21 tuổi, tính cách N, giới tính Nam, có thường lo lắng quá mức trước mỗi kỳ thi không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q007_T_LIKERT_01",
+      "template_id": "T_LIKERT_01",
+      "name": "Mức độ yêu thích khiêu vũ salsa của người hướng ngoại",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 24 tuổi, tính cách E, giới tính Nữ, yêu thích việc tham gia lớp khiêu vũ salsa vào buổi tối ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q008_T_LIKERT_02",
+      "template_id": "T_LIKERT_02",
+      "name": "Mức độ yêu thích học đàn guitar của người cởi mở",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 27 tuổi, tính cách O, giới tính Nam, yêu thích việc học đàn guitar vào cuối tuần ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q009_T_LIKERT_03",
+      "template_id": "T_LIKERT_03",
+      "name": "Mức độ yêu thích uống trà sáng của người cao tuổi",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 70 tuổi, tính cách A, giới tính Nam, yêu thích thói quen uống trà và đọc báo buổi sáng ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q010_T_RATING_01",
+      "template_id": "T_RATING_01",
+      "name": "Đánh giá lớp học quản lý thời gian",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 35 tuổi, tính cách C, giới tính Nữ, đánh giá chất lượng lớp học quản lý thời gian vừa tham gia như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q011_T_RATING_02",
+      "template_id": "T_RATING_02",
+      "name": "Đánh giá lễ hội đường phố cuối tuần",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 23 tuổi, tính cách E, giới tính Nam, đánh giá lễ hội âm nhạc đường phố cuối tuần như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q012_T_RATING_03",
+      "template_id": "T_RATING_03",
+      "name": "Đánh giá buổi trà đạo tại công viên của người cao tuổi",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 69 tuổi, tính cách N, giới tính Nữ, đánh giá buổi trà đạo tại công viên vào sáng Chủ nhật như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+
+    {
+      "id": "Q013_T_FREQ_01",
+      "template_id": "T_FREQ_01",
+      "name": "Tần suất chạy bộ buổi sáng của người trẻ",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 19 tuổi, tính cách E, giới tính Nữ, chạy bộ 5km buổi sáng với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q014_T_FREQ_02",
+      "template_id": "T_FREQ_02",
+      "name": "Tần suất đi cắm trại của người thích khám phá",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 28 tuổi, tính cách O, giới tính Nam, đi cắm trại cuối tuần ở ngoại ô với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q015_T_FREQ_03",
+      "template_id": "T_FREQ_03",
+      "name": "Tần suất đọc sách lịch sử của người trung niên cởi mở",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 37 tuổi, tính cách O, giới tính Nữ, đọc sách về lịch sử và văn hóa với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q016_T_YN_01",
+      "template_id": "T_YN_01",
+      "name": "Thói quen tham gia nhóm thể thao địa phương",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 26 tuổi, tính cách E, giới tính Nam, có tham gia nhóm thể thao địa phương vào tối thứ 3 không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q017_T_YN_02",
+      "template_id": "T_YN_02",
+      "name": "Thói quen hỗ trợ bạn bè trong công việc của người dễ chịu",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 31 tuổi, tính cách A, giới tính Nữ, có thường chủ động hỗ trợ bạn bè khi họ quá tải không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q018_T_YN_03",
+      "template_id": "T_YN_03",
+      "name": "Thói quen lo lắng trước khi thuyết trình của người nhạy cảm",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 27 tuổi, tính cách N, giới tính Nam, có thấy lo lắng trước mỗi buổi thuyết trình không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q019_T_LIKERT_01",
+      "template_id": "T_LIKERT_01",
+      "name": "Mức độ yêu thích tham gia party của người hướng ngoại trẻ",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 22 tuổi, tính cách E, giới tính Nữ, yêu thích việc tham gia các buổi party giao lưu bạn bè ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q020_T_LIKERT_02",
+      "template_id": "T_LIKERT_02",
+      "name": "Mức độ yêu thích học ngoại ngữ thứ hai của người cởi mở",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 30 tuổi, tính cách O, giới tính Nữ, yêu thích việc học thêm một ngoại ngữ mới ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q021_T_LIKERT_03",
+      "template_id": "T_LIKERT_03",
+      "name": "Mức độ yêu thích đánh cờ tướng của người cao tuổi",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 72 tuổi, tính cách A, giới tính Nam, yêu thích việc đánh cờ tướng với bạn bè ở công viên ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q022_T_RATING_01",
+      "template_id": "T_RATING_01",
+      "name": "Đánh giá buổi workshop lập kế hoạch cá nhân",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 33 tuổi, tính cách C, giới tính Nam, đánh giá buổi workshop về lập kế hoạch cá nhân như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q023_T_RATING_02",
+      "template_id": "T_RATING_02",
+      "name": "Đánh giá buổi hòa nhạc ngoài trời",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 24 tuổi, tính cách E, giới tính Nữ, đánh giá buổi hòa nhạc ngoài trời vừa tham dự như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q024_T_RATING_03",
+      "template_id": "T_RATING_03",
+      "name": "Đánh giá buổi họp mặt uống trà của hội người cao tuổi",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 70 tuổi, tính cách N, giới tính Nam, đánh giá buổi họp mặt uống trà cùng bạn bè như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+
+    {
+      "id": "Q025_T_FREQ_01",
+      "template_id": "T_FREQ_01",
+      "name": "Tần suất đạp xe buổi sáng của người trẻ năng động",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 21 tuổi, tính cách E, giới tính Nam, đạp xe 10km buổi sáng với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q026_T_FREQ_02",
+      "template_id": "T_FREQ_02",
+      "name": "Tần suất đi phượt bằng xe máy của người cởi mở",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 27 tuổi, tính cách O, giới tính Nữ, đi phượt bằng xe máy đến các tỉnh lân cận với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q027_T_FREQ_03",
+      "template_id": "T_FREQ_03",
+      "name": "Tần suất đến thư viện của người đi làm yêu học hỏi",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 34 tuổi, tính cách C, giới tính Nữ, đến thư viện mượn sách mỗi tháng với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q028_T_YN_01",
+      "template_id": "T_YN_01",
+      "name": "Thói quen tham gia câu lạc bộ tiếng Anh của người hướng ngoại",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 23 tuổi, tính cách E, giới tính Nam, có tham gia câu lạc bộ tiếng Anh để giao lưu không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q029_T_YN_02",
+      "template_id": "T_YN_02",
+      "name": "Thói quen nhường ghế nơi công cộng của người dễ chịu trẻ",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 25 tuổi, tính cách A, giới tính Nữ, có thường nhường ghế nơi công cộng cho người cao tuổi không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q030_T_YN_03",
+      "template_id": "T_YN_03",
+      "name": "Thói quen mất ngủ do lo lắng của người trung niên nhạy cảm",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 40 tuổi, tính cách N, giới tính Nam, có hay mất ngủ vì lo lắng công việc không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q031_T_LIKERT_01",
+      "template_id": "T_LIKERT_01",
+      "name": "Mức độ yêu thích giao lưu kết bạn mới của người hướng ngoại",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 26 tuổi, tính cách E, giới tính Nữ, yêu thích việc giao lưu kết bạn mới ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q032_T_LIKERT_02",
+      "template_id": "T_LIKERT_02",
+      "name": "Mức độ yêu thích học nấu ăn món mới của người cởi mở",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 29 tuổi, tính cách O, giới tính Nữ, yêu thích việc học nấu một món ăn mới mỗi tuần ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q033_T_LIKERT_03",
+      "template_id": "T_LIKERT_03",
+      "name": "Mức độ yêu thích đọc báo giấy của người cao tuổi",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 74 tuổi, tính cách A, giới tính Nữ, yêu thích việc đọc báo giấy vào buổi sáng ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q034_T_RATING_01",
+      "template_id": "T_RATING_01",
+      "name": "Đánh giá khóa học kỷ luật bản thân",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 36 tuổi, tính cách C, giới tính Nam, đánh giá khóa học về kỷ luật bản thân như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q035_T_RATING_02",
+      "template_id": "T_RATING_02",
+      "name": "Đánh giá chuyến dã ngoại cùng bạn bè",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 22 tuổi, tính cách E, giới tính Nam, đánh giá chuyến dã ngoại cuối tuần cùng bạn bè như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q036_T_RATING_03",
+      "template_id": "T_RATING_03",
+      "name": "Đánh giá không gian sinh hoạt câu lạc bộ dưỡng sinh",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 68 tuổi, tính cách N, giới tính Nữ, đánh giá không gian sinh hoạt câu lạc bộ dưỡng sinh tại phường như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+
+    {
+      "id": "Q037_T_FREQ_01",
+      "template_id": "T_FREQ_01",
+      "name": "Tần suất chơi bóng rổ của học sinh năng động",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Học sinh 18 tuổi, tính cách E, giới tính Nam, chơi bóng rổ tại sân trường với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q038_T_FREQ_02",
+      "template_id": "T_FREQ_02",
+      "name": "Tần suất khám phá quán cà phê mới của người cởi mở",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 26 tuổi, tính cách O, giới tính Nữ, khám phá quán cà phê mới trong thành phố với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q039_T_FREQ_03",
+      "template_id": "T_FREQ_03",
+      "name": "Tần suất đọc tạp chí khoa học của người yêu tri thức",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 33 tuổi, tính cách C, giới tính Nam, đọc tạp chí khoa học mỗi tháng với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q040_T_YN_01",
+      "template_id": "T_YN_01",
+      "name": "Thói quen tham gia sự kiện networking của người hướng ngoại",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 27 tuổi, tính cách E, giới tính Nữ, có thường tham gia sự kiện networking sau giờ làm không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q041_T_YN_02",
+      "template_id": "T_YN_02",
+      "name": "Thói quen nhắc nhở bạn bè đúng giờ của người tận tâm và dễ chịu",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 28 tuổi, tính cách A, giới tính Nam, có thường nhắc bạn bè đúng giờ hẹn để giữ hòa khí không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q042_T_YN_03",
+      "template_id": "T_YN_03",
+      "name": "Thói quen lo lắng về sức khỏe của người cao tuổi",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 66 tuổi, tính cách N, giới tính Nam, có hay lo lắng về các dấu hiệu nhỏ của sức khỏe không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q043_T_LIKERT_01",
+      "template_id": "T_LIKERT_01",
+      "name": "Mức độ yêu thích tham gia câu lạc bộ phim của người hướng ngoại",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 23 tuổi, tính cách E, giới tính Nam, yêu thích việc tham gia câu lạc bộ xem phim cuối tuần ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q044_T_LIKERT_02",
+      "template_id": "T_LIKERT_02",
+      "name": "Mức độ yêu thích học vẽ màu nước của người cởi mở",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 28 tuổi, tính cách O, giới tính Nữ, yêu thích việc học vẽ màu nước vào tối thứ 5 ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q045_T_LIKERT_03",
+      "template_id": "T_LIKERT_03",
+      "name": "Mức độ yêu thích chăm sóc vườn nhà của người cao tuổi",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 73 tuổi, tính cách A, giới tính Nữ, yêu thích việc chăm sóc vườn nhà và cây cảnh ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q046_T_RATING_01",
+      "template_id": "T_RATING_01",
+      "name": "Đánh giá khóa học quản trị cảm xúc",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 38 tuổi, tính cách C, giới tính Nam, đánh giá khóa học quản trị cảm xúc như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q047_T_RATING_02",
+      "template_id": "T_RATING_02",
+      "name": "Đánh giá chuyến tham quan bảo tàng cùng bạn bè",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 29 tuổi, tính cách E, giới tính Nữ, đánh giá chuyến tham quan bảo tàng cùng bạn bè như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q048_T_RATING_03",
+      "template_id": "T_RATING_03",
+      "name": "Đánh giá buổi dưỡng sinh buổi sáng của hội người cao tuổi",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 71 tuổi, tính cách N, giới tính Nam, đánh giá buổi dưỡng sinh buổi sáng tại công viên như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+
+    {
+      "id": "Q049_T_FREQ_01",
+      "template_id": "T_FREQ_01",
+      "name": "Tần suất tham gia giải chạy phong trào của người trẻ",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 24 tuổi, tính cách E, giới tính Nam, tham gia các giải chạy phong trào trong thành phố với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q050_T_FREQ_02",
+      "template_id": "T_FREQ_02",
+      "name": "Tần suất thử nhà hàng mới của người thích ẩm thực",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 30 tuổi, tính cách O, giới tính Nữ, thử nhà hàng món mới mỗi tháng với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q051_T_FREQ_03",
+      "template_id": "T_FREQ_03",
+      "name": "Tần suất đọc sách nuôi dạy con của phụ huynh tận tâm",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Phụ huynh 35 tuổi, tính cách C, giới tính Nữ, đọc sách về nuôi dạy con cái với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q052_T_YN_01",
+      "template_id": "T_YN_01",
+      "name": "Thói quen tham gia đội bóng của người hướng ngoại trẻ",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 20 tuổi, tính cách E, giới tính Nữ, có tham gia đội bóng của phường không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q053_T_YN_02",
+      "template_id": "T_YN_02",
+      "name": "Thói quen làm việc nhóm hài hòa của người dễ chịu",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 27 tuổi, tính cách A, giới tính Nam, có ưu tiên hòa giải khi nhóm xảy ra mâu thuẫn không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q054_T_YN_03",
+      "template_id": "T_YN_03",
+      "name": "Thói quen lo lắng trước khi đi xa của người nhạy cảm",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 36 tuổi, tính cách N, giới tính Nữ, có thấy lo lắng quá mức trước mỗi chuyến đi xa không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q055_T_LIKERT_01",
+      "template_id": "T_LIKERT_01",
+      "name": "Mức độ yêu thích tổ chức trò chơi nhóm của người hướng ngoại",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 25 tuổi, tính cách E, giới tính Nam, yêu thích việc tổ chức trò chơi nhóm trong buổi dã ngoại ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q056_T_LIKERT_02",
+      "template_id": "T_LIKERT_02",
+      "name": "Mức độ yêu thích học làm bánh của người cởi mở",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 31 tuổi, tính cách O, giới tính Nữ, yêu thích việc học làm bánh vào cuối tuần ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q057_T_LIKERT_03",
+      "template_id": "T_LIKERT_03",
+      "name": "Mức độ yêu thích chơi cờ vây của người cao tuổi",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 70 tuổi, tính cách A, giới tính Nam, yêu thích việc chơi cờ vây cùng bạn bè ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q058_T_RATING_01",
+      "template_id": "T_RATING_01",
+      "name": "Đánh giá khóa học lập kế hoạch tài chính cá nhân",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 39 tuổi, tính cách C, giới tính Nữ, đánh giá khóa học lập kế hoạch tài chính cá nhân như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q059_T_RATING_02",
+      "template_id": "T_RATING_02",
+      "name": "Đánh giá sự kiện giao lưu văn hóa",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 28 tuổi, tính cách E, giới tính Nam, đánh giá sự kiện giao lưu văn hóa tại quảng trường như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q060_T_RATING_03",
+      "template_id": "T_RATING_03",
+      "name": "Đánh giá buổi đọc sách cùng cháu của ông bà",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 72 tuổi, tính cách N, giới tính Nữ, đánh giá buổi đọc sách cùng cháu vào chiều Chủ nhật như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+
+    {
+      "id": "Q061_T_FREQ_01",
+      "template_id": "T_FREQ_01",
+      "name": "Tần suất tham gia lớp bơi của người trẻ năng động",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 19 tuổi, tính cách E, giới tính Nữ, tham gia lớp bơi để rèn thể lực với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q062_T_FREQ_02",
+      "template_id": "T_FREQ_02",
+      "name": "Tần suất thử món ăn mới của người cởi mở",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 28 tuổi, tính cách O, giới tính Nữ, thử các món ăn mới tại nhà hàng địa phương với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q063_T_FREQ_03",
+      "template_id": "T_FREQ_03",
+      "name": "Tần suất tập dưỡng sinh buổi sáng của người cao tuổi",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 72 tuổi, tính cách A, giới tính Nữ, tập dưỡng sinh buổi sáng ở công viên với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q064_T_YN_01",
+      "template_id": "T_YN_01",
+      "name": "Thói quen phát biểu ý kiến trước đám đông của người hướng ngoại",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 28 tuổi, tính cách E, giới tính Nam, có sẵn sàng phát biểu ý kiến trước đám đông không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q065_T_YN_02",
+      "template_id": "T_YN_02",
+      "name": "Thói quen hòa giải xung đột của người dễ chịu",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 32 tuổi, tính cách A, giới tính Nam, có thường đứng ra hòa giải khi nhóm xảy ra xung đột không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q066_T_YN_03",
+      "template_id": "T_YN_03",
+      "name": "Thói quen lo lắng về tài chính của người trung niên",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 40 tuổi, tính cách N, giới tính Nữ, có thường xuyên lo lắng về vấn đề tài chính gia đình không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q067_T_LIKERT_01",
+      "template_id": "T_LIKERT_01",
+      "name": "Mức độ yêu thích dẫn dắt trò chơi của người hướng ngoại",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 24 tuổi, tính cách E, giới tính Nam, yêu thích việc dẫn dắt trò chơi trong buổi sinh hoạt nhóm ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q068_T_LIKERT_02",
+      "template_id": "T_LIKERT_02",
+      "name": "Mức độ yêu thích học chụp ảnh của người cởi mở",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 30 tuổi, tính cách O, giới tính Nam, yêu thích việc học chụp ảnh phong cảnh ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q069_T_LIKERT_03",
+      "template_id": "T_LIKERT_03",
+      "name": "Mức độ yêu thích kể chuyện cháu nghe của ông bà",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 71 tuổi, tính cách A, giới tính Nữ, yêu thích việc kể chuyện cho cháu nghe vào buổi tối ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q070_T_RATING_01",
+      "template_id": "T_RATING_01",
+      "name": "Đánh giá buổi học kỹ năng thuyết trình",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 33 tuổi, tính cách C, giới tính Nữ, đánh giá buổi học kỹ năng thuyết trình như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q071_T_RATING_02",
+      "template_id": "T_RATING_02",
+      "name": "Đánh giá chuyến du lịch trải nghiệm văn hóa",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 32 tuổi, tính cách E, giới tính Nữ, đánh giá chuyến du lịch trải nghiệm văn hóa tuần trước như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q072_T_RATING_03",
+      "template_id": "T_RATING_03",
+      "name": "Đánh giá buổi đọc thơ của hội người cao tuổi",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 70 tuổi, tính cách N, giới tính Nam, đánh giá buổi đọc thơ tại nhà văn hóa phường như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+
+    {
+      "id": "Q073_T_FREQ_01",
+      "template_id": "T_FREQ_01",
+      "name": "Tần suất tham gia lớp nhảy hiện đại của người trẻ hướng ngoại",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 22 tuổi, tính cách E, giới tính Nữ, tham gia lớp nhảy hiện đại vào buổi tối với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q074_T_FREQ_02",
+      "template_id": "T_FREQ_02",
+      "name": "Tần suất chụp ảnh đường phố của người cởi mở",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 29 tuổi, tính cách O, giới tính Nam, chụp ảnh đường phố vào sáng Chủ nhật với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q075_T_FREQ_03",
+      "template_id": "T_FREQ_03",
+      "name": "Tần suất đọc sách chăm sóc sức khỏe của người trung niên",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 41 tuổi, tính cách C, giới tính Nữ, đọc sách chăm sóc sức khỏe mỗi tuần với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q076_T_YN_01",
+      "template_id": "T_YN_01",
+      "name": "Thói quen tham gia câu lạc bộ đọc sách của người hướng ngoại trầm tĩnh",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 24 tuổi, tính cách E, giới tính Nam, có tham gia câu lạc bộ đọc sách hàng tháng không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q077_T_YN_02",
+      "template_id": "T_YN_02",
+      "name": "Thói quen chia sẻ đồ ăn với đồng nghiệp của người dễ chịu",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 30 tuổi, tính cách A, giới tính Nữ, có thường mang đồ ăn chia sẻ với đồng nghiệp không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q078_T_YN_03",
+      "template_id": "T_YN_03",
+      "name": "Thói quen lo lắng khi con đi học xa của phụ huynh nhạy cảm",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Phụ huynh 45 tuổi, tính cách N, giới tính Nam, có thường xuyên lo lắng khi con đi học xa không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q079_T_LIKERT_01",
+      "template_id": "T_LIKERT_01",
+      "name": "Mức độ yêu thích tham gia team building của người hướng ngoại",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 27 tuổi, tính cách E, giới tính Nữ, yêu thích việc tham gia hoạt động team building của công ty ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q080_T_LIKERT_02",
+      "template_id": "T_LIKERT_02",
+      "name": "Mức độ yêu thích học nhiếp ảnh chân dung của người cởi mở",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 33 tuổi, tính cách O, giới tính Nam, yêu thích việc học nhiếp ảnh chân dung ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q081_T_LIKERT_03",
+      "template_id": "T_LIKERT_03",
+      "name": "Mức độ yêu thích uống trà đàm đạo của người cao tuổi",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 69 tuổi, tính cách A, giới tính Nữ, yêu thích thói quen uống trà đàm đạo với hàng xóm ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q082_T_RATING_01",
+      "template_id": "T_RATING_01",
+      "name": "Đánh giá khóa học viết lách sáng tạo",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 34 tuổi, tính cách C, giới tính Nam, đánh giá khóa học viết lách sáng tạo như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q083_T_RATING_02",
+      "template_id": "T_RATING_02",
+      "name": "Đánh giá sự kiện rock concert của người hướng ngoại",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 24 tuổi, tính cách E, giới tính Nam, đánh giá buổi rock concert tối qua như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q084_T_RATING_03",
+      "template_id": "T_RATING_03",
+      "name": "Đánh giá buổi họp tổ dân phố uống trà trò chuyện",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 68 tuổi, tính cách N, giới tính Nữ, đánh giá buổi họp tổ dân phố uống trà trò chuyện như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+
+    {
+      "id": "Q085_T_FREQ_01",
+      "template_id": "T_FREQ_01",
+      "name": "Tần suất chơi cầu lông của người trẻ hướng ngoại",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 23 tuổi, tính cách E, giới tính Nam, chơi cầu lông cùng bạn vào buổi chiều với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q086_T_FREQ_02",
+      "template_id": "T_FREQ_02",
+      "name": "Tần suất đi dã ngoại gia đình của người cởi mở",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 35 tuổi, tính cách O, giới tính Nữ, tổ chức dã ngoại gia đình mỗi tháng với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q087_T_FREQ_03",
+      "template_id": "T_FREQ_03",
+      "name": "Tần suất đọc sách tài chính cá nhân của người đi làm",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 33 tuổi, tính cách C, giới tính Nam, đọc sách về tài chính cá nhân với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q088_T_YN_01",
+      "template_id": "T_YN_01",
+      "name": "Thói quen tham gia câu lạc bộ startup của người hướng ngoại trẻ",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 22 tuổi, tính cách E, giới tính Nữ, có tham gia câu lạc bộ khởi nghiệp tại trường không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q089_T_YN_02",
+      "template_id": "T_YN_02",
+      "name": "Thói quen chia sẻ kinh nghiệm làm việc của người dễ chịu",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 34 tuổi, tính cách A, giới tính Nam, có thường chia sẻ kinh nghiệm với đàn em mới vào nghề không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q090_T_YN_03",
+      "template_id": "T_YN_03",
+      "name": "Thói quen lo lắng trước khi khám bệnh của người cao tuổi nhạy cảm",
+      "intent": "yesno",
+      "question_type": "yesno",
+      "filled_prompt": "Người 67 tuổi, tính cách N, giới tính Nữ, có hay lo lắng trước khi đi khám bệnh định kỳ không?",
+      "answer": {"type": "binary", "options": ["Có","Không"]}
+    },
+    {
+      "id": "Q091_T_LIKERT_01",
+      "template_id": "T_LIKERT_01",
+      "name": "Mức độ yêu thích tham gia karaoke cùng bạn của người hướng ngoại",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 25 tuổi, tính cách E, giới tính Nam, yêu thích việc đi karaoke cùng bạn vào cuối tuần ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q092_T_LIKERT_02",
+      "template_id": "T_LIKERT_02",
+      "name": "Mức độ yêu thích học ném gốm của người cởi mở",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 28 tuổi, tính cách O, giới tính Nữ, yêu thích việc học ném gốm tại xưởng thủ công ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q093_T_LIKERT_03",
+      "template_id": "T_LIKERT_03",
+      "name": "Mức độ yêu thích đi bộ công viên mỗi chiều của người cao tuổi",
+      "intent": "likert5",
+      "question_type": "likert5",
+      "filled_prompt": "Người 72 tuổi, tính cách A, giới tính Nam, yêu thích việc đi bộ công viên mỗi chiều ở mức nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất không thích","Không thích","Bình thường","Thích","Rất thích"]}
+    },
+    {
+      "id": "Q094_T_RATING_01",
+      "template_id": "T_RATING_01",
+      "name": "Đánh giá lớp học kỹ năng quản lý dự án",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 35 tuổi, tính cách C, giới tính Nữ, đánh giá lớp học kỹ năng quản lý dự án như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q095_T_RATING_02",
+      "template_id": "T_RATING_02",
+      "name": "Đánh giá đêm nhạc acoustic tại quán cà phê",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 26 tuổi, tính cách E, giới tính Nữ, đánh giá đêm nhạc acoustic tại quán cà phê như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+    {
+      "id": "Q096_T_RATING_03",
+      "template_id": "T_RATING_03",
+      "name": "Đánh giá buổi giao lưu thơ ca của người cao tuổi",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 69 tuổi, tính cách N, giới tính Nam, đánh giá buổi giao lưu thơ ca tại nhà văn hóa như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    },
+
+    {
+      "id": "Q097_T_FREQ_01",
+      "template_id": "T_FREQ_01",
+      "name": "Tần suất tập gym của người trẻ hướng ngoại",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 23 tuổi, tính cách E, giới tính Nam, tập gym 60 phút sau giờ học với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q098_T_FREQ_02",
+      "template_id": "T_FREQ_02",
+      "name": "Tần suất du lịch trải nghiệm của người cởi mở",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 31 tuổi, tính cách O, giới tính Nữ, du lịch trải nghiệm đến các vùng miền mới với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q099_T_FREQ_03",
+      "template_id": "T_FREQ_03",
+      "name": "Tần suất đọc sách kỹ năng nuôi dưỡng tinh thần của người trưởng thành",
+      "intent": "frequency",
+      "question_type": "frequency",
+      "filled_prompt": "Người 36 tuổi, tính cách C, giới tính Nam, đọc sách về nuôi dưỡng tinh thần và mindfulness với tần suất nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4], "labels": ["Không bao giờ","Thỉnh thoảng","Thường xuyên","Rất thường xuyên"]}
+    },
+    {
+      "id": "Q100_T_RATING_01",
+      "template_id": "T_RATING_01",
+      "name": "Đánh giá khóa học lập kế hoạch tuần hiệu quả",
+      "intent": "rating",
+      "question_type": "rating",
+      "filled_prompt": "Người 29 tuổi, tính cách C, giới tính Nữ, đánh giá khóa học lập kế hoạch tuần hiệu quả như thế nào?",
+      "answer": {"type": "scale", "scale": [1,2,3,4,5], "labels": ["Rất tệ","Tệ","Bình thường","Tốt","Rất tốt"]}
+    }
+  ]
+}

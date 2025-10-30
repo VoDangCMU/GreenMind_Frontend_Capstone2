@@ -362,6 +362,18 @@ class UserController {
                 return;
             }
 
+            // Calculate age from dateOfBirth
+            let age = null;
+            if (user.dateOfBirth) {
+                const today = new Date();
+                const birthDate = new Date(user.dateOfBirth);
+                age = today.getFullYear() - birthDate.getFullYear();
+                const monthDiff = today.getMonth() - birthDate.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+            }
+
             logger.info("GetProfile successful", {
                 userId: user.id,
                 duration
@@ -371,9 +383,15 @@ class UserController {
                 id: user.id,
                 username: user.username,
                 email: user.email,
-                fullName: user.fullName,
+                phone_number: user.phoneNumber,
+                full_name: user.fullName,
+                gender: user.gender,
                 role: user.role,
-                date_of_birth: user.dateOfBirth
+                date_of_birth: user.dateOfBirth,
+                age: age,
+                location: user.location,
+                created_at: user.createdAt,
+                updated_at: user.updatedAt
             });
             return;
 

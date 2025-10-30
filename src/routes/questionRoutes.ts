@@ -14,7 +14,7 @@ router.post('/', jwtAuthMiddleware, staffOrAdminMiddleware, controller.questions
 router.post('/batch', jwtAuthMiddleware, staffOrAdminMiddleware, controller.questions.CreateBatchQuestions);
 
 // Create multiple questions from direct payload (staff/admin only)
-router.post('/createQuestions', jwtAuthMiddleware, staffOrAdminMiddleware, controller.questions.createQuestions);
+router.post('/createQuestions', controller.questions.createQuestions);
 
 // Get all questions (requires authentication)
 router.get('/', jwtAuthMiddleware, controller.questions.GetQuestions);

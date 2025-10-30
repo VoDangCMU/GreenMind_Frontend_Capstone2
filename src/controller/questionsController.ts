@@ -243,9 +243,12 @@ export class QuestionsController {
                 const questionData = data.questions[i];
 
                 try {
-                    // Check if question already exists by templateId
+                    // Check if the exact same question text already exists (to prevent true duplicates)
                     const existedQuestion = await QuestionsRepository.findOne({
-                        where: { templateId: questionData.id },
+                        where: {
+                            question: questionData.filled_prompt,
+                            templateId: questionData.id
+                        },
                         relations: ["questionOptions"]
                     });
 
@@ -299,9 +302,9 @@ export class QuestionsController {
 
                         savedQuestions.push(questionWithOptions);
                     } else {
-                        // Question exists, add to saved list
+                        // Exact duplicate question exists, skip
                         savedQuestions.push(existedQuestion);
-                        errors.push(`Question ${questionData.id} already exists, skipped creation`);
+                        errors.push(`Question with text "${questionData.filled_prompt}" and template ${questionData.id} already exists, skipped creation`);
                     }
                 } catch (e) {
                     errors.push(`Question ${i + 1} (${questionData.id}): ${(e as Error).message}`);
