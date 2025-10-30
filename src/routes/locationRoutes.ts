@@ -4,7 +4,8 @@ import { jwtAuthMiddleware } from "../middlewares/jwtMiddleware";
 
 const router = Router();
 
-router.use(jwtAuthMiddleware); // Re-enable JWT middleware for location routes
+router.use(jwtAuthMiddleware);
 router.post("/create", locationController.createLocation);
+router.get("/get-locations",locationController.GetLocations)
 
 export default router;

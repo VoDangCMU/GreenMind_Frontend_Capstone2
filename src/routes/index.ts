@@ -14,7 +14,7 @@ import behaviorRouter from "./behaviorRoutes";
 import threadHallRouter from "./threadHallRoutes";
 import scansRouter from "./scansRoutes";
 import userAnswersRouter from "./userAnswersRoutes";
-
+import scenariosSurveyRouter from "./scenariosSurveyRoutes";
 const router = Router();
 
 router.use("/check", checkRoutes);
@@ -32,5 +32,5 @@ router.use("/behaviors", behaviorRouter);
 router.use("/thread-halls", threadHallRouter);
 router.use("/scans", scansRouter);
 router.use("/user-answers", userAnswersRouter);
-
+router.use("/scenarios-survey", scenariosSurveyRouter);
 export default router;

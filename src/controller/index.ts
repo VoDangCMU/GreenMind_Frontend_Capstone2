@@ -13,7 +13,7 @@ import behavior from "./behaviorController";
 import threadHall from "./threadHallController";
 import scans from "./scansController";
 import userAnswers from "./userAnswersController";
-
+import surveyScenarios from "./surveyScenarioController";
 export default {
     health,
     user,
@@ -30,4 +30,5 @@ export default {
     threadHall,
     scans,
     userAnswers,
+    surveyScenarios,
 };
