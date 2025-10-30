@@ -1,5 +1,14 @@
-import {Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm";
+import {
+    Column,
+    CreateDateColumn,
+    Entity,
+    ManyToOne,
+    OneToMany,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn
+} from "typeorm";
 import {User} from "./user";
+import {SurveyScenario} from "../entity/survey_scenario";
 
 export const LOCATIONS_TABLE_NAME = 'locations';
 
@@ -25,4 +34,7 @@ export class Locations {
 
     @UpdateDateColumn({type: 'timestamp'})
     updatedAt!: Date;
+
+    @OneToMany(() => SurveyScenario, surveyScenario => surveyScenario.location)
+    surveyScenarios!: SurveyScenario[];
 }
