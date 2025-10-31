@@ -55,22 +55,20 @@ class SurveyScenarioController {
                     message: "Percentage must be between 1 and 100"
                 });
             }
+            const location = await LocationRepo.findOne({where: {id: locationId}});
 
-            if (locationId) {
-                const location = await LocationRepo.findOne({ where: { id: locationId } });
-                if (!location) {
-                    return res.status(404).json({
-                        success: false,
-                        message: "Location not found"
-                    });
-                }
+            if (!location) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Location not found"
+                });
             }
 
             const scenario = await SurveyScenarioRepo.save({
                 minAge,
                 maxAge,
                 percentage,
-                locationId,
+                location: location,
                 status: "draft"
             });
 
