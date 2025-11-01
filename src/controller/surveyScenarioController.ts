@@ -56,8 +56,9 @@ class SurveyScenarioController {
                 });
             }
 
+            let location;
             if (locationId) {
-                const location = await LocationRepo.findOne({ where: { id: locationId } });
+                location = await LocationRepo.findOne({ where: { id: locationId } });
                 if (!location) {
                     return res.status(404).json({
                         success: false,
@@ -70,7 +71,7 @@ class SurveyScenarioController {
                 minAge,
                 maxAge,
                 percentage,
-                locationId,
+                location,
                 status: "draft"
             });
 
