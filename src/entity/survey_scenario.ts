@@ -3,14 +3,15 @@ import {
     CreateDateColumn,
     Entity, JoinTable, ManyToMany,
     ManyToOne,
-    OneToMany,
+    OneToMany, OneToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
 import {Locations} from "../entity/locations";
-import text from "../config/schemas/Text";
 import {ScenarioAssignment} from "../entity/scenario_assignments";
 import {Questions} from "../entity/questions";
+import {SimulatedSurvey} from "../entity/simulated_survey";
+;
 
 export const SURVEY_SCENARIOS_TABLE_NAME = 'survey_scenarios';
 
@@ -25,6 +26,11 @@ export class SurveyScenario {
     @Column({type: "int", name: "max_age"})
     maxAge!: number;
 
+    @OneToOne(() => SimulatedSurvey, (simulatedSurvey) => simulatedSurvey.scenario, {
+        cascade: true,
+    })
+    simulatedSurvey!: SimulatedSurvey;
+
     @ManyToOne(() => Locations, {onDelete: "CASCADE"})
     location!: Locations;
 
@@ -34,6 +40,9 @@ export class SurveyScenario {
 
     @Column({type: "int", default: 100})
     percentage!: number;
+
+    @Column({type: "text", nullable: true})
+    gender!: string;
 
     @Column({type: "text", default: "draft"})
     status!: string
