@@ -17,8 +17,8 @@ export class Locations {
     @PrimaryGeneratedColumn("uuid")
     id!: string;
 
-    @ManyToOne(() => User, { onDelete: 'CASCADE'})
-    user!: User;
+    @OneToMany(() => User, (u) => u.locations)
+    users!: User[];
 
     @Column({type: 'double precision'})
     latitude!: number;
