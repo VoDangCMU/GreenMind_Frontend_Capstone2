@@ -209,27 +209,36 @@ class UserAnswersController {
     }
 
     public async getUserAnswerById(req: Request, res: Response) {
-        const parsed = UserAnswersIdSchema.safeParse(req.params);
-        if (!parsed.success) {
-            logger.error('Zod validation error', undefined, { details: parsed.error });
-            return res.status(400).json(parsed.error);
+
+        const questionId = req.params.questionId;
+
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ message: "Unauthorized" });
         }
-
-        const { userId, questionId } = parsed.data;
-
         try {
-            const userAnswer = await UserAnswersRepository.findOne({
-                where: { userId, questionId },
-                relations: ['user', 'question']
-            });
+            const [user, answer, question] = await Promise.all([
+                UserRepository.findOne({ where: { id: req.user?.userId } }),
+                UserAnswersRepository.findOne({ where: { userId: req.user?.userId, questionId } }),
+                QuestionsRepository.findOne({ where: { id: questionId } })
+            ]);
 
-            if (!userAnswer) {
-                return res.status(404).json({ error: 'User answer not found' });
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+            if (!question) {
+                return res.status(404).json({ message: "Question not found" });
+            }
+            if (!answer) {
+                return res.status(404).json({ message: "User answer not found" });
             }
 
-            return res.status(200).json(userAnswer);
+            return res.status(200).json({
+                user,
+                question,
+                template: question.template,
+                answer
+            });
         } catch (e) {
-            logger.error('Error fetching user answer', e as Error);
             res.status(500).json({ message: "Internal server error" });
             return;
         }

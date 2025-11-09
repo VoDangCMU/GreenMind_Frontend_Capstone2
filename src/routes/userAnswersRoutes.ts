@@ -10,7 +10,7 @@ router.post('/submit', jwtAuthMiddleware, controller.userAnswers.submitUserAnswe
 router.post('/', jwtAuthMiddleware, controller.userAnswers.createUserAnswer);
 
 // Get User Answer by User ID and Question ID (requires authentication)
-router.get('/:userId/:questionId', jwtAuthMiddleware, controller.userAnswers.getUserAnswerById);
+router.get('/get-user-answer-by-id/:questionId', jwtAuthMiddleware, controller.userAnswers.getUserAnswerById);
 
 // Get all User Answers by User ID (requires authentication)
 router.get('/user/:userId', jwtAuthMiddleware, controller.userAnswers.getUserAnswersByUserId);
