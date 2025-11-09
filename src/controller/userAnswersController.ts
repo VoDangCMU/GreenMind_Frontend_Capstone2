@@ -219,7 +219,7 @@ class UserAnswersController {
             const [user, answer, question] = await Promise.all([
                 UserRepository.findOne({ where: { id: req.user?.userId } }),
                 UserAnswersRepository.findOne({ where: { userId: req.user?.userId, questionId } }),
-                QuestionsRepository.findOne({ where: { id: questionId } })
+                QuestionsRepository.findOne({ where: { id: questionId }, relations: {template: true} })
             ]);
 
             if (!user) {
