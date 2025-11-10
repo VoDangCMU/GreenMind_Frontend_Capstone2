@@ -1,4 +1,12 @@
-import {Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne} from 'typeorm';
+import {
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    CreateDateColumn,
+    UpdateDateColumn,
+    OneToMany,
+    OneToOne
+} from 'typeorm';
 import {Locations} from "./locations";
 import {BigFive} from "./big_five";
 import {Scans} from "./scans";
@@ -8,6 +16,9 @@ import {Invoices} from "./invoices";
 export class User {
     @PrimaryGeneratedColumn('uuid')
     id!: string;
+
+    @OneToMany(() => Locations, location => location.user)
+    locations!: Locations[];
 
     @Column({type: 'varchar', length: 255, unique: true})
     username!: string;
@@ -25,7 +36,10 @@ export class User {
     fullName!: string;
 
     @Column({type: 'varchar', length: 10, nullable: true})
-    gender?: string;
+    gender!: string;
+
+    @Column({type: 'varchar', length: 50, nullable: true})
+    location?: string;
 
     @Column({type: 'varchar', length: 50, nullable: true})
     role!: string;
@@ -33,17 +47,11 @@ export class User {
     @Column({type: 'timestamp'})
     dateOfBirth!: Date;
 
-    @Column({type: 'varchar', length: 255, nullable: true})
-    location?: string;
-
     @CreateDateColumn({type: 'timestamp'})
     createdAt!: Date;
 
     @UpdateDateColumn({type: 'timestamp'})
-    updatedAt!: Date;
-
-    @OneToMany(() => Locations, locations => locations.user)
-    locations!: Locations[];
+    updatedAt!: Date
 
     @OneToOne(() => BigFive, bigFive => bigFive.user)
     bigFive!: BigFive;

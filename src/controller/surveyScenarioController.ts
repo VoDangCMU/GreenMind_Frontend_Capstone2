@@ -1,19 +1,25 @@
-import { Request, RequestHandler, Response } from "express";
+import { RequestHandler } from "express";
 import { z } from "zod";
 import { In } from "typeorm";
 import NUMBER from "../config/schemas/Number";
+import TEXT from "../config/schemas/Text";
+
 import { SurveyScenario } from "../entity/survey_scenario";
 import { Locations } from "../entity/locations";
 import { Questions } from "../entity/questions";
 import { User } from "../entity/user";
 import { ScenarioAssignment } from "../entity/scenario_assignments";
 import AppDataSource from "../infrastructure/database";
+import {SimulatedSurvey} from "../entity/simulated_survey";
+
+
 
 const SurveyScenarioParamsSchema = z.object({
     minAge: NUMBER,
     maxAge: NUMBER,
-    locationId: z.string().uuid().optional(),
+    address: z.string().optional(),
     percentage: NUMBER,
+    gender: TEXT.optional(),
 });
 
 const QuestionIdsSchema = z.object({
@@ -22,365 +28,326 @@ const QuestionIdsSchema = z.object({
     }),
 });
 
-const SurveyScenarioRepo = AppDataSource.getRepository(SurveyScenario);
-const QuestionsRepo = AppDataSource.getRepository(Questions);
-const LocationRepo = AppDataSource.getRepository(Locations);
-const UserRepo = AppDataSource.getRepository(User);
-const AssignmentRepo = AppDataSource.getRepository(ScenarioAssignment);
 
 class SurveyScenarioController {
-    public CreateSurveyScenario: RequestHandler = async (req: Request, res: Response) => {
+    private SurveyScenarioRepo = AppDataSource.getRepository(SurveyScenario);
+    private QuestionsRepo = AppDataSource.getRepository(Questions);
+    private LocationRepo = AppDataSource.getRepository(Locations);
+    private UserRepo = AppDataSource.getRepository(User);
+    private SimulatedSurveyRepo = AppDataSource.getRepository(SimulatedSurvey);
+
+
+    public CreateSurveyScenario: RequestHandler = async (req, res) => {
         try {
             const parsed = SurveyScenarioParamsSchema.safeParse(req.body);
-            if (!parsed.success) {
+            if (!parsed.success)
                 return res.status(400).json({
                     success: false,
                     message: "Invalid input",
-                    error: parsed.error.format()
+                    error: parsed.error.format(),
                 });
+
+            const { minAge, maxAge, percentage, address, gender } = parsed.data;
+
+            if (minAge > maxAge)
+                return res.status(400).json({ success: false, message: "Min age cannot be greater than max age" });
+
+            if (percentage <= 0 || percentage > 100)
+                return res.status(400).json({ success: false, message: "Percentage must be between 1 and 100" });
+
+            let location;
+            if (address) {
+                location = await this.LocationRepo.findOne({ where: { address } });
+                if (!location)
+                    return res.status(404).json({ success: false, message: "Location not found" });
             }
-
-            const { minAge, maxAge, percentage, locationId } = parsed.data;
-
-            if (minAge > maxAge) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Min age cannot be greater than max age"
-                });
+            if (!gender) {
+                return res.status(400).json({ success: false, message: "Gender must be provided" });
             }
-
-            if (percentage <= 0 || percentage > 100) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Percentage must be between 1 and 100"
-                });
-            }
-            const location = await LocationRepo.findOne({where: {id: locationId}});
-
-            if (!location) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Location not found"
-                });
-            }
-
-            const scenario = await SurveyScenarioRepo.save({
+            const scenario = this.SurveyScenarioRepo.create({
                 minAge,
                 maxAge,
                 percentage,
-                location: location,
-                status: "draft"
+                location,
+                status: "draft",
             });
 
-            const scenarioWithRelations = await SurveyScenarioRepo.findOne({
-                where: { id: scenario.id },
-                relations: ["location", "questions"]
-            });
+            if (gender.toLowerCase() !== "all") {
+                scenario.gender = gender.toLowerCase();
+            }
+            await this.SurveyScenarioRepo.save(scenario);
 
             return res.status(201).json({
                 success: true,
                 message: "Survey scenario created successfully",
-                data: scenarioWithRelations
+                data: scenario,
             });
-
         } catch (error: any) {
-            return res.status(500).json({
-                success: false,
-                message: "Internal Server Error",
-                error: error.message
-            });
+            return res.status(500).json({ success: false, message: error.message });
         }
-    }
+    };
 
-    public AttachQuestions: RequestHandler = async (req: Request, res: Response) => {
+    public AttachQuestions: RequestHandler = async (req, res) => {
         try {
             const { id: scenarioId } = req.params;
-
             const parsed = QuestionIdsSchema.safeParse(req.body);
-            if (!parsed.success) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Invalid input",
-                    error: parsed.error.format()
-                });
-            }
+            if (!parsed.success)
+                return res.status(400).json({ success: false, message: "Invalid input", error: parsed.error.format() });
 
-            const scenario = await SurveyScenarioRepo.findOne({
+            const scenario = await this.SurveyScenarioRepo.findOne({
                 where: { id: scenarioId },
-                relations: ["questions"]
+                relations: ["questions"],
             });
+            if (!scenario)
+                return res.status(404).json({ success: false, message: "Scenario not found" });
 
-            if (!scenario) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Scenario not found"
-                });
-            }
-
-            const questions = await QuestionsRepo.findBy({
-                id: In(parsed.data.questionIds)
-            });
-
-            if (questions.length !== parsed.data.questionIds.length) {
-                return res.status(404).json({
-                    success: false,
-                    message: "One or more questions not found"
-                });
-            }
+            const questions = await this.QuestionsRepo.findBy({ id: In(parsed.data.questionIds) });
+            if (questions.length !== parsed.data.questionIds.length)
+                return res.status(404).json({ success: false, message: "One or more questions not found" });
 
             scenario.questions = questions;
-            await SurveyScenarioRepo.save(scenario);
+            await this.SurveyScenarioRepo.save(scenario);
 
             return res.status(200).json({
                 success: true,
                 message: "Questions attached successfully",
-                data: scenario
+                data: scenario,
             });
         } catch (error: any) {
-            return res.status(500).json({
-                success: false,
-                message: "Internal Server Error",
-                error: error.message
-            });
+            return res.status(500).json({ success: false, message: error.message });
         }
-    }
+    };
 
-    public GetSurveyScenarios: RequestHandler = async (_req: Request, res: Response) => {
+    public GetSurveyScenarios: RequestHandler = async (_req, res) => {
         try {
-            const scenarios = await SurveyScenarioRepo.find({
-                relations: ["location", "questions"],
-                order: { createdAt: "DESC" }
+            const scenarios = await this.SurveyScenarioRepo.find({
+                relations: ["location", "questions", "simulatedSurvey"],
+                order: { createdAt: "DESC" },
             });
 
             return res.status(200).json({
                 success: true,
                 message: "Survey scenarios retrieved successfully",
-                data: scenarios
+                data: scenarios,
             });
         } catch (error: any) {
-            return res.status(500).json({
-                success: false,
-                message: "Internal Server Error",
-                error: error.message
-            });
+            return res.status(500).json({ success: false, message: error.message });
         }
-    }
+    };
 
-    public DeleteSurveyScenario: RequestHandler = async (req: Request, res: Response) => {
+    public DeleteSurveyScenario: RequestHandler = async (req, res) => {
         try {
-            const { id: scenarioId } = req.params;
-
-            const result = await SurveyScenarioRepo.delete(scenarioId);
-
-            if (result.affected === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Scenario not found"
-                });
-            }
+            const { id } = req.params;
+            const result = await this.SurveyScenarioRepo.delete(id);
+            if (result.affected === 0)
+                return res.status(404).json({ success: false, message: "Scenario not found" });
 
             return res.status(200).json({
                 success: true,
-                message: "Survey scenario deleted successfully"
+                message: "Survey scenario deleted successfully",
             });
         } catch (error: any) {
-            return res.status(500).json({
-                success: false,
-                message: "Internal Server Error",
-                error: error.message
-            });
+            return res.status(500).json({ success: false, message: error.message });
         }
-    }
+    };
 
-    private calculateAgeDateRange(minAge: number, maxAge: number) {
-        const today = new Date();
-        return {
-            maxBirthDate: new Date(today.getFullYear() - minAge, today.getMonth(), today.getDate()),
-            minBirthDate: new Date(today.getFullYear() - maxAge - 1, today.getMonth(), today.getDate())
-        };
-    }
-
-    private buildEligibleUsersQuery(minBirthDate: Date, maxBirthDate: Date, locationId?: string) {
-        const query = UserRepo
-            .createQueryBuilder("user")
-            .where("user.dateOfBirth BETWEEN :minBirthDate AND :maxBirthDate", {
-                minBirthDate,
-                maxBirthDate
-            });
-
-        if (locationId) {
-            query.innerJoin("user.locations", "loc").andWhere("loc.id = :locationId", { locationId });
-        }
-
-        return query;
-    }
-
-    public SimulateScenario: RequestHandler = async (req: Request, res: Response) => {
+    public SimulateScenario: RequestHandler = async (req, res) => {
         try {
-            const scenario = await SurveyScenarioRepo.findOne({
-                where: { id: req.params.id },
-                relations: ["location", "questions"]
+            const { id: scenarioId } = req.params;
+
+            const scenario = await this.SurveyScenarioRepo.findOne({
+                where: { id: scenarioId },
+                relations: ["location", "questions"],
             });
 
-            if (!scenario) {
+            if (!scenario)
                 return res.status(404).json({ success: false, message: "Scenario not found" });
-            }
 
-            if (scenario.status !== "draft") {
-                return res.status(400).json({ success: false, message: "Scenario has already been sent" });
-            }
+            if (!scenario.questions?.length)
+                return res.status(400).json({
+                    success: false,
+                    message: "Please attach at least one question before simulating"
+                });
 
-            if (!scenario.questions?.length) {
-                return res.status(400).json({ success: false, message: "Please select at least one question" });
-            }
+            const { minBirthDate, maxBirthDate } = this.calculateAgeDateRange(
+                scenario.minAge,
+                scenario.maxAge
+            );
 
-            // Calculate eligible users
-            const { minBirthDate, maxBirthDate } = this.calculateAgeDateRange(scenario.minAge, scenario.maxAge);
-            const eligibleQuery = this.buildEligibleUsersQuery(minBirthDate, maxBirthDate, scenario.location?.id);
+            const eligibleQuery = this.buildEligibleUsersQuery({
+                minBirthDate,
+                maxBirthDate,
+                address: scenario.location?.address,
+                gender: scenario.gender,
+            });
 
             const totalEligible = await eligibleQuery.getCount();
-            if (totalEligible === 0) {
-                return res.status(400).json({ success: false, message: "No eligible users found" });
-            }
 
-            // Select random users based on percentage
-            const targetCount = Math.ceil(totalEligible * (scenario.percentage / 100));
-            const selectedUsers = await eligibleQuery.orderBy("RANDOM()").limit(targetCount).getMany();
-
-            // Create assignments
-            const assignments = selectedUsers.map(user =>
-                AssignmentRepo.create({ scenario, user, status: "assigned" })
-            );
-
-            await AssignmentRepo.save(assignments);
-
-            scenario.status = "sent";
-            await SurveyScenarioRepo.save(scenario);
-
-            return res.status(200).json({
-                success: true,
-                message: "Scenario simulated successfully",
-                data: {
-                    scenarioId: scenario.id,
-                    totalEligible,
-                    targetCount,
-                    assigned: assignments.length,
-                    unassigned: targetCount - assignments.length
-                }
-            });
-        } catch (error: any) {
-            return res.status(500).json({
-                success: false,
-                message: "Internal Server Error",
-                error: error.message
-            });
-        }
-    }
-
-    public GetSimulatedDetails: RequestHandler = async (req: Request, res: Response) => {
-        try {
-            const { id: scenarioId } = req.params;
-
-            const scenario = await SurveyScenarioRepo.findOne({
-                where: { id: scenarioId },
-                relations: ["location", "questions"]
-            });
-
-            if (!scenario) {
-                return res.status(404).json({
+            if (totalEligible === 0)
+                return res.status(400).json({
                     success: false,
-                    message: "Scenario not found"
-                });
-            }
-
-            const today = new Date();
-            const maxBirthDate = new Date(
-                today.getFullYear() - scenario.minAge,
-                today.getMonth(),
-                today.getDate()
-            );
-            const minBirthDate = new Date(
-                today.getFullYear() - scenario.maxAge - 1,
-                today.getMonth(),
-                today.getDate()
-            );
-
-            const eligibleQuery = UserRepo
-                .createQueryBuilder("user")
-                .leftJoinAndSelect("user.locations", "loc")
-                .where("user.dateOfBirth BETWEEN :minBirthDate AND :maxBirthDate", {
-                    minBirthDate,
-                    maxBirthDate
+                    message: "No eligible users found for this scenario"
                 });
 
-            if (scenario.location?.id) {
-                eligibleQuery.andWhere("loc.id = :locationId", { locationId: scenario.location.id });
-            }
+            const targetCount = Math.ceil(totalEligible * (scenario.percentage / 100));
 
-            const allEligibleUsers = await eligibleQuery.getMany();
-
-            const assignments = await AssignmentRepo
-                .createQueryBuilder("assignment")
-                .leftJoinAndSelect("assignment.user", "user")
-                .leftJoinAndSelect("user.locations", "userLoc")
-                .leftJoinAndSelect("assignment.scenario", "scenario")
-                .where("scenario.id = :scenarioId", { scenarioId })
+            const allEligibleUsers = await eligibleQuery
+                .leftJoinAndSelect("user.locations", "location")
                 .getMany();
 
-            const assignedUserIds = new Set(assignments.map(a => a.user?.id).filter(Boolean));
+            const shuffled = allEligibleUsers.sort(() => Math.random() - 0.5);
+            const assignedUsers = shuffled.slice(0, targetCount);
+            const unassignedUsers = shuffled.slice(targetCount);
 
-            const assignedUsers = assignments.map(a => {
-                const dob = a.user?.dateOfBirth ? new Date(a.user.dateOfBirth) : null;
+            const today = new Date();
+            const eligibleUsersData = allEligibleUsers.map((user) => {
+                const dob = user.dateOfBirth ? new Date(user.dateOfBirth) : null;
                 const age = dob
                     ? Math.floor((today.getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
                     : null;
 
+                const isAssigned = assignedUsers.some(u => u.id === user.id);
+
                 return {
-                    userId: a.user?.id || '',
-                    user: a.user?.username || a.user?.fullName || 'Unknown',
+                    userId: user.id,
+                    username: user.username || "",
+                    fullName: user.fullName || "",
                     age,
-                    location: a.user?.locations?.[0]?.address || scenario.location?.address || 'Unknown',
-                    assignmentStatus: 'assigned',
-                    surveyStatus: a.status || 'not_assigned'
+                    gender: user.gender || null,
+                    location: user.locations?.[0]?.address || scenario.location?.address || null,
+                    status: (isAssigned ? "assigned" : "not_assigned") as "assigned" | "not_assigned",
                 };
             });
 
-            const notAssignedUsers = allEligibleUsers
-                .filter(user => !assignedUserIds.has(user.id))
-                .map(user => {
-                    const dob = user.dateOfBirth ? new Date(user.dateOfBirth) : null;
-                    const age = dob
-                        ? Math.floor((today.getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-                        : null;
+            const result = await AppDataSource.transaction(async (manager) => {
+                const assignmentRepo = manager.getRepository(ScenarioAssignment);
+                const scenarioRepo = manager.getRepository(SurveyScenario);
+                const simulatedRepo = manager.getRepository(SimulatedSurvey);
 
-                    return {
-                        userId: user.id,
-                        user: user.username || user.fullName || 'Unknown',
-                        age,
-                        location: user.locations?.[0]?.address || scenario.location?.address || 'Unknown',
-                        assignmentStatus: 'not_assigned',
-                        surveyStatus: 'n/a'
-                    };
+
+                const assignedAssignments = assignedUsers.map((user) =>
+                    assignmentRepo.create({
+                        scenario: { id: scenarioId } as SurveyScenario,
+                        user: { id: user.id } as User,
+                        status: "assigned"
+                    })
+                );
+
+                const unassignedAssignments = unassignedUsers.map((user) =>
+                    assignmentRepo.create({
+                        scenario: { id: scenarioId } as SurveyScenario,
+                        user: { id: user.id } as User,
+                        status: "not_assigned"
+                    })
+                );
+
+                const allAssignments = [...assignedAssignments, ...unassignedAssignments];
+                await assignmentRepo.save(allAssignments);
+
+                const simulation = simulatedRepo.create({
+                    scenario: { id: scenarioId } as SurveyScenario,
+                    totalEligible,
+                    targetCount,
+                    assignedCount: assignedAssignments.length,
+                    unassignedCount: unassignedAssignments.length,
+                    eligibleUsers: eligibleUsersData,
+                    triggeredBy: req.user ? ({ id: (req.user as any).userId } as User) : undefined,
+                    status: "completed",
+                    notes: `Simulation completed: ${assignedAssignments.length} assigned, ${unassignedAssignments.length} not assigned out of ${totalEligible} eligible users.`,
                 });
 
-            const totalEligible = allEligibleUsers.length;
-            const targetCount = Math.ceil(totalEligible * (scenario.percentage / 100));
+                const savedSimulation = await simulatedRepo.save(simulation);
+
+                await scenarioRepo.update(scenarioId, { status: "sent" });
+
+                return {
+                    assignedCount: assignedAssignments.length,
+                    unassignedCount: unassignedAssignments.length,
+                    totalAssignments: allAssignments.length,
+                    simulationId: savedSimulation.id,
+                    simulation: savedSimulation,
+                    eligibleUsers: eligibleUsersData,
+                };
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: `Scenario simulated successfully. Assigned to ${result.assignedCount} users, ${result.unassignedCount} eligible but not assigned`,
+                data: {
+                    scenarioId: scenario.id,
+                    simulationId: result.simulationId,
+                    totalEligible,
+                    targetCount,
+                    assigned: result.assignedCount,
+                    unassigned: result.unassignedCount,
+                    totalRecorded: result.totalAssignments,
+                    simulation: {
+                        status: result.simulation.status,
+                        createdAt: result.simulation.createdAt,
+                        notes: result.simulation.notes,
+                    },
+                    eligibleUsers: result.eligibleUsers,
+                },
+            });
+        } catch (error: any) {
+            console.error("SimulateScenario Error:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Internal Server Error",
+                error: error.message
+            });
+        }
+    };
+
+    public GetSimulatedDetails: RequestHandler = async (req, res) => {
+        try {
+            const { id: scenarioId } = req.params;
+
+            const simulatedSurvey = await this.SimulatedSurveyRepo.findOne({
+                where: { scenario: { id: scenarioId } },
+                relations: ["scenario", "scenario.location", "scenario.questions", "triggeredBy"],
+            });
+
+            if (!simulatedSurvey)
+                return res.status(404).json({
+                    success: false,
+                    message: "No simulation found for this scenario"
+                });
+
+            const scenario = simulatedSurvey.scenario;
+            const eligibleUsers = simulatedSurvey.eligibleUsers || [];
 
             return res.status(200).json({
                 success: true,
                 message: "Simulated scenario details retrieved successfully",
                 data: {
+                    simulationId: simulatedSurvey.id,
                     scenarioId: scenario.id,
-                    status: scenario.status,
-                    totalEligible,
-                    targetCount,
-                    assignedCount: assignedUsers.length,
-                    notAssignedCount: notAssignedUsers.length,
-                    users: {
-                        assigned: assignedUsers,
-                        notAssigned: notAssignedUsers,
-                    }
-                }
+                    scenarioStatus: scenario.status,
+                    simulation: {
+                        totalEligible: simulatedSurvey.totalEligible,
+                        targetCount: simulatedSurvey.targetCount,
+                        assigned: simulatedSurvey.assignedCount,
+                        unassigned: simulatedSurvey.unassignedCount,
+                        status: simulatedSurvey.status,
+                        notes: simulatedSurvey.notes,
+                        triggeredBy: simulatedSurvey.triggeredBy?.username || simulatedSurvey.triggeredBy?.fullName || "System",
+                        triggeredAt: simulatedSurvey.createdAt,
+                        updatedAt: simulatedSurvey.updatedAt,
+                    },
+                    demographics: {
+                        minAge: scenario.minAge,
+                        maxAge: scenario.maxAge,
+                        location: scenario.location?.address || "All locations",
+                        gender: scenario.gender || "All genders",
+                        percentage: scenario.percentage,
+                    },
+                    questions: scenario.questions?.map(q => ({
+                        id: q.id,
+                        question: q.question,
+                    })) || [],
+                    eligibleUsers: eligibleUsers,
+                },
             });
         } catch (error: any) {
             return res.status(500).json({
@@ -389,8 +356,33 @@ class SurveyScenarioController {
                 error: error.message
             });
         }
+    };
+
+    private calculateAgeDateRange(minAge: number, maxAge: number) {
+        const today = new Date();
+        return {
+            minBirthDate: new Date(today.getFullYear() - maxAge, today.getMonth(), today.getDate()),
+            maxBirthDate: new Date(today.getFullYear() - minAge, today.getMonth(), today.getDate()),
+        };
+    }
+
+    private buildEligibleUsersQuery(args: {
+        minBirthDate: Date;
+        maxBirthDate: Date;
+        address?: string;
+        gender?: string;
+    }) {
+        const { minBirthDate, maxBirthDate, address, gender } = args;
+        const qb = this.UserRepo.createQueryBuilder("user")
+            .where("user.dateOfBirth BETWEEN :minBirthDate AND :maxBirthDate", { minBirthDate, maxBirthDate });
+
+        if (address)
+            qb.innerJoin("user.locations", "loc").andWhere("loc.address = :addr", { addr: address });
+        if (gender)
+            qb.andWhere("user.gender = :gender", { gender });
+
+        return qb;
     }
 }
 
 export default new SurveyScenarioController();
-
