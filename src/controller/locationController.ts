@@ -241,19 +241,6 @@ class LocationController {
             return res.status(500).json({ message: "Internal server error" });
         }
     }
-
-    public async GetLocations (req: Request, res: Response) {
-        try {
-             const locaions = await LocationRepository.find({
-                order: {
-                    address: "ASC"
-                }
-            })
-            return res.status(200).json(locaions);
-        } catch (e) {
-            return res.status(500).json({ message: "Internal server error" });
-        }
-    }
 }
 
 export default new LocationController();
