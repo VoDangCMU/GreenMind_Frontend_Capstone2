@@ -79,33 +79,6 @@ class UserController {
 
             const savedUser = await userRepository.save(newUser);
 
-            // Save location to locations table if not exists
-            const locationsRepository = AppDataSource.getRepository(Locations);
-
-            // Check if this location already exists for this user
-            const existingLocation = await locationsRepository.findOne({
-                where: {
-                    user: { id: savedUser.id },
-                    address: location
-                }
-            });
-
-            if (!existingLocation) {
-                const newLocationRecord = locationsRepository.create({
-                    user: savedUser,
-                    address: location,
-                    latitude: 0, // Default values - could be updated later with geocoding
-                    longitude: 0
-                });
-
-                await locationsRepository.save(newLocationRecord);
-
-                logger.info("Location saved to locations table", {
-                    userId: savedUser.id,
-                    location: location
-                });
-            }
-
             const payload = {
                 userId: savedUser.id,
                 role: savedUser.role
