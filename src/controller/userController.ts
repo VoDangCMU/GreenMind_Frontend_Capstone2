@@ -445,6 +445,72 @@ class UserController {
             return;
         }
     }
+
+    public GetAllUsers: RequestHandler = async (req: Request, res: Response) => {
+        const logger = getLogger();
+        const startTime = Date.now();
+
+        if (!req.user || !req.user.userId) {
+            logger.warn("GetAllUsers failed - missing user in request");
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+
+        try {
+            const userRepository = AppDataSource.getRepository(User);
+            const users = await userRepository.find({
+                relations: ["big_five"],
+            });
+
+            res.status(200).json({ success: true, data: users });
+            return;
+        } catch (error) {
+            const duration = Date.now() - startTime;
+            logger.error("GetAllUsers error", error as Error, { userId: req.user?.userId, duration });
+            res.status(500).json({ message: "Internal server error" });
+            return;
+        }
+    }
+
+    public DeleteUserById: RequestHandler = async (req: Request, res: Response) => {
+        const logger = getLogger();
+        const startTime = Date.now();
+        const userIdToDelete = req.params.id;
+
+        if (!req.user || !req.user.userId) {
+            logger.warn("DeleteUser failed - missing user in request");
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+
+        if (!userIdToDelete) {
+            res.status(400).json({ message: "User id is required" });
+            return;
+        }
+
+        try {
+            const userRepository = AppDataSource.getRepository(User);
+            const user = await userRepository.findOne({ where: { id: userIdToDelete } });
+
+            if (!user) {
+                res.status(404).json({ message: "User not found" });
+                return;
+            }
+
+            await userRepository.delete({ id: userIdToDelete });
+
+            const duration = Date.now() - startTime;
+            logger.info("DeleteUser successful", { deletedUserId: userIdToDelete, performedBy: req.user.userId, duration });
+
+            res.status(200).json({ success: true, message: "User deleted" });
+            return;
+        } catch (error) {
+            const duration = Date.now() - startTime;
+            logger.error("DeleteUser error", error as Error, { performedBy: req.user?.userId, duration });
+            res.status(500).json({ message: "Internal server error" });
+            return;
+        }
+    }
 }
 
 export default new UserController();
