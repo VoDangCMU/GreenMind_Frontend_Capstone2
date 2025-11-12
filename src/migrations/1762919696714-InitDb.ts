@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class InitDb1762861772711 implements MigrationInterface {
-    name = 'InitDb1762861772711'
+export class InitDb1762919696714 implements MigrationInterface {
+    name = 'InitDb1762919696714'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "scenario_assignments" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "status" character varying NOT NULL DEFAULT 'not_assigned', "createAt" TIMESTAMP NOT NULL DEFAULT now(), "scenarioId" uuid, "userId" uuid, CONSTRAINT "PK_b4ab2875fe573a9dd586c2258d4" PRIMARY KEY ("id"))`);
@@ -24,10 +24,11 @@ export class InitDb1762861772711 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "invoice_items" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "raw_name" text, "brand" text, "category" text, "plant_based" boolean NOT NULL DEFAULT false, "quantity" integer NOT NULL, "unit_price" numeric NOT NULL, "line_total" numeric NOT NULL, "matched_shopping_list" boolean NOT NULL DEFAULT false, "invoiceId" uuid, CONSTRAINT "PK_53b99f9e0e2945e69de1a12b75a" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "invoices" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "source_id" text, "currency" text NOT NULL, "payment_method" text NOT NULL, "notes" text, "issued_date" date, "issued_time" TIME, "subtotal" numeric NOT NULL, "discount" numeric NOT NULL, "tax" numeric NOT NULL, "grand_total" numeric NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "vendorId" uuid, "userId" uuid, "scansId" bigint, CONSTRAINT "PK_668cef7c22a427fd822cc1be3ce" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "vendors" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" text NOT NULL, "address" text NOT NULL, "geo_hint" text, CONSTRAINT "PK_9c956c9797edfae5c6ddacc4e6e" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`CREATE TABLE "todos" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying(500) NOT NULL, "completed" boolean NOT NULL DEFAULT false, "parent_id" uuid, "user_id" uuid NOT NULL, "order" integer NOT NULL DEFAULT '0', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_ca8cafd59ca6faaf67995344225" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "tokens" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "token" character varying(255) NOT NULL, "deviceID" character varying(50), "expiredAt" TIMESTAMP NOT NULL, "userId" uuid NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_6a8ca5961656d13c16c04079dd3" UNIQUE ("token"), CONSTRAINT "UQ_6e88a0a447be3fa009b4051c196" UNIQUE ("deviceID"), CONSTRAINT "PK_3001e89ada36263dabf1fb6210a" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "todos" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying(500) NOT NULL, "completed" boolean NOT NULL DEFAULT false, "parent_id" uuid, "user_id" uuid NOT NULL, "order" integer NOT NULL DEFAULT '0', "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_ca8cafd59ca6faaf67995344225" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "pre_app_survey" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "user_id" uuid NOT NULL, "daily_spending" numeric, "daily_spending_sigmoid" numeric, "daily_spending_weight" numeric, "daily_spending_direction" character varying, "daily_spending_alpha" numeric, "spending_variation" integer, "spending_variation_sigmoid" numeric, "spending_variation_weight" numeric, "spending_variation_direction" character varying, "spending_variation_alpha" numeric, "brand_trial" integer, "brand_trial_sigmoid" numeric, "brand_trial_weight" numeric, "brand_trial_direction" character varying, "brand_trial_alpha" numeric, "shopping_list" integer, "shopping_list_sigmoid" numeric, "shopping_list_weight" numeric, "shopping_list_direction" character varying, "shopping_list_alpha" numeric, "daily_distance" numeric, "daily_distance_sigmoid" numeric, "daily_distance_weight" numeric, "daily_distance_direction" character varying, "daily_distance_alpha" numeric, "new_places" integer, "new_places_sigmoid" numeric, "new_places_weight" numeric, "new_places_direction" character varying, "new_places_alpha" numeric, "public_transport" integer, "public_transport_sigmoid" numeric, "public_transport_weight" numeric, "public_transport_direction" character varying, "public_transport_alpha" numeric, "stable_schedule" integer, "stable_schedule_sigmoid" numeric, "stable_schedule_weight" numeric, "stable_schedule_direction" character varying, "stable_schedule_alpha" numeric, "night_outings" integer, "night_outings_sigmoid" numeric, "night_outings_weight" numeric, "night_outings_direction" character varying, "night_outings_alpha" numeric, "healthy_eating" integer, "healthy_eating_sigmoid" numeric, "healthy_eating_weight" numeric, "healthy_eating_direction" character varying, "healthy_eating_alpha" numeric, "social_media" integer, "goal_setting" integer, "mood_swings" integer, "is_completed" boolean NOT NULL DEFAULT false, "completed_at" TIMESTAMP, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_07aae69c8eabc9cbedee3c84d70" UNIQUE ("user_id"), CONSTRAINT "REL_07aae69c8eabc9cbedee3c84d7" UNIQUE ("user_id"), CONSTRAINT "PK_5aef47b268af478bd8c63076b4d" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "models" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "ocean" text NOT NULL, "behavior" text NOT NULL, "age" text NOT NULL, "location" text NOT NULL, "gender" text NOT NULL, "keywords" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_ef9ed7160ea69013636466bf2d5" PRIMARY KEY ("id"))`);
+        await queryRunner.query(`CREATE TABLE "avg_daily_spend" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "totalDaily" double precision NOT NULL, "baseAvg" double precision NOT NULL, "weight" double precision NOT NULL, "sigma_r" double precision NOT NULL, "alpha" double precision NOT NULL, "direction" text NOT NULL, "metric" character varying, "vt" double precision, "bt" double precision, "r" double precision, "n" double precision, "contrib" double precision, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "userId" uuid, "bigFiveBeforeId" uuid, "bigFiveAfterId" uuid, CONSTRAINT "PK_7c328b5b1377787a67ac83ac72e" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE TABLE "survey_scenarios_questions_questions" ("surveyScenariosId" uuid NOT NULL, "questionsId" uuid NOT NULL, CONSTRAINT "PK_67aa56f0b342c6145f9beab75e1" PRIMARY KEY ("surveyScenariosId", "questionsId"))`);
         await queryRunner.query(`CREATE INDEX "IDX_db5e012d7cb7dc89eb5ad05f93" ON "survey_scenarios_questions_questions" ("surveyScenariosId") `);
         await queryRunner.query(`CREATE INDEX "IDX_82c5b9231e8632d637824d85bc" ON "survey_scenarios_questions_questions" ("questionsId") `);
@@ -53,10 +54,13 @@ export class InitDb1762861772711 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "invoices" ADD CONSTRAINT "FK_754b22c515e4b1ee18ed31f0b07" FOREIGN KEY ("vendorId") REFERENCES "vendors"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "invoices" ADD CONSTRAINT "FK_fcbe490dc37a1abf68f19c5ccb9" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "invoices" ADD CONSTRAINT "FK_02cd4a1e7eefac58057c27e1454" FOREIGN KEY ("scansId") REFERENCES "scans"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "tokens" ADD CONSTRAINT "FK_d417e5d35f2434afc4bd48cb4d2" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "todos" ADD CONSTRAINT "FK_5508b1763e832c788cc6b33f2d5" FOREIGN KEY ("parent_id") REFERENCES "todos"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "todos" ADD CONSTRAINT "FK_53511787e1f412d746c4bf223ff" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "tokens" ADD CONSTRAINT "FK_d417e5d35f2434afc4bd48cb4d2" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "pre_app_survey" ADD CONSTRAINT "FK_07aae69c8eabc9cbedee3c84d70" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "avg_daily_spend" ADD CONSTRAINT "FK_b36c30be7be533535b311bcf901" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "avg_daily_spend" ADD CONSTRAINT "FK_f61f525ad49bb010be30a4fe4ae" FOREIGN KEY ("bigFiveBeforeId") REFERENCES "big_five"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "avg_daily_spend" ADD CONSTRAINT "FK_5b941064230f580cdf3ca97bde7" FOREIGN KEY ("bigFiveAfterId") REFERENCES "big_five"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "survey_scenarios_questions_questions" ADD CONSTRAINT "FK_db5e012d7cb7dc89eb5ad05f938" FOREIGN KEY ("surveyScenariosId") REFERENCES "survey_scenarios"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
         await queryRunner.query(`ALTER TABLE "survey_scenarios_questions_questions" ADD CONSTRAINT "FK_82c5b9231e8632d637824d85bcc" FOREIGN KEY ("questionsId") REFERENCES "questions"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
     }
@@ -64,10 +68,13 @@ export class InitDb1762861772711 implements MigrationInterface {
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "survey_scenarios_questions_questions" DROP CONSTRAINT "FK_82c5b9231e8632d637824d85bcc"`);
         await queryRunner.query(`ALTER TABLE "survey_scenarios_questions_questions" DROP CONSTRAINT "FK_db5e012d7cb7dc89eb5ad05f938"`);
+        await queryRunner.query(`ALTER TABLE "avg_daily_spend" DROP CONSTRAINT "FK_5b941064230f580cdf3ca97bde7"`);
+        await queryRunner.query(`ALTER TABLE "avg_daily_spend" DROP CONSTRAINT "FK_f61f525ad49bb010be30a4fe4ae"`);
+        await queryRunner.query(`ALTER TABLE "avg_daily_spend" DROP CONSTRAINT "FK_b36c30be7be533535b311bcf901"`);
         await queryRunner.query(`ALTER TABLE "pre_app_survey" DROP CONSTRAINT "FK_07aae69c8eabc9cbedee3c84d70"`);
-        await queryRunner.query(`ALTER TABLE "tokens" DROP CONSTRAINT "FK_d417e5d35f2434afc4bd48cb4d2"`);
         await queryRunner.query(`ALTER TABLE "todos" DROP CONSTRAINT "FK_53511787e1f412d746c4bf223ff"`);
         await queryRunner.query(`ALTER TABLE "todos" DROP CONSTRAINT "FK_5508b1763e832c788cc6b33f2d5"`);
+        await queryRunner.query(`ALTER TABLE "tokens" DROP CONSTRAINT "FK_d417e5d35f2434afc4bd48cb4d2"`);
         await queryRunner.query(`ALTER TABLE "invoices" DROP CONSTRAINT "FK_02cd4a1e7eefac58057c27e1454"`);
         await queryRunner.query(`ALTER TABLE "invoices" DROP CONSTRAINT "FK_fcbe490dc37a1abf68f19c5ccb9"`);
         await queryRunner.query(`ALTER TABLE "invoices" DROP CONSTRAINT "FK_754b22c515e4b1ee18ed31f0b07"`);
@@ -93,10 +100,11 @@ export class InitDb1762861772711 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX "public"."IDX_82c5b9231e8632d637824d85bc"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_db5e012d7cb7dc89eb5ad05f93"`);
         await queryRunner.query(`DROP TABLE "survey_scenarios_questions_questions"`);
+        await queryRunner.query(`DROP TABLE "avg_daily_spend"`);
         await queryRunner.query(`DROP TABLE "models"`);
         await queryRunner.query(`DROP TABLE "pre_app_survey"`);
-        await queryRunner.query(`DROP TABLE "tokens"`);
         await queryRunner.query(`DROP TABLE "todos"`);
+        await queryRunner.query(`DROP TABLE "tokens"`);
         await queryRunner.query(`DROP TABLE "vendors"`);
         await queryRunner.query(`DROP TABLE "invoices"`);
         await queryRunner.query(`DROP TABLE "invoice_items"`);
