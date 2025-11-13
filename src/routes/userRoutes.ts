@@ -1,7 +1,7 @@
 import { Router } from "express";
 import userController from "../controller/userController";
 import { jwtAuthMiddleware } from "../middlewares/jwtMiddleware";
-
+import {adminMiddleware} from "../middlewares/adminMiddleware";
 const router = Router();
 
 // Authentication routes (no additional prefix needed since base is /auth)
@@ -14,5 +14,6 @@ router.get("/profile", jwtAuthMiddleware, userController.GetProfile);
 
 // Logout (requires authentication)
 router.post('/logout', jwtAuthMiddleware, userController.Logout);
-router.get("/get-alls", jwtAuthMiddleware, userController.GetAllUsers);
+
+router.get('/get-alls,', jwtAuthMiddleware, adminMiddleware, userController.GetAllUsers);
 export default router;
