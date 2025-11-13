@@ -472,6 +472,21 @@ class UserController {
             return;
         }
     }
+    public GetAllUsers: RequestHandler = async (req: Request, res: Response) => {
+        try {
+            const users = await AppDataSource.getRepository(User).find({
+                relations: {
+                    bigFive: true,
+                }
+            });
+            return res.status(200).json({
+                message: "Users retrieved successfully",
+                data: users
+            });
+        } catch (e: any) {
+            return res.status(500).json({ message: "Internal server error", error: e.message });
+        }
+    }
 }
 
 export default new UserController();

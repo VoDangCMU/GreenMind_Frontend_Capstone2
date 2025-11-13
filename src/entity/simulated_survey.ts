@@ -25,7 +25,7 @@ export class SimulatedSurvey {
 
     @ManyToOne(() => User, { nullable: true })
     @JoinColumn()
-    triggeredBy!: User;
+    triggeredBy!: User; 
 
     @Column({ type: "int" })
     totalEligible!: number;

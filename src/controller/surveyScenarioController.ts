@@ -6,7 +6,6 @@ import NUMBER from "../config/schemas/Number";
 import TEXT from "../config/schemas/Text";
 
 import { SurveyScenario } from "../entity/survey_scenario";
-import { Locations } from "../entity/locations";
 import { Questions } from "../entity/questions";
 import { User } from "../entity/user";
 import { ScenarioAssignment } from "../entity/scenario_assignments";
@@ -33,7 +32,6 @@ const QuestionIdsSchema = z.object({
 class SurveyScenarioController {
     private SurveyScenarioRepo = AppDataSource.getRepository(SurveyScenario);
     private QuestionsRepo = AppDataSource.getRepository(Questions);
-    private LocationRepo = AppDataSource.getRepository(Locations);
     private UserRepo = AppDataSource.getRepository(User);
     private SimulatedSurveyRepo = AppDataSource.getRepository(SimulatedSurvey);
 
@@ -56,12 +54,6 @@ class SurveyScenarioController {
             if (percentage <= 0 || percentage > 100)
                 return res.status(400).json({ success: false, message: "Percentage must be between 1 and 100" });
 
-            let location;
-            if (address) {
-                location = await this.LocationRepo.findOne({ where: { address } });
-                if (!location)
-                    return res.status(404).json({ success: false, message: "Location not found" });
-            }
             if (!gender) {
                 return res.status(400).json({ success: false, message: "Gender must be provided" });
             }
@@ -69,7 +61,7 @@ class SurveyScenarioController {
                 minAge,
                 maxAge,
                 percentage,
-                location,
+                location: address,
                 status: "draft",
             });
 
@@ -122,7 +114,7 @@ class SurveyScenarioController {
     public GetSurveyScenarios: RequestHandler = async (_req, res) => {
         try {
             const scenarios = await this.SurveyScenarioRepo.find({
-                relations: ["location", "questions", "simulatedSurvey"],
+                relations: ["questions", "simulatedSurvey"],
                 order: { createdAt: "DESC" },
             });
 
@@ -158,7 +150,7 @@ class SurveyScenarioController {
 
             const scenario = await this.SurveyScenarioRepo.findOne({
                 where: { id: scenarioId },
-                relations: ["location", "questions"],
+                relations: ["questions"],
             });
 
             if (!scenario)
@@ -178,7 +170,7 @@ class SurveyScenarioController {
             const eligibleQuery = this.buildEligibleUsersQuery({
                 minBirthDate,
                 maxBirthDate,
-                address: scenario.location?.address,
+                location: scenario.location,
                 gender: scenario.gender,
             });
 
@@ -192,9 +184,7 @@ class SurveyScenarioController {
 
             const targetCount = Math.ceil(totalEligible * (scenario.percentage / 100));
 
-            const allEligibleUsers = await eligibleQuery
-                .leftJoinAndSelect("user.locations", "location")
-                .getMany();
+            const allEligibleUsers = await eligibleQuery.getMany();
 
             const shuffled = allEligibleUsers.sort(() => Math.random() - 0.5);
             const assignedUsers = shuffled.slice(0, targetCount);
@@ -215,7 +205,7 @@ class SurveyScenarioController {
                     fullName: user.fullName || "",
                     age,
                     gender: user.gender || null,
-                    location: user.locations?.address || scenario.location?.address || null,
+                    location: user.location || scenario.location || null,
                     status: (isAssigned ? "assigned" : "not_assigned") as "assigned" | "not_assigned",
                 };
             });
@@ -306,7 +296,7 @@ class SurveyScenarioController {
 
             const simulatedSurvey = await this.SimulatedSurveyRepo.findOne({
                 where: { scenario: { id: scenarioId } },
-                relations: ["scenario", "scenario.location", "scenario.questions", "triggeredBy"],
+                relations: ["scenario", "scenario.questions", "triggeredBy"],
             });
 
             if (!simulatedSurvey)
@@ -339,7 +329,7 @@ class SurveyScenarioController {
                     demographics: {
                         minAge: scenario.minAge,
                         maxAge: scenario.maxAge,
-                        location: scenario.location?.address || "All locations",
+                        location: scenario.location || "All locations",
                         gender: scenario.gender || "All genders",
                         percentage: scenario.percentage,
                     },
@@ -370,15 +360,15 @@ class SurveyScenarioController {
     private buildEligibleUsersQuery(args: {
         minBirthDate: Date;
         maxBirthDate: Date;
-        address?: string;
+        location?: string;
         gender?: string;
     }) {
-        const { minBirthDate, maxBirthDate, address, gender } = args;
+        const { minBirthDate, maxBirthDate, location, gender } = args;
         const qb = this.UserRepo.createQueryBuilder("user")
             .where("user.dateOfBirth BETWEEN :minBirthDate AND :maxBirthDate", { minBirthDate, maxBirthDate });
 
-        if (address)
-            qb.innerJoin("user.locations", "loc").andWhere("loc.address = :addr", { addr: address });
+        if (location)
+            qb.andWhere("user.location = :location", { location });
         if (gender)
             qb.andWhere("user.gender = :gender", { gender });
 
