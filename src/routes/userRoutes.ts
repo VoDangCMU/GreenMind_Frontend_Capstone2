@@ -14,5 +14,6 @@ router.get("/profile", jwtAuthMiddleware, userController.GetProfile);
 
 // Logout (requires authentication)
 router.post('/logout', jwtAuthMiddleware, userController.Logout);
+
 router.get('/get-alls,', jwtAuthMiddleware, adminMiddleware, userController.GetAllUsers);
 export default router;

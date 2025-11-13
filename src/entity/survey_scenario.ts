@@ -2,16 +2,13 @@ import {
     Column,
     CreateDateColumn,
     Entity, JoinTable, ManyToMany,
-    ManyToOne,
     OneToMany, OneToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
-import {Locations} from "../entity/locations";
 import {ScenarioAssignment} from "../entity/scenario_assignments";
 import {Questions} from "../entity/questions";
 import {SimulatedSurvey} from "../entity/simulated_survey";
-;
 
 export const SURVEY_SCENARIOS_TABLE_NAME = 'survey_scenarios';
 
@@ -31,8 +28,8 @@ export class SurveyScenario {
     })
     simulatedSurvey!: SimulatedSurvey;
 
-    @ManyToOne(() => Locations, {onDelete: "CASCADE"})
-    location!: Locations;
+    @Column({type: "varchar", length: 255, nullable: true})
+    location!: string;
 
     @ManyToMany(() => Questions, { cascade: false })
     @JoinTable()
