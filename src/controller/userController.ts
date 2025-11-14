@@ -447,28 +447,15 @@ class UserController {
     }
 
     public GetAllUsers: RequestHandler = async (req: Request, res: Response) => {
-        const logger = getLogger();
-        const startTime = Date.now();
-
-        if (!req.user || !req.user.userId) {
-            logger.warn("GetAllUsers failed - missing user in request");
-            res.status(401).json({ message: "Unauthorized" });
-            return;
-        }
-
         try {
-            const userRepository = AppDataSource.getRepository(User);
-            const users = await userRepository.find({
-                relations: ["big_five"],
-            });
-
-            res.status(200).json({ success: true, data: users });
-            return;
-        } catch (error) {
-            const duration = Date.now() - startTime;
-            logger.error("GetAllUsers error", error as Error, { userId: req.user?.userId, duration });
-            res.status(500).json({ message: "Internal server error" });
-            return;
+            const users = await AppDataSource.getRepository(User).find({
+                relations: {
+                    bigFive: true,
+                }
+            })
+            return res.status(200).json({ message: "Get all users successfully" , data: users });
+        } catch (e: any) {
+            return res.status(500).json({ message: "Internal server error", error: e.message });
         }
     }
 
