@@ -17,6 +17,7 @@ import surveyScenarios from "./surveyScenarioController";
 import dailyPending from "./dailySpendingController";
 import {modelController as model} from "./modelController";
 import preAppSurvey from "./preAppSurveyController";
+import nightOutFreq from "./nighOutFreqController";
 
 export default {
     health,
@@ -38,4 +39,5 @@ export default {
     model,
     dailyPending,
     preAppSurvey,
+    nightOutFreq
 };
