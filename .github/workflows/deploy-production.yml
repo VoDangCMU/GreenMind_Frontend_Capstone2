@@ -36,7 +36,7 @@ jobs:
           
           set -e
 
-          cd Green_Mindmap_Backend
+          cd Green_MindMap_Backend
 
           echo "--- Pull latest image ---"
           docker pull iamqbao/green_mind_backend:latest
