@@ -27,27 +27,17 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
-      # Deploy Docker container
       - name: Deploy Docker container
         env:
           SSHPASS: ${{ secrets.SERVER_PASSWORD }}
         run: |
           sshpass -p "$SSHPASS" ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-          
-          set -e
-
-          echo "--- Pull latest image ---"
+          cd /home/tnqbao/Green_MindMap_Backend
           docker pull iamqbao/green_mind_backend:latest
-
-          echo "--- Remove old container ---"
           docker rm -f green-mind-backend || true
-
-          echo "--- Run new container ---"
           docker run -d \
             --name green-mind-backend \
             --env-file /home/tnqbao/Green_MindMap_Backend/.env \
             -p 8080:8080 \
             iamqbao/green_mind_backend:latest
-
-          echo "Deployment complete!"
           EOF
