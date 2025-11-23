@@ -32,8 +32,17 @@ jobs:
           SSHPASS: ${{ secrets.SERVER_PASSWORD }}
         run: |
           sshpass -p "$SSHPASS" ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+
           cd /home/tnqbao/Green_MindMap_Backend
+
           docker pull iamqbao/green_mind_backend:latest
           docker rm -f green-mind-backend || true
-          docker docker run -d   --name green-mind-backend   --env-file .env   --network green-mindmap-net   -p 3000:3000   iamqbao/green_mind_backend:latest
+
+          docker run -d \
+            --name green-mind-backend \
+            --env-file .env \
+            --network green-mindmap-net \
+            -p 3000:3000 \
+            iamqbao/green_mind_backend:latest
+
           EOF
