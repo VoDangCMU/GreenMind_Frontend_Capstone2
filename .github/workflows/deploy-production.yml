@@ -36,8 +36,6 @@ jobs:
           
           set -e
 
-          cd Green_MindMap_Backend
-
           echo "--- Pull latest image ---"
           docker pull iamqbao/green_mind_backend:latest
 
@@ -47,7 +45,7 @@ jobs:
           echo "--- Run new container ---"
           docker run -d \
             --name green-mind-backend \
-            --env-file /home/tnqbao/staging.env \
+            --env-file /home/tnqbao/Green_MindMap_Backend/.env \
             -p 8080:8080 \
             iamqbao/green_mind_backend:latest
 
