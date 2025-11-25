@@ -1,5 +1,5 @@
 import { Router } from "express";
-import ocrController from "../controller/ocrController";
+import healthyFoodController from "../controller/healthyFoodController";
 import { jwtAuthMiddleware } from "../middlewares/jwtMiddleware";
 import multer from "multer";
 
@@ -21,10 +21,8 @@ const upload = multer({
     }
 });
 
-// POST /api/ocr - Process OCR from image
-router.post("/", jwtAuthMiddleware, upload.single('file'), ocrController.processOCR);
-
-// GET /api/invoices - Get all invoices for authenticated user
-router.get("/invoices", jwtAuthMiddleware, ocrController.getInvoices);
+// POST /api/healthy-food-ratio - Analyze image for healthy food ratio
+router.post("/", jwtAuthMiddleware, upload.single('file'), healthyFoodController.analyzeHealthyFood);
 
 export default router;
+
