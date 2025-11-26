@@ -13,7 +13,7 @@ class UserController {
     public RegisterWithEmail: RequestHandler = async (req: Request, res: Response) => {
         const logger = getLogger();
         const startTime = Date.now();
-        const { email, password, confirm_password, full_name, date_of_birth, location } = req.body;
+        const { email, password, confirm_password, full_name, date_of_birth, location, gender } = req.body;
 
         logger.info("User registration attempt", {
             email: email?.substring(0, 3) + "***",
@@ -21,16 +21,17 @@ class UserController {
             userAgent: req.get('User-Agent')
         });
 
-        if (!email || !password || !full_name || !date_of_birth || !location) {
+        if (!email || !password || !full_name || !date_of_birth || !location || !gender) {
             logger.warn("Registration failed - missing required fields", {
                 email: email ? "provided" : "missing",
                 password: password ? "provided" : "missing",
                 fullName: full_name ? "provided" : "missing",
                 dateOfBirth: date_of_birth ? "provided" : "missing",
-                location: location ? "provided" : "missing"
+                location: location ? "provided" : "missing",
+                gender: gender ? "provided" : "missing"
             });
             res.status(400).json({
-                message: "Email, password, full name, date of birth, and location are required"
+                message: "Email, password, full name, date of birth, gender and location are required"
             });
             return;
         }
@@ -67,6 +68,9 @@ class UserController {
                 return;
             }
 
+            if (gender.toLowerCase() !== 'male' && gender.toLowerCase() !== 'female') {
+                return res.status(400).json({ message: "Gender must be either 'male' or 'female'" });
+            }
             const newUser = userRepository.create({
                 email,
                 password: hashedPassword,
@@ -74,6 +78,7 @@ class UserController {
                 username,
                 dateOfBirth: parsedDateOfBirth,
                 location: location,
+                gender: gender.toLowerCase(),
                 role: 'user'
             });
 
@@ -115,6 +120,7 @@ class UserController {
                     fullName: savedUser.fullName,
                     dateOfBirth: savedUser.dateOfBirth,
                     location: savedUser.location,
+                    gender: savedUser.gender,
                     role: savedUser.role
                 },
                 access_token: tokenPair.accessToken,
