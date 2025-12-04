@@ -26,7 +26,12 @@ const QuestionIdSchema = z.object({
 
 // Batch question creation schema
 const BatchQuestionSchema = z.object({
-    questions: z.array(QuestionSchema).min(1, "At least one question is required")
+    questions: z.array(z.object({
+        question: z.string().min(1, "Question text is required"),
+        templateId: z.string().uuid("Invalid template ID"),
+        threadHallId: z.string().uuid("Invalid thread hall ID").optional(),
+        modelId: z.string().uuid("Invalid model ID").optional()
+    })).min(1, "At least one question is required")
 });
 
 // New schema for createQuestions API
@@ -45,11 +50,14 @@ const QuestionFromPayloadSchema = z.object({
     filled_prompt: z.string(),
     answer: AnswerSchema,
     modelId: z.string().uuid().optional(),
+    templateId: z.string().uuid().optional(), // Allow override of template ID
     trait: z.string().max(1).optional(), // O, C, E, A, N
 });
 
 const CreateQuestionsRequestSchema = z.object({
-    questions: z.array(QuestionFromPayloadSchema).min(1, "At least one question is required")
+    questions: z.array(QuestionFromPayloadSchema).min(1, "At least one question is required"),
+    defaultTemplateId: z.string().uuid().optional(), // Default template ID for all questions
+    defaultModelId: z.string().uuid().optional(), // Default model ID for all questions
 });
 
 const QuestionsRepository = AppDataSource.getRepository(Questions);
@@ -162,6 +170,12 @@ export class QuestionsController {
         const data = validateBatchQuestionParams(req, res);
         if (!data) return;
 
+        // Get user ID from JWT token
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized - User ID not found" });
+        }
+
         try {
             const createdQuestions: Questions[] = [];
             const errors: string[] = [];
@@ -180,6 +194,19 @@ export class QuestionsController {
                         continue;
                     }
 
+                    // Check if model exists (if provided)
+                    let model = null;
+                    if (questionData.modelId) {
+                        model = await ModelsRepository.findOne({
+                            where: { id: questionData.modelId }
+                        });
+
+                        if (!model) {
+                            errors.push(`Question ${i + 1}: Model not found`);
+                            continue;
+                        }
+                    }
+
                     // Check if thread hall exists (if provided)
                     let threadHall = null;
                     if (questionData.threadHallId) {
@@ -193,9 +220,39 @@ export class QuestionsController {
                         }
                     }
 
+                    // Extract trait/ocean (O, C, E, A, N) from multiple sources
+                    let trait: string | undefined = undefined;
+
+                    // Priority 1: Extract from template.intent (e.g., "O_F_001" -> "O")
+                    if (template.intent) {
+                        const match = template.intent.match(/^([OCEAN])/i);
+                        if (match) {
+                            trait = match[1].toUpperCase();
+                        }
+                    }
+
+                    // Priority 2: Extract from template.trait if exists
+                    if (!trait && template.trait) {
+                        trait = template.trait.toUpperCase();
+                    }
+
+                    // Priority 3: Extract from model.ocean if exists and model is provided
+                    if (!trait && model?.ocean) {
+                        const match = model.ocean.match(/^([OCEAN])/i);
+                        if (match) {
+                            trait = match[1].toUpperCase();
+                        }
+                    }
+
                     const question = new Questions();
                     question.question = questionData.question;
                     question.template = template;
+                    question.templateId = questionData.templateId;
+                    question.ownerId = userId; // Save user ID of creator
+                    question.trait = trait; // Save extracted ocean/trait
+                    if (model) {
+                        question.model = model;
+                    }
                     if (threadHall) {
                         question.threadHall = threadHall;
                     }
@@ -218,7 +275,8 @@ export class QuestionsController {
             const response: any = {
                 message: `${savedQuestions.length} questions created successfully`,
                 data: savedQuestions,
-                count: savedQuestions.length
+                count: savedQuestions.length,
+                createdBy: userId
             };
 
             if (errors.length > 0) {
@@ -238,34 +296,86 @@ export class QuestionsController {
         const data = validateCreateQuestionsParams(req, res);
         if (!data) return;
 
+        // Get user ID from JWT token
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized - User ID not found" });
+        }
+
         try {
             const savedQuestions = [];
             const errors: string[] = [];
+
+            // Validate default model and template if provided
+            let defaultModel = null;
+            if (data.defaultModelId) {
+                defaultModel = await ModelsRepository.findOne({
+                    where: { id: data.defaultModelId }
+                });
+                if (!defaultModel) {
+                    return res.status(404).json({
+                        message: `Default model with ID ${data.defaultModelId} not found`
+                    });
+                }
+            }
+
+            let defaultTemplate = null;
+            if (data.defaultTemplateId) {
+                defaultTemplate = await TemplateRepository.findOne({
+                    where: { id: data.defaultTemplateId }
+                });
+                if (!defaultTemplate) {
+                    return res.status(404).json({
+                        message: `Default template with ID ${data.defaultTemplateId} not found`
+                    });
+                }
+            }
 
             // Process each question from the payload
             for (let i = 0; i < data.questions.length; i++) {
                 const questionData = data.questions[i];
 
                 try {
+                    // Determine which templateId to use (question's templateId > defaultTemplateId > questionData.id)
+                    const templateIdToUse = questionData.templateId || data.defaultTemplateId || questionData.id;
+
+                    // Validate and get template if templateId is provided
+                    let template = null;
+                    if (questionData.templateId || data.defaultTemplateId) {
+                        template = await TemplateRepository.findOne({
+                            where: { id: templateIdToUse }
+                        });
+                        if (!template) {
+                            errors.push(`Question ${i + 1}: Template with ID ${templateIdToUse} not found, using templateId as string reference`);
+                        }
+                    } else if (defaultTemplate) {
+                        template = defaultTemplate;
+                    }
+
                     // Check if the exact same question text already exists (to prevent true duplicates)
                     const existedQuestion = await QuestionsRepository.findOne({
                         where: {
                             question: questionData.filled_prompt,
-                            templateId: questionData.id
+                            templateId: templateIdToUse
                         },
-                        relations: ["questionOptions", "model"]
+                        relations: ["questionOptions", "model", "owner", "template"]
                     });
 
                     if (!existedQuestion) {
+                        // Determine which modelId to use (question's modelId > defaultModelId)
+                        const modelIdToUse = questionData.modelId || data.defaultModelId;
+
                         // Validate and get model if modelId is provided
                         let model = null;
-                        if (questionData.modelId) {
+                        if (modelIdToUse) {
                             model = await ModelsRepository.findOne({
-                                where: { id: questionData.modelId }
+                                where: { id: modelIdToUse }
                             });
                             if (!model) {
-                                errors.push(`Question ${i + 1}: Model with ID ${questionData.modelId} not found, proceeding without model`);
+                                errors.push(`Question ${i + 1}: Model with ID ${modelIdToUse} not found, proceeding without model`);
                             }
+                        } else if (defaultModel) {
+                            model = defaultModel;
                         }
 
                         // Extract trait from intent if not provided (e.g., "O_F_001" -> "O")
@@ -277,14 +387,16 @@ export class QuestionsController {
                             }
                         }
 
-                        // Create new question with modelId and trait
+                        // Create new question with all fields including ownerId
                         const newQuestion = QuestionsRepository.create({
                             question: questionData.filled_prompt,
-                            templateId: questionData.id,
+                            templateId: templateIdToUse,
+                            template: template || undefined,
                             behaviorInput: questionData.name,
                             behaviorNormalized: questionData.intent,
                             trait: trait,
-                            model: model || undefined
+                            model: model || undefined,
+                            ownerId: userId, // Save the user ID of the creator
                         });
 
                         const savedQuestion = await QuestionsRepository.save(newQuestion);
@@ -320,18 +432,18 @@ export class QuestionsController {
                             await QuestionOptionsRepository.save(questionOptions);
                         }
 
-                        // Reload question with options and model
+                        // Reload question with all relations
                         const questionWithOptions = await QuestionsRepository.findOne({
                             where: { id: savedQuestion.id },
-                            relations: ["questionOptions", "model"]
+                            relations: ["questionOptions", "model", "owner", "template"]
                         });
 
                         savedQuestions.push(questionWithOptions);
-                        logger.info(`Question created with trait: ${trait}, modelId: ${model?.id || 'none'}`);
+                        logger.info(`Question created by user ${userId} with trait: ${trait}, modelId: ${model?.id || 'none'}, templateId: ${templateIdToUse}`);
                     } else {
                         // Exact duplicate question exists, skip
                         savedQuestions.push(existedQuestion);
-                        errors.push(`Question with text "${questionData.filled_prompt}" and template ${questionData.id} already exists, skipped creation`);
+                        errors.push(`Question with text "${questionData.filled_prompt}" and template ${templateIdToUse} already exists, skipped creation`);
                     }
                 } catch (e) {
                     errors.push(`Question ${i + 1} (${questionData.id}): ${(e as Error).message}`);
@@ -349,7 +461,8 @@ export class QuestionsController {
             const response: any = {
                 message: `${savedQuestions.length} questions processed successfully`,
                 count: savedQuestions.length,
-                data: savedQuestions
+                data: savedQuestions,
+                createdBy: userId
             };
 
             if (errors.length > 0) {
@@ -566,6 +679,28 @@ export class QuestionsController {
             });
         } catch (e) {
             logger.error('Error fetching questions by thread hall', e as Error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
+    // Get questions by owner
+    public async GetQuestionsByOwner(req: Request, res: Response) {
+        const ownerId = req.params.ownerId || (req as any).userId; // Allow getting by ownerId param or current user
+
+        try {
+            const questions = await QuestionsRepository.find({
+                where: { ownerId: ownerId },
+                relations: ['template', 'threadHall', 'owner', 'questionOptions', 'model'],
+                order: { createdAt: 'DESC' }
+            });
+
+            return res.status(200).json({
+                message: `Questions for owner retrieved successfully`,
+                data: questions,
+                count: questions.length
+            });
+        } catch (e) {
+            logger.error('Error fetching questions by owner', e as Error);
             return res.status(500).json({ message: "Internal server error" });
         }
     }
