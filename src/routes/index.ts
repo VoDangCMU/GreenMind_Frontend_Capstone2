@@ -1,5 +1,6 @@
-import { Router } from "express";
+import {Router} from "express";
 import questionRouter from "../routes/questionRoutes";
+import questionSetRouter from "../routes/questionSetRoutes";
 import userRoutes from "./userRoutes";
 import tokenRouter from "./tokenRoutes";
 import locationRouter from "./locationRoutes";
@@ -26,6 +27,7 @@ router.use("/auth", userRoutes);
 router.use("/tokens", tokenRouter);
 router.use("/locations", locationRouter);
 router.use("/questions", questionRouter);
+router.use("/question-sets", questionSetRouter);
 router.use("/templates", templateRouter);
 router.use("/traits", traitRouter);
 router.use("/big-five", bigFiveRouter);

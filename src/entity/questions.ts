@@ -1,7 +1,7 @@
 import {
     Column,
     CreateDateColumn,
-    Entity, ManyToMany,
+    Entity,
     ManyToOne,
     OneToMany,
     PrimaryGeneratedColumn,
@@ -11,13 +11,12 @@ import {Template} from "./templates";
 import {ThreadHall} from "./thread_halls";
 import {UserAnswers} from "./user_answers";
 import {QuestionOptions} from "./question_options";
-import {SurveyScenario} from "../entity/survey_scenario";
 import {Models} from "./models";
 import {User} from "./user";
 
 export const QUESTIONS_TABLE_NAME = 'questions';
 
-@Entity()
+@Entity(QUESTIONS_TABLE_NAME)
 export class Questions {
     @PrimaryGeneratedColumn("uuid")
     id!: string;
@@ -43,7 +42,6 @@ export class Questions {
     @Column({type: 'varchar', nullable: true})
     trait?: string;
 
-
     @ManyToOne(() => Models, {nullable: true})
     model?: Models;
 
@@ -61,9 +59,6 @@ export class Questions {
 
     @ManyToOne(() => ThreadHall, {onDelete: 'CASCADE'})
     threadHall!: ThreadHall;
-
-    @ManyToMany(() => SurveyScenario, (s) => s.questions)
-    scenarios!: SurveyScenario[];
 
     @OneToMany(() => UserAnswers, userAnswers => userAnswers.question)
     userAnswers?: UserAnswers[];
