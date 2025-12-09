@@ -1,12 +1,12 @@
-import { Request, Response } from 'express';
-import { z } from 'zod';
+import {Request, Response} from 'express';
+import {z} from 'zod';
 import AppDataSource from '../infrastructure/database';
-import { Questions } from '../entity/questions';
-import { QuestionOptions } from '../entity/question_options';
-import { Template } from '../entity/templates';
-import { ThreadHall } from '../entity/thread_halls';
-import { Models } from '../entity/models';
-import { logger } from '../infrastructure/logger';
+import {Questions} from '../entity/questions';
+import {QuestionOptions} from '../entity/question_options';
+import {Template} from '../entity/templates';
+import {ThreadHall} from '../entity/thread_halls';
+import {Models} from '../entity/models';
+import {logger} from '../infrastructure';
 
 const QuestionSchema = z.object({
     question: z.string().min(1, "Question text is required"),
@@ -24,17 +24,6 @@ const QuestionIdSchema = z.object({
     id: z.string().uuid("Invalid question ID"),
 });
 
-// Batch question creation schema
-const BatchQuestionSchema = z.object({
-    questions: z.array(z.object({
-        question: z.string().min(1, "Question text is required"),
-        templateId: z.string().uuid("Invalid template ID"),
-        threadHallId: z.string().uuid("Invalid thread hall ID").optional(),
-        modelId: z.string().uuid("Invalid model ID").optional()
-    })).min(1, "At least one question is required")
-});
-
-// New schema for createQuestions API
 const AnswerSchema = z.object({
     type: z.string(),
     scale: z.array(z.number()).optional(),
@@ -79,19 +68,6 @@ function validateQuestionParams(req: Request, res: Response) {
     return parsed.data;
 }
 
-function validateBatchQuestionParams(req: Request, res: Response) {
-    const parsed = BatchQuestionSchema.safeParse(req.body);
-    if (!parsed.success) {
-        logger.error('Batch question validation error', undefined, { details: parsed.error });
-        res.status(400).json({
-            message: "Validation error",
-            errors: parsed.error.format()
-        });
-        return null;
-    }
-    return parsed.data;
-}
-
 function validateQuestionUpdateParams(req: Request, res: Response) {
     const parsed = QuestionUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -117,6 +93,7 @@ function validateCreateQuestionsParams(req: Request, res: Response) {
     }
     return parsed.data;
 }
+
 
 export class QuestionsController {
     // Create single question
@@ -161,132 +138,6 @@ export class QuestionsController {
             });
         } catch (e) {
             logger.error('Error creating question', e as Error);
-            return res.status(500).json({ message: "Internal server error" });
-        }
-    }
-
-    // Create multiple questions at once - for frontend batch upload
-    public async CreateBatchQuestions(req: Request, res: Response) {
-        const data = validateBatchQuestionParams(req, res);
-        if (!data) return;
-
-        // Get user ID from JWT token
-        const userId = req.user?.userId;
-        if (!userId) {
-            return res.status(401).json({ message: "Unauthorized - User ID not found" });
-        }
-
-        try {
-            const createdQuestions: Questions[] = [];
-            const errors: string[] = [];
-
-            for (let i = 0; i < data.questions.length; i++) {
-                const questionData = data.questions[i];
-
-                try {
-                    // Check if template exists
-                    const template = await TemplateRepository.findOne({
-                        where: { id: questionData.templateId }
-                    });
-
-                    if (!template) {
-                        errors.push(`Question ${i + 1}: Template not found`);
-                        continue;
-                    }
-
-                    // Check if model exists (if provided)
-                    let model = null;
-                    if (questionData.modelId) {
-                        model = await ModelsRepository.findOne({
-                            where: { id: questionData.modelId }
-                        });
-
-                        if (!model) {
-                            errors.push(`Question ${i + 1}: Model not found`);
-                            continue;
-                        }
-                    }
-
-                    // Check if thread hall exists (if provided)
-                    let threadHall = null;
-                    if (questionData.threadHallId) {
-                        threadHall = await ThreadHallRepository.findOne({
-                            where: { id: questionData.threadHallId }
-                        });
-
-                        if (!threadHall) {
-                            errors.push(`Question ${i + 1}: Thread hall not found`);
-                            continue;
-                        }
-                    }
-
-                    // Extract trait/ocean (O, C, E, A, N) from multiple sources
-                    let trait: string | undefined = undefined;
-
-                    // Priority 1: Extract from template.intent (e.g., "O_F_001" -> "O")
-                    if (template.intent) {
-                        const match = template.intent.match(/^([OCEAN])/i);
-                        if (match) {
-                            trait = match[1].toUpperCase();
-                        }
-                    }
-
-                    // Priority 2: Extract from template.trait if exists
-                    if (!trait && template.trait) {
-                        trait = template.trait.toUpperCase();
-                    }
-
-                    // Priority 3: Extract from model.ocean if exists and model is provided
-                    if (!trait && model?.ocean) {
-                        const match = model.ocean.match(/^([OCEAN])/i);
-                        if (match) {
-                            trait = match[1].toUpperCase();
-                        }
-                    }
-
-                    const question = new Questions();
-                    question.question = questionData.question;
-                    question.template = template;
-                    question.templateId = questionData.templateId;
-                    question.ownerId = userId; // Save user ID of creator
-                    question.trait = trait; // Save extracted ocean/trait
-                    if (model) {
-                        question.model = model;
-                    }
-                    if (threadHall) {
-                        question.threadHall = threadHall;
-                    }
-
-                    createdQuestions.push(question);
-                } catch (e) {
-                    errors.push(`Question ${i + 1}: ${(e as Error).message}`);
-                }
-            }
-
-            if (createdQuestions.length === 0) {
-                return res.status(400).json({
-                    message: "No valid questions to create",
-                    errors: errors
-                });
-            }
-
-            const savedQuestions = await QuestionsRepository.save(createdQuestions);
-
-            const response: any = {
-                message: `${savedQuestions.length} questions created successfully`,
-                data: savedQuestions,
-                count: savedQuestions.length,
-                createdBy: userId
-            };
-
-            if (errors.length > 0) {
-                response.warnings = errors;
-                response.message = `${savedQuestions.length} questions created successfully with ${errors.length} errors`;
-            }
-
-            return res.status(201).json(response);
-        } catch (e) {
-            logger.error('Error creating batch questions', e as Error);
             return res.status(500).json({ message: "Internal server error" });
         }
     }
@@ -545,16 +396,20 @@ export class QuestionsController {
 
         const questionId = parsed.data.id;
 
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({message: "Unauthorized - User ID not found"});
+        }
         try {
             const question = await QuestionsRepository.findOne({
-                where: { id: questionId }
+                where: {id: questionId, ownerId: userId}
             });
 
             if (!question) {
                 return res.status(404).json({ message: "Question not found" });
             }
 
-            // Update question text if provided
             if (data.question !== undefined) {
                 question.question = data.question;
             }
@@ -612,7 +467,7 @@ export class QuestionsController {
 
         try {
             const question = await QuestionsRepository.findOne({
-                where: { id: questionId }
+                where: {id: questionId, ownerId: req.user?.userId}
             });
 
             if (!question) {
@@ -705,307 +560,6 @@ export class QuestionsController {
         }
     }
 
-    // Get questions for client - returns predefined format
-    public async getQuestionsForClient(req: Request, res: Response) {
-        try {
-            // Return the exact format you requested
-            const questionsForClient = {
-                "O": {
-                    "frequency": [
-                        {
-                            "template_id": "O_F_001",
-                            "sentence": "Bạn có thường {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["rất ít khi", "thỉnh thoảng", "thường xuyên", "gần như mọi lúc"],
-                            "ocean": "O"
-                        },
-                        {
-                            "template_id": "O_F_002",
-                            "sentence": "Trong cuộc sống hàng ngày, bạn {behavior} với tần suất thế nào?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["hiếm khi", "đôi khi", "thường xuyên", "rất thường xuyên"],
-                            "ocean": "O"
-                        }
-                    ],
-                    "yesno": [
-                        {
-                            "template_id": "O_YN_001",
-                            "sentence": "Bạn có thích {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["Có", "Không"],
-                            "ocean": "O"
-                        },
-                        {
-                            "template_id": "O_YN_002",
-                            "sentence": "Bạn có hứng thú với việc {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["Có", "Không"],
-                            "ocean": "O"
-                        }
-                    ]
-                },
-                "C": {
-                    "frequency": [
-                        {
-                            "template_id": "C_F_001",
-                            "sentence": "Bạn có thường {behavior} khi làm việc không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["rất ít khi", "thỉnh thoảng", "thường xuyên", "gần như mọi lúc"],
-                            "ocean": "C"
-                        },
-                        {
-                            "template_id": "C_F_002",
-                            "sentence": "Mỗi khi có nhiệm vụ quan trọng, bạn {behavior} như thế nào?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["hiếm khi", "đôi khi", "thường xuyên", "luôn luôn"],
-                            "ocean": "C"
-                        }
-                    ],
-                    "yesno": [
-                        {
-                            "template_id": "C_YN_001",
-                            "sentence": "Bạn có thường chú ý đến chi tiết khi {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["Có", "Không"],
-                            "ocean": "C"
-                        },
-                        {
-                            "template_id": "C_YN_002",
-                            "sentence": "Bạn có cho rằng mình đáng tin cậy khi {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["Có", "Không"],
-                            "ocean": "C"
-                        }
-                    ]
-                },
-                "E": {
-                    "frequency": [
-                        {
-                            "template_id": "E_F_001",
-                            "sentence": "Bạn có thường {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["rất ít khi", "thỉnh thoảng", "thường xuyên", "gần như mọi lúc"],
-                            "ocean": "E"
-                        },
-                        {
-                            "template_id": "E_F_002",
-                            "sentence": "Trong một tuần điển hình, bạn {behavior} bao nhiêu lần?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["0 lần", "1–2 lần", "3–5 lần", "hơn 5 lần"],
-                            "ocean": "E"
-                        }
-                    ],
-                    "yesno": [
-                        {
-                            "template_id": "E_YN_001",
-                            "sentence": "Bạn có thích {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["Có", "Không"],
-                            "ocean": "E"
-                        }
-                    ]
-                },
-                "A": {
-                    "frequency": [
-                        {
-                            "template_id": "A_F_001",
-                            "sentence": "Bạn có thường {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["rất ít khi", "thỉnh thoảng", "thường xuyên", "gần như mọi lúc"],
-                            "ocean": "A"
-                        }
-                    ],
-                    "yesno": [
-                        {
-                            "template_id": "A_YN_001",
-                            "sentence": "Bạn có dễ dàng {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["Có", "Không"],
-                            "ocean": "A"
-                        }
-                    ]
-                },
-                "N": {
-                    "frequency": [
-                        {
-                            "template_id": "N_F_001",
-                            "sentence": "Bạn có thường {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["rất ít khi", "thỉnh thoảng", "thường xuyên", "gần như mọi lúc"],
-                            "ocean": "N"
-                        }
-                    ],
-                    "yesno": [
-                        {
-                            "template_id": "N_YN_001",
-                            "sentence": "Bạn có cảm thấy lo lắng khi {behavior} không?",
-                            "slot": "behavior",
-                            "value_behavior": [],
-                            "value_slot": ["Có", "Không"],
-                            "ocean": "N"
-                        }
-                    ]
-                }
-            };
-
-            return res.status(200).json(questionsForClient);
-        } catch (e) {
-            logger.error('Error fetching questions for client', e as Error);
-            return res.status(500).json({ message: "Internal server error" });
-        }
-    }
-
-    // Get random questions from database in specific format
-    public async getRandomQuestionsForClient(req: Request, res: Response) {
-        try {
-            // Get limit from query params, default 10, max 50
-            const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
-
-            // Fetch random questions with templates and options from database
-            const questions = await QuestionsRepository.createQueryBuilder('question')
-                .leftJoinAndSelect('question.template', 'template')
-                .leftJoinAndSelect('question.questionOptions', 'options')
-                .orderBy('RANDOM()') // PostgreSQL random function
-                .limit(limit)
-                .getMany();
-
-            if (questions.length === 0) {
-                return res.status(200).json({
-                    message: "No questions found",
-                    data: [],
-                    count: 0
-                });
-            }
-
-            // Group questions by ocean trait and question type
-            const groupedQuestions: any = {};
-
-            for (const question of questions) {
-                // Extract ocean from template intent or use default
-                const ocean = question.template?.intent?.charAt(0)?.toUpperCase() || 'O';
-                const qtype = question.template?.question_type || 'frequency';
-
-                // Initialize ocean group if not exists
-                if (!groupedQuestions[ocean]) {
-                    groupedQuestions[ocean] = {};
-                }
-
-                // Initialize question type group if not exists
-                if (!groupedQuestions[ocean][qtype]) {
-                    groupedQuestions[ocean][qtype] = [];
-                }
-
-                // Extract slot from template prompt (find text between {})
-                const slotMatch = question.template?.prompt?.match(/{(\w+)}/);
-                const slot = slotMatch ? slotMatch[1] : 'behavior';
-
-                // Get question options values, sorted by order
-                const optionValues = question.questionOptions
-                    ?.sort((a, b) => a.order - b.order)
-                    ?.map(option => option.text) || [];
-
-                // Create question object in the format you specified
-                const questionObj = {
-                    template_id: question.templateId || `${ocean}_${qtype.toUpperCase().substring(0, 2)}_${String(groupedQuestions[ocean][qtype].length + 1).padStart(3, '0')}`,
-                    sentence: question.question,
-                    slot: slot,
-                    value_behavior: [], // Empty array as specified in your format
-                    value_slot: optionValues,
-                    ocean: ocean
-                };
-
-                groupedQuestions[ocean][qtype].push(questionObj);
-            }
-
-            return res.status(200).json({
-                message: "Random questions retrieved successfully",
-                data: groupedQuestions,
-                count: questions.length
-            });
-        } catch (e) {
-            logger.error('Error fetching random questions from database', e as Error);
-            return res.status(500).json({ message: "Internal server error" });
-        }
-    }
-
-    // Get simple random questions - simpler format for general use
-    public async getRandomQuestions(req: Request, res: Response) {
-        try {
-            // Get limit from query params, default 10, max 50
-            const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
-
-            // Fetch random questions with templates and options from database
-            const questions = await QuestionsRepository.createQueryBuilder('question')
-                .leftJoinAndSelect('question.template', 'template')
-                .leftJoinAndSelect('question.questionOptions', 'options')
-                .orderBy('RANDOM()') // PostgreSQL random function
-                .limit(limit)
-                .getMany();
-
-            if (questions.length === 0) {
-                return res.status(200).json({
-                    message: "No questions found",
-                    data: [],
-                    count: 0
-                });
-            }
-
-            // Transform questions to a simpler format
-            const transformedQuestions = questions.map(question => {
-                // Get question options sorted by order
-                const options = question.questionOptions
-                    ?.sort((a, b) => a.order - b.order)
-                    ?.map(option => ({
-                        text: option.text,
-                        value: option.value,
-                        order: option.order
-                    })) || [];
-
-                return {
-                    id: question.id,
-                    question: question.question,
-                    templateId: question.templateId,
-                    behaviorInput: question.behaviorInput,
-                    behaviorNormalized: question.behaviorNormalized,
-                    template: {
-                        id: question.template?.id,
-                        name: question.template?.name,
-                        description: question.template?.description,
-                        intent: question.template?.intent,
-                        question_type: question.template?.question_type
-                    },
-                    options: options,
-                    createdAt: question.createdAt,
-                    updatedAt: question.updatedAt
-                };
-            });
-
-            return res.status(200).json({
-                message: "Random questions retrieved successfully",
-                data: transformedQuestions,
-                count: transformedQuestions.length
-            });
-        } catch (e) {
-            logger.error('Error fetching random questions', e as Error);
-            return res.status(500).json({ message: "Internal server error" });
-        }
-    }
-
-    // Get survey questions based on user's location and age
     public async getSurveyQuestions(req: Request, res: Response) {
         try {
             if (!req.user || !req.user.userId) {

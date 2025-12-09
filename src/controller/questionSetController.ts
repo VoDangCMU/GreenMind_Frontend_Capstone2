@@ -1,11 +1,11 @@
-import { Request, Response } from 'express';
-import { z } from 'zod';
+import {Request, Response} from 'express';
+import {z} from 'zod';
 import AppDataSource from '../infrastructure/database';
-import { QuestionSets } from '../entity/question_sets';
-import { QuestionSetItems } from '../entity/question_set_items';
-import { Questions } from '../entity/questions';
-import { User } from '../entity/user';
-import { logger } from '../infrastructure/logger';
+import {QuestionSets} from '../entity/question_sets';
+import {Questions} from '../entity/questions';
+import {User} from '../entity/user';
+import {logger} from '../infrastructure';
+import {In} from "typeorm";
 
 const CreateQuestionSetSchema = z.object({
     name: z.string().min(1, "Question set name is required"),
@@ -24,12 +24,11 @@ const QuestionSetIdSchema = z.object({
 });
 
 const QuestionSetsRepository = AppDataSource.getRepository(QuestionSets);
-const QuestionSetItemsRepository = AppDataSource.getRepository(QuestionSetItems);
 const QuestionsRepository = AppDataSource.getRepository(Questions);
 const UserRepository = AppDataSource.getRepository(User);
 
 export class QuestionSetController {
-    // Create a new question set
+
     public async createQuestionSet(req: Request, res: Response) {
         const parsed = CreateQuestionSetSchema.safeParse(req.body);
         if (!parsed.success) {
@@ -41,17 +40,18 @@ export class QuestionSetController {
         }
 
         const data = parsed.data;
-        const userId = (req as any).userId; // From JWT middleware
-
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({message: "Unauthorized"});
+        }
+        logger.info('Creating question set', {userId, data});
         try {
-            // Verify user exists
             const user = await UserRepository.findOne({ where: { id: userId } });
             if (!user) {
                 return res.status(404).json({ message: "User not found" });
             }
 
-            // Verify all questions exist
-            const questions = await QuestionsRepository.findByIds(data.questionIds);
+            const questions = await QuestionsRepository.findBy({id: In(data.questionIds)});
             if (questions.length !== data.questionIds.length) {
                 return res.status(404).json({
                     message: "Some questions not found",
@@ -60,38 +60,27 @@ export class QuestionSetController {
                 });
             }
 
-            // Create question set
+            const questTionSetExists = await QuestionSetsRepository.findOne({
+                where: {name: data.name, ownerId: userId}
+            });
+            if (questTionSetExists) {
+                return res.status(409).json({message: "Question set with this name already exists for the user"});
+            }
+
             const questionSet = QuestionSetsRepository.create({
                 name: data.name,
                 description: data.description,
                 owner: user,
-                ownerId: userId
+                ownerId: userId,
+                items: questions
             });
 
             const savedQuestionSet = await QuestionSetsRepository.save(questionSet);
 
-            // Create question set items
-            const items = data.questionIds.map((questionId, index) => {
-                return QuestionSetItemsRepository.create({
-                    questionSet: savedQuestionSet,
-                    questionSetId: savedQuestionSet.id,
-                    question: questions.find(q => q.id === questionId)!,
-                    questionId: questionId,
-                    order: index
-                });
-            });
-
-            await QuestionSetItemsRepository.save(items);
-
-            // Reload with relations
-            const result = await QuestionSetsRepository.findOne({
-                where: { id: savedQuestionSet.id },
-                relations: ['owner', 'items', 'items.question']
-            });
 
             return res.status(201).json({
                 message: "Question set created successfully",
-                data: result
+                data: savedQuestionSet
             });
         } catch (e) {
             logger.error('Error creating question set', e as Error);
@@ -99,11 +88,10 @@ export class QuestionSetController {
         }
     }
 
-    // Get all question sets
     public async getQuestionSets(req: Request, res: Response) {
         try {
             const questionSets = await QuestionSetsRepository.find({
-                relations: ['owner', 'items', 'items.question'],
+                relations: ['owner', 'items', 'items.questionOptions', 'items.template'],
                 order: { createdAt: 'DESC' }
             });
 
@@ -118,14 +106,13 @@ export class QuestionSetController {
         }
     }
 
-    // Get question sets by owner
     public async getQuestionSetsByOwner(req: Request, res: Response) {
         const userId = req.params.ownerId || (req as any).userId; // Allow getting by ownerId param or current user
 
         try {
             const questionSets = await QuestionSetsRepository.find({
                 where: { ownerId: userId },
-                relations: ['owner', 'items', 'items.question'],
+                relations: ['owner', 'items', 'items.questionOptions', 'items.template'],
                 order: { createdAt: 'DESC' }
             });
 
@@ -140,7 +127,6 @@ export class QuestionSetController {
         }
     }
 
-    // Get question set by ID
     public async getQuestionSetById(req: Request, res: Response) {
         const parsed = QuestionSetIdSchema.safeParse(req.params);
         if (!parsed.success) {
@@ -156,7 +142,7 @@ export class QuestionSetController {
         try {
             const questionSet = await QuestionSetsRepository.findOne({
                 where: { id: questionSetId },
-                relations: ['owner', 'items', 'items.question', 'items.question.questionOptions']
+                relations: ['owner', 'items', 'items.questionOptions', 'items.template']
             });
 
             if (!questionSet) {
@@ -173,7 +159,6 @@ export class QuestionSetController {
         }
     }
 
-    // Update question set
     public async updateQuestionSet(req: Request, res: Response) {
         const parsed = QuestionSetIdSchema.safeParse(req.params);
         if (!parsed.success) {
@@ -195,7 +180,12 @@ export class QuestionSetController {
 
         const questionSetId = parsed.data.id;
         const data = dataParsed.data;
-        const userId = (req as any).userId;
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({message: "Unauthorized"});
+        }
+
 
         try {
             const questionSet = await QuestionSetsRepository.findOne({
@@ -207,12 +197,10 @@ export class QuestionSetController {
                 return res.status(404).json({ message: "Question set not found" });
             }
 
-            // Check ownership
             if (questionSet.ownerId !== userId) {
                 return res.status(403).json({ message: "You don't have permission to update this question set" });
             }
 
-            // Update basic fields
             if (data.name !== undefined) {
                 questionSet.name = data.name;
             }
@@ -222,10 +210,11 @@ export class QuestionSetController {
 
             await QuestionSetsRepository.save(questionSet);
 
-            // Update question items if provided
             if (data.questionIds !== undefined) {
-                // Verify all questions exist
-                const questions = await QuestionsRepository.findByIds(data.questionIds);
+                const questions = await QuestionsRepository.find({
+                    where: {id: In(data.questionIds)}
+                });
+
                 if (questions.length !== data.questionIds.length) {
                     return res.status(404).json({
                         message: "Some questions not found",
@@ -234,27 +223,13 @@ export class QuestionSetController {
                     });
                 }
 
-                // Delete existing items
-                await QuestionSetItemsRepository.delete({ questionSetId: questionSetId });
-
-                // Create new items
-                const items = data.questionIds.map((questionId, index) => {
-                    return QuestionSetItemsRepository.create({
-                        questionSet: questionSet,
-                        questionSetId: questionSetId,
-                        question: questions.find(q => q.id === questionId)!,
-                        questionId: questionId,
-                        order: index
-                    });
-                });
-
-                await QuestionSetItemsRepository.save(items);
+                questionSet.items = questions;
+                await QuestionSetsRepository.save(questionSet);
             }
 
-            // Reload with relations
             const result = await QuestionSetsRepository.findOne({
                 where: { id: questionSetId },
-                relations: ['owner', 'items', 'items.question']
+                relations: ['owner', 'items', 'items.questionOptions', 'items.template']
             });
 
             return res.status(200).json({
@@ -267,7 +242,6 @@ export class QuestionSetController {
         }
     }
 
-    // Delete question set
     public async deleteQuestionSet(req: Request, res: Response) {
         const parsed = QuestionSetIdSchema.safeParse(req.params);
         if (!parsed.success) {
@@ -279,7 +253,11 @@ export class QuestionSetController {
         }
 
         const questionSetId = parsed.data.id;
-        const userId = (req as any).userId;
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({message: "Unauthorized"});
+        }
 
         try {
             const questionSet = await QuestionSetsRepository.findOne({
@@ -290,7 +268,6 @@ export class QuestionSetController {
                 return res.status(404).json({ message: "Question set not found" });
             }
 
-            // Check ownership
             if (questionSet.ownerId !== userId) {
                 return res.status(403).json({ message: "You don't have permission to delete this question set" });
             }

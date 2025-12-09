@@ -2,30 +2,48 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    JoinTable,
+    ManyToMany,
     ManyToOne,
     OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
 import {User} from "./user";
-import {QuestionSetItems} from "./question_set_items";
+import {Questions} from "../entity/questions";
+import {SurveyScenario} from "../entity/survey_scenario";
+
 export const QUESTION_SETS_TABLE_NAME = 'question_sets';
-@Entity()
+
+@Entity(QUESTION_SETS_TABLE_NAME)
 export class QuestionSets {
     @PrimaryGeneratedColumn("uuid")
     id!: string;
+
     @Column({type: 'varchar', length: 255})
     name!: string;
+
     @Column({type: 'text', nullable: true})
     description?: string;
+
     @ManyToOne(() => User, {nullable: false})
     owner!: User;
+
     @Column({type: 'text'})
     ownerId!: string;
-    @OneToMany(() => QuestionSetItems, item => item.questionSet, {cascade: true})
-    items?: QuestionSetItems[];
+
+    @JoinTable({
+        name: 'question_set_questions',
+    })
+    @ManyToMany(() => Questions, {nullable: false, onDelete: "CASCADE"})
+    items!: Questions[];
+
+    @OneToMany(() => SurveyScenario, (scenario) => scenario.questionSet)
+    scenarios!: SurveyScenario[];
+
     @CreateDateColumn({type: 'timestamp'})
     createdAt!: Date;
+
     @UpdateDateColumn({type: 'timestamp'})
     updatedAt!: Date;
 }
