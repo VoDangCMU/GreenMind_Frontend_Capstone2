@@ -31,15 +31,19 @@ const AnswerSchema = z.object({
 });
 
 const QuestionFromPayloadSchema = z.object({
-    id: z.string(),
-    name: z.string(),
-    intent: z.string(),
-    question_type: z.string(),
-    filled_prompt: z.string(),
-    answer: AnswerSchema,
+    id: z.string().optional(),
+    name: z.string().optional(),
+    intent: z.string().optional(),
+    question_type: z.string().optional(),
+    question: z.string().optional(), // Allow 'question' field as alternative
+    filled_prompt: z.string().optional(), // Make filled_prompt optional
+    answer: AnswerSchema.optional(),
     modelId: z.string().uuid().optional(),
-    templateId: z.string().uuid().optional(), // Allow override of template ID
+    templateId: z.string().optional(), // Allow any string for templateId, not just UUID
     trait: z.string().max(1).optional(), // O, C, E, A, N
+}).refine(data => data.question || data.filled_prompt, {
+    message: "Either 'question' or 'filled_prompt' is required",
+    path: ["question"]
 });
 
 const CreateQuestionsRequestSchema = z.object({
@@ -199,6 +203,9 @@ export class QuestionsController {
                 const questionData = data.questions[i];
 
                 try {
+                    // Get question text from either 'question' or 'filled_prompt' field
+                    const questionText = questionData.filled_prompt || questionData.question || '';
+
                     // Determine which templateId to use (question's templateId > defaultTemplateId > questionData.id)
                     const templateIdToUse = questionData.templateId || data.defaultTemplateId || questionData.id;
 
@@ -218,7 +225,7 @@ export class QuestionsController {
                     // Check if the exact same question text already exists (to prevent true duplicates)
                     const existedQuestion = await QuestionsRepository.findOne({
                         where: {
-                            question: questionData.filled_prompt,
+                            question: questionText,
                             templateId: templateIdToUse
                         },
                         relations: ["questionOptions", "model", "owner", "template"]
@@ -252,7 +259,7 @@ export class QuestionsController {
 
                         // Create new question with all fields including ownerId
                         const newQuestion = QuestionsRepository.create({
-                            question: questionData.filled_prompt,
+                            question: questionText,
                             templateId: templateIdToUse,
                             template: template || undefined,
                             behaviorInput: questionData.name,
@@ -267,27 +274,29 @@ export class QuestionsController {
                         // Create question options based on answer type
                         const questionOptions = [];
 
-                        if (questionData.answer.type === 'scale' && questionData.answer.labels) {
-                            // For scale type with labels
-                            for (let j = 0; j < questionData.answer.labels.length; j++) {
-                                const option = QuestionOptionsRepository.create({
-                                    question: savedQuestion,
-                                    text: questionData.answer.labels[j],
-                                    value: questionData.answer.scale ? questionData.answer.scale[j].toString() : (j + 1).toString(),
-                                    order: j
-                                });
-                                questionOptions.push(option);
-                            }
-                        } else if (questionData.answer.type === 'binary' && questionData.answer.options) {
-                            // For binary type with options
-                            for (let j = 0; j < questionData.answer.options.length; j++) {
-                                const option = QuestionOptionsRepository.create({
-                                    question: savedQuestion,
-                                    text: questionData.answer.options[j],
-                                    value: j.toString(),
-                                    order: j
-                                });
-                                questionOptions.push(option);
+                        if (questionData.answer) {
+                            if (questionData.answer.type === 'scale' && questionData.answer.labels) {
+                                // For scale type with labels
+                                for (let j = 0; j < questionData.answer.labels.length; j++) {
+                                    const option = QuestionOptionsRepository.create({
+                                        question: savedQuestion,
+                                        text: questionData.answer.labels[j],
+                                        value: questionData.answer.scale ? questionData.answer.scale[j].toString() : (j + 1).toString(),
+                                        order: j
+                                    });
+                                    questionOptions.push(option);
+                                }
+                            } else if (questionData.answer.type === 'binary' && questionData.answer.options) {
+                                // For binary type with options
+                                for (let j = 0; j < questionData.answer.options.length; j++) {
+                                    const option = QuestionOptionsRepository.create({
+                                        question: savedQuestion,
+                                        text: questionData.answer.options[j],
+                                        value: j.toString(),
+                                        order: j
+                                    });
+                                    questionOptions.push(option);
+                                }
                             }
                         }
 
@@ -408,22 +417,19 @@ export class QuestionsController {
 
         const questionId = parsed.data.id;
 
-        const userId = req.user?.userId;
-
-        if (!userId) {
-            return res.status(401).json({message: "Unauthorized - User ID not found"});
-        }
         try {
+            // First, try to find the question
             const question = await QuestionsRepository.findOne({
-                where: {id: questionId, ownerId: userId}
+                where: { id: questionId }
             });
 
             if (!question) {
                 return res.status(404).json({ message: "Question not found" });
             }
 
-            // Update question text from filled_prompt
+            // Update question text if provided
             if (data.question !== undefined) {
+                question.question = data.question;
             }
 
             // Update template if provided
@@ -465,13 +471,15 @@ export class QuestionsController {
         const questionId = parsed.data.id;
 
         try {
+            // First, try to find the question
             const question = await QuestionsRepository.findOne({
-                where: {id: questionId, ownerId: req.user?.userId}
+                where: { id: questionId }
             });
 
             if (!question) {
                 return res.status(404).json({ message: "Question not found" });
             }
+
 
             await QuestionsRepository.delete(questionId);
 
@@ -485,7 +493,6 @@ export class QuestionsController {
         }
     }
 
-    // Get questions by template ID
     public async GetQuestionsByTemplate(req: Request, res: Response) {
         const { templateId } = req.params;
 
