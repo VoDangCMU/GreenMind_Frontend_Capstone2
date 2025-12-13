@@ -263,11 +263,9 @@ class LocationController {
 
         try {
             let startOfDay = new Date();
-            startOfDay.setDate(startOfDay.getDate() - 1)
             startOfDay.setHours(0, 0, 0, 0);
 
             let endOfDay = new Date();
-            endOfDay.setDate(endOfDay.getDate() - 1)
             endOfDay.setHours(23, 59, 59, 999);
 
             const locations = await LocationRepository.find({
