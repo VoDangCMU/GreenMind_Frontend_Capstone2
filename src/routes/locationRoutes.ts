@@ -12,9 +12,9 @@ router.post("/", locationController.createLocation);
 // Lấy tất cả locations của user hiện tại
 router.get("/", locationController.GetLocations);
 
-// Lấy vị trí mới nhất của user
 router.get("/latest", locationController.GetLatestLocation);
 
+router.get("/distanceToday", locationController.GetDistanceToday);
 // Lấy một location cụ thể
 router.get("/:id", locationController.getLocationById);
 
