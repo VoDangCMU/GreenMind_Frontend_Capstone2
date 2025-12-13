@@ -6,6 +6,7 @@ import {User} from '../entity/user';
 import { logger } from '../infrastructure/logger';
 import TEXT from "../config/schemas/Text";
 import NUMBER from "../config/schemas/Number";
+import {Between} from "typeorm";
 
 const LocationSchema = z.object({
     latitude: NUMBER,
@@ -228,7 +229,83 @@ class LocationController {
 
     // Lấy vị trí mới nhất của user (alias cho GetLocations)
     public async GetLatestLocation (req: Request, res: Response) {
-        return this.GetLocations(req, res);
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        try {
+            const location = await LocationRepository.findOne({
+                where: { userId: req.user.userId },
+                order: {
+                    createdAt: "DESC"
+                }
+            });
+            if (!location) {
+                return res.status(404).json({
+                    message: "No location found for this user",
+                });
+            }
+
+            return res.status(200).json({
+                message: "Latest location retrieved successfully",
+                data: location
+            });
+        } catch (e) {
+            logger.error('Error fetching latest location', e as Error);
+            return res.status(500).json({ message: "Internal server error" });
+        }
+    }
+
+    public async GetDistanceToday(req: Request, res: Response) {
+        if(!req.user || !req.user.userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        try {
+            let startOfDay = new Date();
+            startOfDay.setDate(startOfDay.getDate() - 1)
+            startOfDay.setHours(0, 0, 0, 0);
+
+            let endOfDay = new Date();
+            endOfDay.setDate(endOfDay.getDate() - 1)
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const locations = await LocationRepository.find({
+                where: {
+                    userId: req.user.userId,
+                    createdAt: Between(startOfDay, endOfDay)
+                },
+                order: {
+                    createdAt: "ASC"
+                },
+                relations: {
+                    user: true
+                }
+
+            })
+
+            if (locations.length === 0) {
+                return res.status(404).json({ message: "No locations found for today" });
+            }
+
+            const totalDistance = locations.reduce((sum, location) => {
+                    return sum + (location.lengthToPreviousLocation || 0);
+                }, 0
+            );
+
+            return res.status(200).json({
+                message: "Total distance for today retrieved successfully",
+                data: {
+
+                    total_distance: totalDistance,
+                    user: locations[0].user,
+                }
+            })
+        } catch (e) {
+            logger.error('Error Get Distance To Day', e as Error);
+            return res.status(500).json({ message: "Internal server error" });
+
+        }
     }
 }
 
