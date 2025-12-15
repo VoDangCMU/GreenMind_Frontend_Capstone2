@@ -13,4 +13,5 @@ router.get('/get-simulated/:id', jwtAuthMiddleware, controller.surveyScenarios.G
 router.get('/get-all-simulated-scenarios', jwtAuthMiddleware, controller.surveyScenarios.GetAllSimulatedScenarios);
 router.get('/get-user-survey-question', jwtAuthMiddleware, controller.surveyScenarios.GetUserQuestionsSurvey);
 router.get('/get-user-question-set-survey', jwtAuthMiddleware, controller.surveyScenarios.GetUserQuestionSetSurveys);
+router.get('/get-all-user-question', jwtAuthMiddleware, controller.surveyScenarios.GetAllQuestionByUser);
 export default router;
