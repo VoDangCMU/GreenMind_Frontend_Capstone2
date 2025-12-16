@@ -355,8 +355,6 @@ class SurveyScenarioController {
             return res.status(500).json({ success: false, message: error.message });
         }
     }
-
-
     public GetUserQuestionsSurvey: RequestHandler = async (req, res) => {
         try {
             const userId = req.user?.userId;
