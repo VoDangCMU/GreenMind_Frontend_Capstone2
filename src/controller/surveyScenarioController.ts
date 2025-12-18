@@ -333,10 +333,17 @@ class SurveyScenarioController {
     };
 
     public GetAllSimulatedScenarios: RequestHandler = async (_req, res) => {
+        if (!_req.user?.userId) {
+            return res.status(404).json({
+                success: false,
+                message: "Unauthorized",
+            })
+        }
         try {
             const simulations = await this.SimulatedSurveyRepo.find({
+                where: { scenario: { id: _req.user?.userId } },
                 relations: {
-                    scenario: {questionSet: {items: true}},
+                    scenario: {questionSet: {items: true}, user: true},
                     triggeredBy: true,
                 },
                 order: { createdAt: "DESC" },
