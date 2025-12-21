@@ -21,7 +21,7 @@ import dailyDistanceKmMetric from "./metrics/dailyDistanceKmController";
 import novelLocationRatioMetric from "./metrics/novelLocationRatioController";
 import publicTransitRatioMetric from "./metrics/publicTransitRatioController";
 import nightOutFreqMetric from "./metrics/nightOutFreqController";
-
+import checkin from "./checkinController";
 export default {
     behavior,
     behaviorFeedback,
@@ -45,5 +45,6 @@ export default {
     token,
     trait,
     user,
-    userAnswers
+    userAnswers,
+    checkin,
 };
