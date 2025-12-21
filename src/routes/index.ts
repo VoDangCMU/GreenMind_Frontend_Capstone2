@@ -19,7 +19,7 @@ import metricsRouter from "./metricsRoutes";
 import brandRouter from "./brandRoutes";
 import ocrRouter from "./ocrRoutes";
 import healthyFoodRouter from "./healthyFoodRoutes";
-
+import checkinRouter from "./checkinRoutes";
 const router = Router();
 
 router.use("/auth", userRoutes);
@@ -42,5 +42,5 @@ router.use("/metrics", metricsRouter);
 router.use("/brands", brandRouter);
 router.use("/ocr", ocrRouter);
 router.use("/healthy-food-ratio", healthyFoodRouter);
-
+router.use("/checkins", checkinRouter);
 export default router;
