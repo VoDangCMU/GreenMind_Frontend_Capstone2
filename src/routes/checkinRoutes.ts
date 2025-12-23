@@ -10,4 +10,6 @@ router.post('/create-checkin', jwtAuthMiddleware, controller.checkin.CreateCheck
 router.get('/get-checkins', jwtAuthMiddleware, controller.checkin.GetCheckins);
 router.put('/update-checkin/:id', jwtAuthMiddleware, controller.checkin.UpdateCheckin);
 router.delete('/delete-checkin/:id', jwtAuthMiddleware, controller.checkin.DeleteCheckin);
+router.get('/get-checkins-by-period', jwtAuthMiddleware, controller.checkin.GetCheckinsByPeriod);
+router.get('/get-checkins-by-params', jwtAuthMiddleware, controller.checkin.GetCheckinsByParams);
 export default router;

@@ -125,6 +125,62 @@ class CheckinController {
             return res.status(500).json({message: "Internal Server Error", error: e.message});
         }
     }
+
+    public GetCheckinsByPeriod: RequestHandler = async (req, res) => {
+        try {
+            if (!req.user?.userId) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
+
+            const checkins = await CheckinRepo.find({
+                where: {user: {id: req.user?.userId}},
+                order: {createdAt: "DESC"},
+                take: 5,
+                relations: {user: true}
+            })
+
+            if (checkins.length === 0) {
+                return res.status(404).json({message: "No check-ins found for the user"});
+            }
+            return res.status(200).json({message: "Check-ins retrieved successfully", data: {checkins, count: checkins.length}});
+        }  catch (e: any) {
+            return res.status(500).json({ message: "Internal Server Error", error: e.message } );
+        }
+    }
+
+    public GetCheckinsByParams: RequestHandler = async (req, res) => {
+
+        const days = parseInt(req.body.days);
+
+        if (isNaN(days) || days <= 0) {
+            return res.status(400).json({ message: "Invalid 'days' parameter" });
+        }
+
+        try {
+            if (!req.user?.userId) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
+            const checkins = await CheckinRepo.find({
+                where: {user: {id: req.user?.userId}},
+                order: {createdAt: "DESC"},
+                take: days,
+                relations: {user: true}
+            })
+
+            if (checkins.length === 0) {
+                return res.status(404).json({message: "No check-ins found for the user"});
+            }
+            return res.status(200).json({
+                message: "Check-ins retrieved successfully",
+                data: {
+                    checkins,
+                    count: checkins.length,
+                }
+            });
+        } catch (e: any) {
+            return res.status(500).json({message: "Internal Server Error", error: e.message});
+        }
+    }
 }
 
 export default new CheckinController();
