@@ -488,7 +488,8 @@ class UserController {
             const users = await AppDataSource.getRepository(User).find({
                 relations: {
                     bigFive: true,
-                }
+                },
+                order: { createdAt: "DESC" }
             })
             return res.status(200).json({ message: "Get all users successfully" , data: users });
         } catch (e: any) {

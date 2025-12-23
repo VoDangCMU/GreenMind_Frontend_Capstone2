@@ -135,7 +135,7 @@ class CheckinController {
             const checkins = await CheckinRepo.find({
                 where: {user: {id: req.user?.userId}},
                 order: {createdAt: "DESC"},
-                take: 5,
+                take: 6,
                 relations: {user: true}
             })
 
