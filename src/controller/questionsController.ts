@@ -173,6 +173,9 @@ export class QuestionsController {
             const savedQuestions = [];
             const errors: string[] = [];
 
+            // Tạo một timestamp chung cho tất cả câu hỏi trong batch này
+            const batchCreatedAt = new Date();
+
             // Validate default model and template if provided
             let defaultModel = null;
             if (data.defaultModelId) {
@@ -257,7 +260,7 @@ export class QuestionsController {
                             }
                         }
 
-                        // Create new question with all fields including ownerId
+                        // Create new question with all fields including ownerId and createdAt
                         const newQuestion = QuestionsRepository.create({
                             question: questionText,
                             templateId: templateIdToUse,
@@ -267,6 +270,8 @@ export class QuestionsController {
                             trait: trait,
                             model: model || undefined,
                             ownerId: userId, // Save the user ID of the creator
+                            createdAt: batchCreatedAt, // Gán cùng createdAt cho tất cả câu hỏi
+                            updatedAt: batchCreatedAt
                         });
 
                         const savedQuestion = await QuestionsRepository.save(newQuestion);
@@ -311,7 +316,7 @@ export class QuestionsController {
                         });
 
                         savedQuestions.push(questionWithOptions);
-                        logger.info(`Question created by user ${userId} with trait: ${trait}, modelId: ${model?.id || 'none'}, templateId: ${templateIdToUse}`);
+                        logger.info(`Question created by user ${userId} with trait: ${trait}, modelId: ${model?.id || 'none'}, templateId: ${templateIdToUse}, createdAt: ${batchCreatedAt.toISOString()}`);
                     } else {
                         // Exact duplicate question exists, skip
                         savedQuestions.push(existedQuestion);
@@ -334,7 +339,8 @@ export class QuestionsController {
                 message: `${savedQuestions.length} questions processed successfully`,
                 count: savedQuestions.length,
                 data: savedQuestions,
-                createdBy: userId
+                createdBy: userId,
+                batchCreatedAt: batchCreatedAt.toISOString()
             };
 
             if (errors.length > 0) {
@@ -520,41 +526,52 @@ export class QuestionsController {
 
     // Get questions by owner
     public async GetQuestionsByOwner(req: Request, res: Response) {
-        const ownerId = req.params.ownerId || (req as any).userId; // Allow getting by ownerId param or current user
+        const ownerId = req.params.ownerId || req.user?.userId; // Allow getting by ownerId param or current user
+
+        if (!ownerId) {
+            return res.status(401).json({ message: "Unauthorized - User ID not found" });
+        }
 
         try {
-            // Sử dụng find với take: 1 thay vì findOne vì findOne yêu cầu where conditions
-            const latestModels = await ModelsRepository.find({
-                order: { createdAt: 'DESC' },
-                take: 1
+            // Bước 1: Tìm câu hỏi mới nhất của owner để lấy createdAt
+            const latestQuestion = await QuestionsRepository.findOne({
+                where: {
+                    ownerId: ownerId
+                },
+                order: { createdAt: 'DESC' }
             });
 
-            const latestModel = latestModels.length > 0 ? latestModels[0] : null;
-
-            if (!latestModel) {
+            if (!latestQuestion) {
                 return res.status(404).json({
-                    message: "No model found",
+                    message: "No questions found for this owner",
                     data: [],
                     count: 0
                 });
             }
 
-            // Lấy các câu hỏi của owner với model_id mới nhất
-            const questions = await QuestionsRepository.find({
-                where: {
-                    ownerId: ownerId,
-                    model: { id: latestModel.id }
-                },
-                relations: ['template', 'owner', 'questionOptions', 'model'],
-                order: { createdAt: 'DESC' }
-            });
+            // Bước 2: Lấy tất cả các câu hỏi có cùng thời gian createdAt chính xác với câu hỏi mới nhất
+            const latestCreatedAt = latestQuestion.createdAt;
+
+            // Lấy tất cả câu hỏi có cùng createdAt với câu hỏi mới nhất
+            const questions = await QuestionsRepository
+                .createQueryBuilder('question')
+                .leftJoinAndSelect('question.template', 'template')
+                .leftJoinAndSelect('question.owner', 'owner')
+                .leftJoinAndSelect('question.questionOptions', 'questionOptions')
+                .leftJoinAndSelect('question.model', 'model')
+                .where('question.ownerId = :ownerId', { ownerId })
+                .andWhere('question.createdAt = :createdAt', {
+                    createdAt: latestCreatedAt
+                })
+                .orderBy('question.createdAt', 'DESC')
+                .addOrderBy('questionOptions.order', 'ASC')
+                .getMany();
 
             return res.status(200).json({
-                message: `Questions for owner retrieved successfully`,
+                message: `Latest batch of questions for owner retrieved successfully`,
                 data: questions,
                 count: questions.length,
-                modelId: latestModel.id,
-                modelCreatedAt: latestModel.createdAt
+                batchCreatedAt: latestCreatedAt
             });
         } catch (e) {
             logger.error('Error fetching questions by owner', e as Error);
