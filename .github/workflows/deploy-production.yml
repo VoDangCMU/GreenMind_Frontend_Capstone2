@@ -33,7 +33,7 @@ jobs:
         run: |
           sshpass -p "$SSHPASS" ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
 
-          cd /home/tnqbao/Green_MindMap_Backend
+          cd /home/debian/Green_MindMap_Backend
 
           docker pull iamqbao/green_mind_backend:latest
           docker rm -f green-mind-backend || true
