@@ -34,6 +34,12 @@ export class Locations {
     @Column({type: 'text', nullable: true})
     address?: string;
 
+    @Column({type: 'varchar', length: 20, default: 'tracking'})
+    type!: string; // 'tracking' or 'checkin'
+
+    @Column({type: 'text', nullable: true})
+    location_name?: string; // checkin location name
+
     @Column({type: 'double precision', nullable: true, name: 'length_to_previous_location'})
     lengthToPreviousLocation?: number;
 

@@ -1,6 +1,5 @@
 import { Request, Response, RequestHandler } from "express";
 import AppDataSource from "../infrastructure/database";
-import { Feedback } from "../entity/feedback";
 import { BehaviorFeedback } from "../entity/behavior_feedback";
 import { Models } from "../entity/models";
 import { getLogger } from "../infrastructure/logger";
@@ -84,11 +83,12 @@ class SurveyVerifyController {
                 engagement: calculatedEngagement
             });
 
-            // Save feedback to database
-            const feedbackRepository = AppDataSource.getRepository(Feedback);
+            // Save feedback to unified behavior_feedbacks table
+            const feedbackRepository = AppDataSource.getRepository(BehaviorFeedback);
             const feedback = feedbackRepository.create({
+                type: 'survey_verify',
                 modelId: verifyResult.model_id,
-                user_id: verifyResult.user_id,
+                userId: verifyResult.user_id,
                 trait_checked: verifyResult.trait_checked,
                 expected: verifyResult.expected,
                 actual: verifyResult.actual,
@@ -129,40 +129,36 @@ class SurveyVerifyController {
         const logger = getLogger();
 
         try {
-            const feedbackRepository = AppDataSource.getRepository(Feedback);
-            const behaviorFeedbackRepository = AppDataSource.getRepository(BehaviorFeedback);
+            const repo = AppDataSource.getRepository(BehaviorFeedback);
 
-            const feedbacks = await feedbackRepository.find({
+            // Get survey_verify feedbacks
+            const surveyFeedbacks = await repo.find({
+                where: { type: 'survey_verify' },
                 relations: ['model'],
                 order: { createdAt: 'DESC' }
             });
 
-            logger.info("Feedbacks retrieved successfully", { count: feedbacks.length });
+            logger.info("Feedbacks retrieved successfully", { count: surveyFeedbacks.length });
 
-            // Cache behavior feedbacks theo modelId để tránh query nhiều lần
+            // Cache behavior mechanism feedbacks by modelId
             const behaviorFeedbackCache = new Map<string, any[]>();
 
-            // Format response với engagement được tính từ deviation
-            const formattedFeedbacks = await Promise.all(feedbacks.map(async (feedback) => {
-                // Tính engagement = 1 - |deviation|
+            const formattedFeedbacks = await Promise.all(surveyFeedbacks.map(async (feedback) => {
                 const engagement = 1 - Math.abs(Number(feedback.deviation));
 
-                // Lấy behavior feedbacks từ cache hoặc query mới
                 let mechanismFeedbacksByMetric: any[] = [];
 
                 if (feedback.modelId) {
                     if (!behaviorFeedbackCache.has(feedback.modelId)) {
-                        // Lấy tất cả behavior feedbacks của model này
-                        const behaviorFeedbacks = await behaviorFeedbackRepository.find({
-                            where: { modelId: feedback.modelId },
+                        const behaviorFeedbacks = await repo.find({
+                            where: { modelId: feedback.modelId, type: 'behavior_mechanism' },
                             order: { createdAt: 'DESC' }
                         });
 
-                        // Nhóm behavior feedbacks theo metricType
                         const groupedByMetric = new Map<string, any[]>();
 
                         behaviorFeedbacks.forEach(bf => {
-                            if (!bf.mechanismFeedback) return;
+                            if (!bf.mechanismFeedback || !bf.metric) return;
 
                             if (!groupedByMetric.has(bf.metric)) {
                                 groupedByMetric.set(bf.metric, []);
@@ -178,7 +174,6 @@ class SurveyVerifyController {
                             });
                         });
 
-                        // Chuyển đổi thành mảng [metricType, mechanismFeedbacks[]]
                         const result = Array.from(groupedByMetric.entries()).map(([metricType, mechanismFeedbacks]) => ({
                             metricType,
                             mechanismFeedbacks
@@ -193,7 +188,7 @@ class SurveyVerifyController {
                 return {
                     id: feedback.id,
                     model_id: feedback.modelId,
-                    user_id: feedback.user_id,
+                    user_id: feedback.userId,
                     trait_checked: feedback.trait_checked,
                     expected: feedback.expected,
                     actual: feedback.actual,
@@ -238,11 +233,9 @@ class SurveyVerifyController {
         }
 
         try {
-            const feedbackRepository = AppDataSource.getRepository(Feedback);
-            const behaviorFeedbackRepository = AppDataSource.getRepository(BehaviorFeedback);
+            const repo = AppDataSource.getRepository(BehaviorFeedback);
             const modelRepository = AppDataSource.getRepository(Models);
 
-            // Get the model first
             const model = await modelRepository.findOne({
                 where: { id: modelId }
             });
@@ -252,11 +245,11 @@ class SurveyVerifyController {
                 return;
             }
 
-            // Get all feedbacks for this model (through segments that belong to this model)
-            const feedbacks = await feedbackRepository.find({
+            // Get survey_verify feedbacks for this model
+            const feedbacks = await repo.find({
                 where: [
-                    { modelId: modelId },
-                    { segment: { modelId: modelId } }
+                    { modelId: modelId, type: 'survey_verify' },
+                    { segment: { modelId: modelId }, type: 'survey_verify' }
                 ],
                 relations: ['model', 'segment'],
                 order: { createdAt: 'DESC' }
@@ -264,10 +257,8 @@ class SurveyVerifyController {
 
             logger.info("Feedbacks by model retrieved successfully", { modelId, count: feedbacks.length });
 
-            // Cache behavior feedbacks theo modelId
             const behaviorFeedbackCache = new Map<string, any[]>();
 
-            // Format response
             const formattedFeedbacks = await Promise.all(feedbacks.map(async (feedback) => {
                 const engagement = 1 - Math.abs(Number(feedback.deviation));
 
@@ -276,15 +267,15 @@ class SurveyVerifyController {
                 const feedbackModelId = feedback.modelId || feedback.segment?.modelId;
                 if (feedbackModelId) {
                     if (!behaviorFeedbackCache.has(feedbackModelId)) {
-                        const behaviorFeedbacks = await behaviorFeedbackRepository.find({
-                            where: { modelId: feedbackModelId },
+                        const behaviorFeedbacks = await repo.find({
+                            where: { modelId: feedbackModelId, type: 'behavior_mechanism' },
                             order: { createdAt: 'DESC' }
                         });
 
                         const groupedByMetric = new Map<string, any[]>();
 
                         behaviorFeedbacks.forEach(bf => {
-                            if (!bf.mechanismFeedback) return;
+                            if (!bf.mechanismFeedback || !bf.metric) return;
 
                             if (!groupedByMetric.has(bf.metric)) {
                                 groupedByMetric.set(bf.metric, []);
@@ -315,7 +306,7 @@ class SurveyVerifyController {
                     id: feedback.id,
                     model_id: feedback.modelId || feedback.segment?.modelId,
                     segment_id: feedback.segmentId,
-                    user_id: feedback.user_id,
+                    user_id: feedback.userId,
                     trait_checked: feedback.trait_checked,
                     expected: feedback.expected,
                     actual: feedback.actual,

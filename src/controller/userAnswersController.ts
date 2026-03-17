@@ -6,7 +6,7 @@ import { User } from '../entity/user';
 import { Questions } from '../entity/questions';
 import { logger } from '../infrastructure/logger';
 import { BigFive, BigFiveType } from '../entity/big_five';
-import { Feedback } from '../entity/feedback';
+import { Feedback } from '../entity/behavior_feedback';
 import { Segment } from '../entity/segments';
 import { ScenarioAssignment } from '../entity/scenario_assignments';
 import { Models } from '../entity/models';
@@ -309,9 +309,10 @@ class UserAnswersController {
 
                                         // Save feedback with segmentId
                                         const feedback = feedbackRepo.create({
+                                            type: 'survey_verify',
                                             modelId: scenarioModel.id,
                                             segmentId: matchedSegment.id,
-                                            user_id: userId,
+                                            userId: userId,
                                             trait_checked: verifyResult.trait_checked,
                                             expected: verifyResult.expected,
                                             actual: verifyResult.actual,
@@ -540,7 +541,7 @@ class UserAnswersController {
             // Lấy tất cả câu trả lời của user với đầy đủ relations
             const userAnswers = await UserAnswersRepository.find({
                 where: { userId },
-                relations: ['question', 'question.template', 'question.template.answer'],
+                relations: ['question', 'question.template'],
                 order: { timestamp: 'DESC' }
             });
 
@@ -548,13 +549,12 @@ class UserAnswersController {
             const formattedAnswers = userAnswers.map(userAnswer => {
                 const question = userAnswer.question;
                 const template = question?.template;
-                const templateAnswer = template?.answer;
 
                 // Tính score và key dựa trên answer và template type
                 let score = 0;
                 let key = 'pos';
                 const answerText = userAnswer.answer;
-                const answerType = templateAnswer?.type || template?.intent || 'unknown';
+                const answerType = template?.answer_type || template?.intent || 'unknown';
 
                 // Logic tính score dựa vào loại câu hỏi
                 if (answerType === 'yesno') {

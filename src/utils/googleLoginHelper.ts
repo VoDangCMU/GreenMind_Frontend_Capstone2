@@ -3,7 +3,6 @@ import { JWTHelper } from './jwtHelper';
 import { getLogger } from '../infrastructure/logger';
 import AppDataSource from '../infrastructure/database';
 import { User } from '../entity/user';
-import { Token } from '../entity/token';
 import { UsernameHelper } from './usernameHelper';
 
 export interface GoogleUserInfo {
@@ -108,7 +107,7 @@ export class GoogleLoginHelper {
             // 2. Tạo hoặc cập nhật user trong database
             const user = await this.createOrUpdateUser(googleUserInfo);
 
-            // 3. Tạo JWT tokens
+            // 3. Tạo JWT tokens (stateless, managed via Redis bitmap for blacklisting)
             const payload = {
                 userId: user.id,
                 role: user.role
@@ -116,27 +115,9 @@ export class GoogleLoginHelper {
 
             const tokenPair = JWTHelper.createTokenPair(payload);
 
-            // 4. Lưu refresh token vào database sử dụng TypeORM repository
-            const tokenRepository = AppDataSource.getRepository(Token);
-
-            // Tạo expiration date - 7 days from now (more explicit approach)
-            const now = new Date();
-            const expiredAt = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days in milliseconds
-
-            // Log the expiration date to debug
-            this.logger.info('Creating refresh token', {
+            this.logger.info('JWT tokens created for Google login', {
                 userId: user.id,
-                expiredAt: expiredAt.toISOString(),
-                expiredAtTime: expiredAt.getTime()
             });
-
-            const refreshTokenEntity = new Token();
-            refreshTokenEntity.token = tokenPair.refreshToken;
-            refreshTokenEntity.deviceID = deviceId || undefined;
-            refreshTokenEntity.expiredAt = expiredAt;
-            refreshTokenEntity.userId = user.id;
-
-            await tokenRepository.save(refreshTokenEntity);
 
             return {
                 user: {

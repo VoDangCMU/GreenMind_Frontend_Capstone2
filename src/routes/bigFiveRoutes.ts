@@ -6,7 +6,7 @@ import { adminMiddleware } from '../middlewares/adminMiddleware';
 const router = Router();
 
 // Submit BigFive scores (Create hoặc Update)
-router.post('/submit', jwtAuthMiddleware, controller.bigFive.submitBigFive);
+router.post('/', jwtAuthMiddleware, controller.bigFive.submitBigFive);
 
 // Get BigFive scores by User ID
 router.get('/user/:userId', jwtAuthMiddleware, controller.bigFive.getBigFiveByUserId);

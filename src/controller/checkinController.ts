@@ -1,7 +1,7 @@
 import {z} from "zod";
 import AppDataSource from "../infrastructure/database";
 import {User} from "../entity/user";
-import {Checkins} from "../entity/checkin";
+import {Locations} from "../entity/locations";
 import {RequestHandler} from "express";
 
 
@@ -19,7 +19,7 @@ const UpdateCheckinParamsSchema = z.object({
         longitude: z.number().optional()
     }).optional()
 });
-const CheckinRepo = AppDataSource.getRepository(Checkins);
+const LocationRepo = AppDataSource.getRepository(Locations);
 class CheckinController {
     public CreateCheckin: RequestHandler = async (req, res) => {
 
@@ -38,14 +38,16 @@ class CheckinController {
                 return res.status(404).json({ message: "User not found" });
             }
 
-            const checkin = CheckinRepo.create({
+            const checkin = LocationRepo.create({
                 user: user!,
-                location: parsed.data.location,
+                userId: user.id,
+                location_name: parsed.data.location,
                 latitude: parsed.data.coordinate.latitude,
-                longitude: parsed.data.coordinate.longitude
+                longitude: parsed.data.coordinate.longitude,
+                type: 'checkin',
             });
 
-            const savedCheckin = await CheckinRepo.save(checkin);
+            const savedCheckin = await LocationRepo.save(checkin);
 
             return res.status(201).json({ message: "Check-in created successfully", checkin: savedCheckin });
 
@@ -56,8 +58,8 @@ class CheckinController {
 
     public GetCheckins: RequestHandler = async (req, res) => {
         try {
-            const checkins = await CheckinRepo.find({
-                where: {user: {id: req.user?.userId}},
+            const checkins = await LocationRepo.find({
+                where: {user: {id: req.user?.userId}, type: 'checkin'},
                 order: {createdAt: "DESC"}
             });
 
@@ -81,21 +83,18 @@ class CheckinController {
             return res.status(400).json({message: "Invalid request parameters", errors: parsed.error.errors});
         }
         try {
-            const checkin = await CheckinRepo.findOne({
-                where: {id: checkinId, user: {id: req.user?.userId}}
+            const checkin = await LocationRepo.findOne({
+                where: {id: checkinId, user: {id: req.user?.userId}, type: 'checkin'}
             });
             if (!checkin) {
                 return res.status(404).json({message: "Check-in not found"});
             }
 
-            const newCheckin = new Checkins();
-            newCheckin.location = parsed.data.location || checkin.location;
-            newCheckin.latitude = parsed.data.coordinate?.latitude || checkin.latitude;
-            newCheckin.longitude = parsed.data.coordinate?.longitude || checkin.longitude;
+            checkin.location_name = parsed.data.location || checkin.location_name;
+            checkin.latitude = parsed.data.coordinate?.latitude || checkin.latitude;
+            checkin.longitude = parsed.data.coordinate?.longitude || checkin.longitude;
 
-            Object.assign(checkin, newCheckin);
-
-            const updatedCheckin = await CheckinRepo.save(checkin);
+            const updatedCheckin = await LocationRepo.save(checkin);
 
             return res.status(200).json({message: "Check-in updated successfully", checkin: updatedCheckin});
 
@@ -110,14 +109,14 @@ class CheckinController {
             return res.status(400).json({message: "Check-in ID is required"});
         }
         try {
-            const checkin = await CheckinRepo.findOne({
-                where: {id: checkinId, user: {id: req.user?.userId}}
+            const checkin = await LocationRepo.findOne({
+                where: {id: checkinId, user: {id: req.user?.userId}, type: 'checkin'}
             });
             if (!checkin) {
                 return res.status(404).json({message: "Check-in not found"});
             }
 
-            await CheckinRepo.remove(checkin);
+            await LocationRepo.remove(checkin);
 
             return res.status(200).json({message: "Check-in deleted successfully", deleted: checkin});
 
@@ -132,8 +131,8 @@ class CheckinController {
                 return res.status(401).json({ message: "Unauthorized" });
             }
 
-            const checkins = await CheckinRepo.find({
-                where: {user: {id: req.user?.userId}},
+            const checkins = await LocationRepo.find({
+                where: {user: {id: req.user?.userId}, type: 'checkin'},
                 order: {createdAt: "DESC"},
                 take: 6,
                 relations: {user: true}
@@ -160,8 +159,8 @@ class CheckinController {
             if (!req.user?.userId) {
                 return res.status(401).json({ message: "Unauthorized" });
             }
-            const checkins = await CheckinRepo.find({
-                where: {user: {id: req.user?.userId}},
+            const checkins = await LocationRepo.find({
+                where: {user: {id: req.user?.userId}, type: 'checkin'},
                 order: {createdAt: "DESC"},
                 take: days,
                 relations: {user: true}

@@ -2,10 +2,10 @@ import {Router} from "express";
 import questionRouter from "../routes/questionRoutes";
 import questionSetRouter from "../routes/questionSetRoutes";
 import userRoutes from "./userRoutes";
-import tokenRouter from "./tokenRoutes";
+
 import locationRouter from "./locationRoutes";
 import templateRouter from "./templateRoutes";
-import traitRouter from "./traitRoutes";
+
 import bigFiveRouter from "./bigFiveRoutes";
 import behaviorRouter from "./behaviorRoutes";
 import behaviorFeedbackRouter from "./behaviorFeedbackRoutes";
@@ -23,12 +23,12 @@ import checkinRouter from "./checkinRoutes";
 const router = Router();
 
 router.use("/auth", userRoutes);
-router.use("/tokens", tokenRouter);
+
 router.use("/locations", locationRouter);
 router.use("/questions", questionRouter);
 router.use("/question-sets", questionSetRouter);
 router.use("/templates", templateRouter);
-router.use("/traits", traitRouter);
+
 router.use("/big-five", bigFiveRouter);
 router.use("/behaviors", behaviorRouter);
 router.use("/behavior-feedbacks", behaviorFeedbackRouter);

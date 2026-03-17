@@ -1,8 +1,8 @@
 import user from "./userController";
-import token from "./tokenController";
+
 import questions from "./questionsController";
 import template from "./templateController";
-import trait from "./traitController";
+
 import location from "./locationController";
 import bigFive from "./bigFiveController";
 import behavior from "./behaviorController";
@@ -42,8 +42,6 @@ export default {
     questionSet,
     surveyScenarios,
     template,
-    token,
-    trait,
     user,
     userAnswers,
     checkin,

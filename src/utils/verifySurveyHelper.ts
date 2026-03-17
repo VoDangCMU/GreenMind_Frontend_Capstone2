@@ -1,6 +1,6 @@
 import axios from "axios";
 import AppDataSource from "../infrastructure/database";
-import { Feedback } from "../entity/feedback";
+import { Feedback } from "../entity/behavior_feedback";
 import { Models } from "../entity/models";
 import { User } from "../entity/user";
 import { Segment } from "../entity/segments";
@@ -458,9 +458,10 @@ export async function verifySurveyAndSaveFeedback(
 
         // Lưu feedback vào database với segmentId
         const feedback = FeedbackRepository.create({
+            type: 'survey_verify',
             modelId: verifyResult.model_id,
             segmentId: segment.id,
-            user_id: verifyResult.user_id,
+            userId: verifyResult.user_id,
             trait_checked: verifyResult.trait_checked,
             expected: verifyResult.expected,
             actual: verifyResult.actual,

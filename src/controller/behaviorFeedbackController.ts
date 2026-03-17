@@ -226,7 +226,7 @@ class BehaviorFeedbackController {
             }>();
 
             feedbacks.forEach(bf => {
-                if (!bf.mechanismFeedback || !bf.userId) return;
+                if (!bf.mechanismFeedback || !bf.userId || !bf.metric) return;
 
                 if (!groupedByUserAndMetric.has(bf.userId)) {
                     // Tính tuổi từ dateOfBirth

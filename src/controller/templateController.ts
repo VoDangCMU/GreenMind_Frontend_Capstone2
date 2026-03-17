@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import AppDataSource from "../infrastructure/database";
 import { Template } from "../entity/templates";
-import { TemplateAnswer } from "../entity/template_answers";
 import { Models } from "../entity/models";
 import { logger } from "../infrastructure/logger";
 
@@ -57,7 +56,6 @@ const CreateTemplatesRequestSchema = z.object({
 });
 
 const TemplateRepository = AppDataSource.getRepository(Template);
-const TemplateAnswerRepository = AppDataSource.getRepository(TemplateAnswer);
 const ModelsRepository = AppDataSource.getRepository(Models);
 
 function validateTemplateParams(req: Request, res: Response) {
@@ -133,13 +131,6 @@ class TemplateController {
                 }
             }
 
-            const newTemplateAnswer = TemplateAnswerRepository.create({
-                type: data.answer.type,
-                scale: data.answer.scale,
-                labels: data.answer.labels,
-                options: data.answer.options,
-            });
-
             const newTemplate = TemplateRepository.create({
                 id: data.id,
                 name: data.name,
@@ -149,7 +140,10 @@ class TemplateController {
                 used_placeholders: data.used_placeholders,
                 question_type: data.question_type,
                 filled_prompt: data.filled_prompt,
-                answer: newTemplateAnswer,
+                answer_type: data.answer.type,
+                answer_scale: data.answer.scale,
+                answer_labels: data.answer.labels,
+                answer_options: data.answer.options,
                 trait: trait,
                 model: model || undefined,
             });
@@ -179,7 +173,7 @@ class TemplateController {
                     // Check if template already exists
                     const existedTemplate = await TemplateRepository.findOne({
                         where: { id: templateData.id },
-                        relations: ["answer", "model"]
+                        relations: ["model"]
                     });
 
                     if (!existedTemplate) {
@@ -212,13 +206,6 @@ class TemplateController {
                             }
                         }
 
-                        const newTemplateAnswer = TemplateAnswerRepository.create({
-                            type: templateData.answer.type,
-                            scale: templateData.answer.scale,
-                            labels: templateData.answer.labels,
-                            options: templateData.answer.options,
-                        });
-
                         const newTemplate = TemplateRepository.create({
                             id: templateData.id,
                             name: templateData.name,
@@ -228,7 +215,10 @@ class TemplateController {
                             used_placeholders: templateData.placeholders.used_placeholders,
                             question_type: templateData.question_type,
                             filled_prompt: templateData.filled_prompt,
-                            answer: newTemplateAnswer,
+                            answer_type: templateData.answer.type,
+                            answer_scale: templateData.answer.scale,
+                            answer_labels: templateData.answer.labels,
+                            answer_options: templateData.answer.options,
                             trait: trait,
                             model: model || undefined,
                         });
@@ -314,7 +304,7 @@ class TemplateController {
                     id: data.id
 
                 },
-                relations: ["answer", "model"],
+                relations: ["model"],
             });
 
             if (!existedTemplate) {
@@ -352,19 +342,11 @@ class TemplateController {
                 existedTemplate.trait = data.trait.toUpperCase();
             }
 
-            if (existedTemplate.answer) {
-                existedTemplate.answer.type = data.answer.type ?? existedTemplate.answer.type;
-                existedTemplate.answer.scale = data.answer.scale ?? existedTemplate.answer.scale;
-                existedTemplate.answer.labels = data.answer.labels ?? existedTemplate.answer.labels;
-                existedTemplate.answer.options = data.answer.options ?? existedTemplate.answer.options;
-            } else {
-                const newAnswer = new TemplateAnswer();
-                newAnswer.type = data.answer.type;
-                newAnswer.scale = data.answer.scale;
-                newAnswer.labels = data.answer.labels;
-                newAnswer.options = data.answer.options;
-                existedTemplate.answer = newAnswer;
-            }
+            // Update answer fields inline
+            existedTemplate.answer_type = data.answer.type ?? existedTemplate.answer_type;
+            existedTemplate.answer_scale = data.answer.scale ?? existedTemplate.answer_scale;
+            existedTemplate.answer_labels = data.answer.labels ?? existedTemplate.answer_labels;
+            existedTemplate.answer_options = data.answer.options ?? existedTemplate.answer_options;
 
             const updatedTemplate = await TemplateRepository.save(existedTemplate);
 

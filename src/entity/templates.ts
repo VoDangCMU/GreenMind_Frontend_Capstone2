@@ -1,6 +1,5 @@
-import {Column, CreateDateColumn, Entity, OneToMany, OneToOne, PrimaryColumn, UpdateDateColumn, ManyToOne, JoinColumn} from "typeorm";
+import {Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateColumn, ManyToOne, JoinColumn} from "typeorm";
 import {Questions} from "./questions";
-import {TemplateAnswer} from "./template_answers";
 import {Models} from "./models";
 
 export const TEMPLATES_TABLE_NAME = 'templates';
@@ -34,13 +33,22 @@ export class Template {
     @Column({type: "varchar", nullable: true})
     trait?: string;
 
+    // Answer fields (merged from template_answers)
+    @Column({type: "varchar", nullable: true})
+    answer_type?: string;
+
+    @Column({type: "json", nullable: true})
+    answer_scale?: number[];
+
+    @Column({type: "json", nullable: true})
+    answer_labels?: string[];
+
+    @Column({type: "json", nullable: true})
+    answer_options?: string[];
 
     @ManyToOne(() => Models, {nullable: true})
     @JoinColumn({name: 'model_id'})
     model?: Models;
-
-    @OneToOne(() => TemplateAnswer, (answer) => answer.template, { cascade: true, onDelete: "CASCADE" })
-    answer!: TemplateAnswer;
 
     @OneToMany(() => Questions, questions => questions.template, {onDelete: "CASCADE"})
     questions!: Questions[];

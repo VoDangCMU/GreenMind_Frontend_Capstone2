@@ -2,7 +2,7 @@ import { Request, Response, RequestHandler } from "express";
 import bcrypt from "bcrypt";
 import AppDataSource from "../infrastructure/database";
 import { User } from "../entity/user";
-import { Token } from "../entity/token";
+
 import { Locations } from "../entity/locations";
 import { JWTHelper } from "../utils/jwtHelper";
 import { GoogleLoginHelper } from "../utils/googleLoginHelper";
@@ -437,14 +437,10 @@ class UserController {
             }
 
             if (token) {
-                // Xóa token khỏi database
-                const tokenRepository = AppDataSource.getRepository(Token);
-                await tokenRepository.delete({ token });
-
-                // Thêm token vào blacklist với TTL 7 ngày
+                // Blacklist token in Redis with 7 day TTL
                 await BitmapHelper.blacklistToken(token, 7 * 24 * 60 * 60 * 1000);
 
-                logger.info("Token removed from database and blacklisted", {
+                logger.info("Token blacklisted via Redis", {
                     userId: req.user.userId,
                     tokenLength: token.length
                 });
