@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 interface ZoneTrendItem {
     time: string;
@@ -36,36 +36,18 @@ const zoneTrendData: ZoneTrendItem[] = [
 ];
 
 const monthlyZoneData: MonthlyZoneData[] = [
-    {
-        month: "2026-01",
-        SonTra: 330,
-        ThanhKhe: 420,
-        LienChieu: 230,
-        HaiChau: 480,
-        CamLe: 250,
-        NguHanhSon: 170,
-        HoaVang: 130,
-    },
-    {
-        month: "2026-02",
-        SonTra: 300,
-        ThanhKhe: 390,
-        LienChieu: 210,
-        HaiChau: 460,
-        CamLe: 230,
-        NguHanhSon: 160,
-        HoaVang: 120,
-    },
-    {
-        month: "2026-03",
-        SonTra: 360,
-        ThanhKhe: 430,
-        LienChieu: 250,
-        HaiChau: 500,
-        CamLe: 270,
-        NguHanhSon: 180,
-        HoaVang: 140,
-    },
+    { month: "2025-04", SonTra: 280, ThanhKhe: 390, LienChieu: 210, HaiChau: 450, CamLe: 240, NguHanhSon: 160, HoaVang: 120 },
+    { month: "2025-05", SonTra: 300, ThanhKhe: 410, LienChieu: 220, HaiChau: 470, CamLe: 250, NguHanhSon: 170, HoaVang: 125 },
+    { month: "2025-06", SonTra: 320, ThanhKhe: 430, LienChieu: 230, HaiChau: 490, CamLe: 260, NguHanhSon: 180, HoaVang: 130 },
+    { month: "2025-07", SonTra: 340, ThanhKhe: 450, LienChieu: 240, HaiChau: 510, CamLe: 270, NguHanhSon: 190, HoaVang: 135 },
+    { month: "2025-08", SonTra: 360, ThanhKhe: 470, LienChieu: 250, HaiChau: 530, CamLe: 280, NguHanhSon: 200, HoaVang: 140 },
+    { month: "2025-09", SonTra: 350, ThanhKhe: 460, LienChieu: 245, HaiChau: 520, CamLe: 275, NguHanhSon: 195, HoaVang: 138 },
+    { month: "2025-10", SonTra: 370, ThanhKhe: 480, LienChieu: 255, HaiChau: 540, CamLe: 285, NguHanhSon: 205, HoaVang: 145 },
+    { month: "2025-11", SonTra: 390, ThanhKhe: 500, LienChieu: 270, HaiChau: 560, CamLe: 295, NguHanhSon: 215, HoaVang: 150 },
+    { month: "2025-12", SonTra: 410, ThanhKhe: 520, LienChieu: 285, HaiChau: 580, CamLe: 305, NguHanhSon: 225, HoaVang: 155 },
+    { month: "2026-01", SonTra: 330, ThanhKhe: 420, LienChieu: 230, HaiChau: 480, CamLe: 250, NguHanhSon: 170, HoaVang: 130 },
+    { month: "2026-02", SonTra: 300, ThanhKhe: 390, LienChieu: 210, HaiChau: 460, CamLe: 230, NguHanhSon: 160, HoaVang: 120 },
+    { month: "2026-03", SonTra: 360, ThanhKhe: 430, LienChieu: 250, HaiChau: 500, CamLe: 270, NguHanhSon: 180, HoaVang: 140 },
 ];
 
 const imageDatabaseMock = [
@@ -89,7 +71,9 @@ const imageDatabaseMock = [
     },
 ];
 
-const zones = ["Tất cả", "Sơn Trà", "Thanh Khê", "Liên Chiểu", "Hải Châu", "Cẩm Lệ", "Ngũ Hành Sơn", "Hòa Vang"];
+const zoneOrder = ["Sơn Trà", "Thanh Khê", "Liên Chiểu", "Hải Châu", "Cẩm Lệ", "Ngũ Hành Sơn", "Hòa Vang"];
+
+const zones = ["Tất cả", ...zoneOrder];
 
 const zoneColors: Record<string, string> = {
     "Sơn Trà": "#0ea5e9",
@@ -100,6 +84,37 @@ const zoneColors: Record<string, string> = {
     "Ngũ Hành Sơn": "#fb923c",
     "Hòa Vang": "#14b8a6",
     "Tất cả": "#3b82f6",
+};
+
+const SortedTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || payload.length === 0) {
+        return null;
+    }
+
+    const sortedPayload = [...payload].sort((a, b) => (b.value || 0) - (a.value || 0));
+
+    return (
+        <div className="rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+            <p className="text-xs font-semibold text-slate-500">{label}</p>
+            {sortedPayload.map((entry: any) => (
+                <div key={entry.dataKey} className="flex items-center gap-2 text-xs">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                    <span>{entry.name || entry.dataKey}</span>
+                    <span className="ml-auto font-semibold">{entry.value?.toLocaleString()} kg</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+const zoneKeyMap: Record<string, keyof MonthlyZoneData> = {
+    "Sơn Trà": "SonTra",
+    "Thanh Khê": "ThanhKhe",
+    "Liên Chiểu": "LienChieu",
+    "Hải Châu": "HaiChau",
+    "Cẩm Lệ": "CamLe",
+    "Ngũ Hành Sơn": "NguHanhSon",
+    "Hòa Vang": "HoaVang",
 };
 
 export default function GarbageAnalyticsPage() {
@@ -116,7 +131,11 @@ export default function GarbageAnalyticsPage() {
     );
 
     const zoneSummary = useMemo(() => {
-        const result = {
+        const result = zoneOrder.reduce((acc, zone) => {
+            const key = zoneKeyMap[zone];
+            acc[key] = 0;
+            return acc;
+        }, {
             SonTra: 0,
             ThanhKhe: 0,
             LienChieu: 0,
@@ -124,15 +143,14 @@ export default function GarbageAnalyticsPage() {
             CamLe: 0,
             NguHanhSon: 0,
             HoaVang: 0,
-        };
+        } as Record<keyof MonthlyZoneData, number>);
+
         monthlyZoneData.forEach((row) => {
-            result.SonTra += row.SonTra;
-            result.ThanhKhe += row.ThanhKhe;
-            result.LienChieu += row.LienChieu;
-            result.HaiChau += row.HaiChau;
-            result.CamLe += row.CamLe;
-            result.NguHanhSon += row.NguHanhSon;
-            result.HoaVang += row.HoaVang;
+            zoneOrder.forEach((zone) => {
+                const key = zoneKeyMap[zone];
+                // @ts-expect-error assignment via dynamic key
+                result[key] += row[key];
+            });
         });
         return result;
     }, []);
@@ -150,19 +168,41 @@ export default function GarbageAnalyticsPage() {
         return zoneValues.sort((a, b) => b.value - a.value)[0];
     }, [zoneSummary]);
 
+    const [selectedView, setSelectedView] = useState<"monthly" | "all">("all");
+
     const monthlyData = useMemo(() => monthlyZoneData.find((row) => row.month === selectedMonth) ?? monthlyZoneData[0], [selectedMonth]);
 
+    const allTimeChartData = useMemo(() => {
+        const data = zoneOrder.map((zone) => ({ zone, value: zoneSummary[zoneKeyMap[zone]] }));
+        if (selectedZone !== "Tất cả") {
+            return data.filter((item) => item.zone === selectedZone);
+        }
+        return data;
+    }, [zoneSummary, selectedZone]);
+
+    const monthlyTrendData = useMemo(() => {
+        return monthlyZoneData.map((row) => ({
+            month: row.month,
+            SonTra: row.SonTra,
+            ThanhKhe: row.ThanhKhe,
+            LienChieu: row.LienChieu,
+            HaiChau: row.HaiChau,
+            CamLe: row.CamLe,
+            NguHanhSon: row.NguHanhSon,
+            HoaVang: row.HoaVang,
+        }));
+    }, []);
+
     const chartData = useMemo(() => {
+        if (selectedView === "all") {
+            return allTimeChartData;
+        }
+
         if (selectedZone === "Tất cả") {
-            return [
-                { zone: "Sơn Trà", value: monthlyData.SonTra },
-                { zone: "Thanh Khê", value: monthlyData.ThanhKhe },
-                { zone: "Liên Chiểu", value: monthlyData.LienChieu },
-                { zone: "Hải Châu", value: monthlyData.HaiChau },
-                { zone: "Cẩm Lệ", value: monthlyData.CamLe },
-                { zone: "Ngũ Hành Sơn", value: monthlyData.NguHanhSon },
-                { zone: "Hòa Vang", value: monthlyData.HoaVang },
-            ];
+            return zoneOrder.map((zone) => ({
+                zone,
+                value: monthlyData[zoneKeyMap[zone]],
+            }));
         }
 
         const value =
@@ -181,7 +221,7 @@ export default function GarbageAnalyticsPage() {
                                     : monthlyData.HoaVang;
 
         return [{ zone: selectedZone, value }];
-    }, [selectedZone, monthlyData]);
+    }, [selectedView, selectedZone, monthlyData, allTimeChartData]);
 
     return (
 
@@ -248,18 +288,36 @@ export default function GarbageAnalyticsPage() {
                                 <CardTitle>Filter Controls</CardTitle>
                                 <p className="text-sm text-slate-500">Select month and zone to view trend</p>
                             </div>
-                            <div className="flex gap-2">
-                                <select
-                                    className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-                                    value={selectedMonth}
-                                    onChange={(event) => setSelectedMonth(event.target.value)}
-                                >
-                                    {monthlyZoneData.map((row) => (
-                                        <option key={row.month} value={row.month}>
-                                            {row.month}
-                                        </option>
-                                    ))}
-                                </select>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex rounded-md border border-slate-300 overflow-hidden text-xs">
+                                    <button
+                                        className={`px-3 py-2 ${selectedView === "all" ? "bg-slate-900 text-white" : "bg-white text-slate-700 hover:bg-slate-100"}`}
+                                        onClick={() => setSelectedView("all")}
+                                    >
+                                        All-Time
+                                    </button>
+                                    <button
+                                        className={`px-3 py-2 ${selectedView === "monthly" ? "bg-slate-900 text-white" : "bg-white text-slate-700 hover:bg-slate-100"}`}
+                                        onClick={() => setSelectedView("monthly")}
+                                    >
+                                        By Month
+                                    </button>
+                                </div>
+
+                                {selectedView === "monthly" && (
+                                    <select
+                                        className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                                        value={selectedMonth}
+                                        onChange={(event) => setSelectedMonth(event.target.value)}
+                                    >
+                                        {monthlyZoneData.map((row) => (
+                                            <option key={row.month} value={row.month}>
+                                                {row.month}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+
                                 <select
                                     className="rounded-md border border-slate-300 px-3 py-2 text-sm"
                                     value={selectedZone}
@@ -280,13 +338,45 @@ export default function GarbageAnalyticsPage() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                 <XAxis dataKey="zone" stroke="#64748b" tick={{ fontSize: 12 }} />
                                 <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
-                                <Tooltip formatter={(value) => `${value} kg`} />
+                                <Tooltip content={<SortedTooltip />} formatter={(value) => `${value} kg`} />
                                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                                     {chartData.map((entry) => (
                                         <Cell key={entry.zone} fill={zoneColors[entry.zone] ?? "#3b82f6"} />
                                     ))}
                                 </Bar>
                             </BarChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>12-Month Zone Trend</CardTitle>
+                        <p className="text-sm text-slate-500">Monthly values for each zone across the last period</p>
+                    </CardHeader>
+                    <CardContent className="h-105">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={monthlyTrendData} margin={{ top: 16, right: 22, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                <XAxis dataKey="month" stroke="#64748b" tick={{ fontSize: 12 }} />
+                                <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
+                                <Tooltip content={<SortedTooltip />} formatter={(value) => `${value} kg`} />
+                                <Legend />
+                                {zoneOrder.map((zone) => {
+                                    const dataKey = zoneKeyMap[zone];
+                                    return (
+                                        <Line
+                                            key={zone}
+                                            type="monotone"
+                                            dataKey={dataKey}
+                                            stroke={zoneColors[zone]}
+                                            strokeWidth={2}
+                                            dot={false}
+                                            name={zone}
+                                        />
+                                    );
+                                })}
+                            </LineChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
