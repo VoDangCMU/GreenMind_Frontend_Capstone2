@@ -52,14 +52,7 @@ interface User {
     location: string
     phoneNumber?: string
     role?: string
-    dateOfBirth?: string
-    bigFive?: {
-        openness: number
-        conscientiousness: number
-        extraversion: number
-        agreeableness: number
-        neuroticism: number
-    }
+    dateOfBirth: string
     ocean?: {
         openness: number
         conscientiousness: number
@@ -114,6 +107,7 @@ export default function UserManagementPage() {
                         age: new Date().getFullYear() - new Date(user.dateOfBirth).getFullYear() || 25,
                         gender: user.gender || "unknown",
                         location: user.location || "Unknown",
+                        dateOfBirth: user.dateOfBirth || new Date().toISOString(),
                         ocean: {
                             openness: (bigFive && typeof bigFive.openness === 'number') ? Math.round(bigFive.openness * 100) : 0,
                             conscientiousness: (bigFive && typeof bigFive.conscientiousness === 'number') ? Math.round(bigFive.conscientiousness * 100) : 0,

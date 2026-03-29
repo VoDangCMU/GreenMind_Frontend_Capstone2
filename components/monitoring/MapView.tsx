@@ -20,11 +20,15 @@ interface MapViewProps {
 // Color helpers
 // ---------------------------------------------------------------------------
 const WARD_FILL: Record<string, string> = {
-  red:    "#ef4444",
+  red: "#ef4444",
   yellow: "#f59e0b",
-  green:  "#10b981",
+  green: "#10b981",
 };
 
+const HOUSEHOLD_FILL: Record<string, string> = {
+  red: "#ef4444",
+  yellow: "#f59e0b",
+  green: "#10b981",
 const REPORT_COLORS: Record<string, { bg: string; border: string; pulse: boolean }> = {
   pending:  { bg: "#ef4444", border: "#b91c1c", pulse: true  },
   assigned: { bg: "#3b82f6", border: "#1d4ed8", pulse: false },
@@ -135,7 +139,7 @@ export function MapView({
     L.control.zoom({ position: "topleft" }).addTo(map);
     L.control.attribution({ position: "bottomleft", prefix: false }).addTo(map);
 
-    wardLayerRef.current      = L.layerGroup().addTo(map);
+    wardLayerRef.current = L.layerGroup().addTo(map);
     householdLayerRef.current = L.layerGroup().addTo(map);
     reportLayerRef.current    = L.layerGroup().addTo(map);
 
@@ -241,21 +245,21 @@ export function MapView({
       // Glow circle
       const glowRadius = 250 + (ward.totalWaste / 5000) * 600;
       L.circle([ward.lat, ward.lng], {
-        radius:      glowRadius,
+        radius: glowRadius,
         fillColor,
         fillOpacity: 0.17,
         stroke:      false,
         interactive: false,
-        pane:        "overlayPane",
+        pane: "overlayPane",
       }).addTo(wardLayerRef.current!);
 
       // Ward polygon
       if (ward.bounds && ward.bounds.length >= 3) {
         const latlngs = ward.bounds.map(([lat, lng]) => [lat, lng] as [number, number]);
         const poly = L.polygon(latlngs, {
-          color:       fillColor,
-          weight:      2.5,
-          opacity:     0.9,
+          color: fillColor,
+          weight: 2.5,
+          opacity: 0.9,
           fillColor,
           fillOpacity: 0.26,
         }).addTo(wardLayerRef.current!);
@@ -333,10 +337,10 @@ export function MapView({
     if (ward.bounds && ward.bounds.length >= 3) {
       const latlngs = ward.bounds.map(([lat, lng]) => [lat, lng] as [number, number]);
       L.polygon(latlngs, {
-        color:       WARD_FILL[ward.status],
-        weight:      2,
-        opacity:     0.4,
-        fillColor:   WARD_FILL[ward.status],
+        color: WARD_FILL[ward.status],
+        weight: 2,
+        opacity: 0.4,
+        fillColor: WARD_FILL[ward.status],
         fillOpacity: 0.06,
         interactive: false,
       }).addTo(householdLayerRef.current!);
@@ -387,7 +391,7 @@ export function MapView({
     // Fly to ward
     if (ward.bounds && ward.bounds.length >= 3) {
       const latLngs = ward.bounds.map(([lat, lng]) => L.latLng(lat, lng));
-      const bounds  = L.latLngBounds(latLngs);
+      const bounds = L.latLngBounds(latLngs);
       map.flyToBounds(bounds.pad(0.2), { duration: 0.8, maxZoom: 16 });
     } else {
       map.flyTo([ward.lat, ward.lng], 16, { duration: 0.8 });

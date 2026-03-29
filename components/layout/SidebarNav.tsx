@@ -22,6 +22,8 @@ const navItems = [
   { title: "Surveys", href: "/dashboard/survey", icon: FileText },
   { title: "Results", href: "/dashboard/survey-results", icon: Users },
   { title: "Verify", href: "/dashboard/models-verify", icon: CheckCircle },
+  { title: "Monitoring", href: "/dashboard/monitoring", icon: MapPin },
+  { title: "Giám sát rác", href: "/dashboard/garbage-analytics", icon: MapPin },
   { title: "Waste Monitoring", href: "/dashboard/monitoring", icon: MapPin },
   { title: "Users", href: "/dashboard/users-ocean", icon: Brain },
 ]
@@ -46,14 +48,14 @@ export function SidebarNav({ isMobile = false }: SidebarNavProps) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200",
               isActive
-                ? "bg-muted text-foreground"
+                ? "bg-primary/15 text-primary shadow-sm"
                 : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
             )}
           >
-            <item.icon className="h-4 w-4" />
-            {item.title}
+            <item.icon className={cn("h-5 w-5", isActive ? "text-primary" : "text-slate-400")} />
+            <span className="truncate">{item.title}</span>
           </Link>
         )
       })}
