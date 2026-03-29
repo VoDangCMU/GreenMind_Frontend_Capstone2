@@ -4,20 +4,25 @@ export interface Household {
   id: number;
   wardId: number;
   name: string;
+  address: string; // tên đường thực tế
   lat: number;
   lng: number;
-  waste: number; // kg/month
+  waste: number; // kg/day (thực tế: 1.5–4.0 bình thường, ≥4.0 cảnh báo, ≥5.0 nguy hiểm)
   status: AreaStatus;
+  reportCount: number; // số báo cáo đã gửi
 }
 
 export interface UrbanArea {
   id: number;
   name: string;
+  district: string; // quận
+  population: number; // số dân
+  areaKm2: number; // diện tích km²
   lat: number;
   lng: number;
-  totalWaste: number;
+  totalWaste: number; // kg/day (phường: 1,300–13,500 kg/ngày tùy quy mô)
   status: AreaStatus;
-  reports: number;
+  reports: number; // pending reports
   bounds?: [number, number][]; // polygon corners [[lat, lng], ...]
 }
 
@@ -27,7 +32,41 @@ export interface HeatmapPoint {
   weight: number;
 }
 
+// ─── Waste Report (Báo cáo rác từ hộ dân) ──────────────────────────────────
+
+export type WasteType = "plastic" | "organic" | "mixed" | "hazardous";
 export type ReportStatus = "pending" | "assigned" | "done";
+
+export interface WasteReport {
+  id: string;
+  householdId: number;
+  householdName: string;
+  wardId: number;
+  wardName: string;
+  lat: number;
+  lng: number;
+  wasteKg: number;
+  wasteType: WasteType;
+  description: string;
+  status: ReportStatus;
+  reportedAt: string; // ISO datetime
+  assignedTo: string | null; // tên người thu gom
+  collectorId: number | null;
+  resolvedAt: string | null; // ISO datetime khi hoàn thành
+}
+
+// ─── Collector (Người thu gom rác) ─────────────────────────────────────────
+
+export interface Collector {
+  id: number;
+  name: string;
+  phone: string;
+  zones: number[]; // wardId[] phụ trách
+  vehicleId: string;
+  activeReports: number;
+}
+
+// ─── Report (legacy — dùng cho ReportList từ API) ──────────────────────────
 
 export interface Report {
   id: number;

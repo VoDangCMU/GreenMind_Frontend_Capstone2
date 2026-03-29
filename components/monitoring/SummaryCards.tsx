@@ -14,10 +14,10 @@ export function SummaryCards({ summary, loading }: SummaryCardsProps) {
         {[...Array(4)].map((_, i) => (
           <div
             key={i}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 animate-pulse"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 animate-pulse"
           >
-            <div className="h-3 bg-gray-200 rounded w-1/2 mb-4" />
-            <div className="h-8 bg-gray-200 rounded w-3/4 mb-2" />
+            <div className="h-2 bg-gray-200 rounded w-1/2 mb-3" />
+            <div className="h-6 bg-gray-200 rounded w-3/4 mb-2" />
             <div className="h-2 bg-gray-100 rounded w-full" />
           </div>
         ))}
@@ -54,7 +54,7 @@ export function SummaryCards({ summary, loading }: SummaryCardsProps) {
       accent: "from-violet-50 to-purple-50 border-violet-100",
       valueColor: "text-violet-700",
       custom: (
-        <div className="mt-3 space-y-2">
+        <div className="mt-2 space-y-1.5">
           {[
             {
               label: "Plastic",
@@ -73,11 +73,11 @@ export function SummaryCards({ summary, loading }: SummaryCardsProps) {
             },
           ].map((item) => (
             <div key={item.label}>
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <div className="flex justify-between text-xs text-gray-500 mb-0.5">
                 <span>{item.label}</span>
                 <span className="font-medium text-gray-700">{item.pct}%</span>
               </div>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${item.color} rounded-full transition-all duration-700`}
                   style={{ width: `${item.pct}%` }}
@@ -95,18 +95,18 @@ export function SummaryCards({ summary, loading }: SummaryCardsProps) {
       {cards.map((card) => (
         <div
           key={card.label}
-          className={`bg-gradient-to-br ${card.accent} border rounded-2xl shadow-sm p-6 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5`}
+          className={`bg-gradient-to-br ${card.accent} border rounded-2xl shadow-sm p-3 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5`}
         >
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
             {card.label}
           </p>
           {card.value !== null && (
-            <p className={`text-3xl font-bold mt-2 ${card.valueColor}`}>
+            <p className={`text-2xl font-bold mt-1 ${card.valueColor}`}>
               {card.value}
             </p>
           )}
           {card.sub && (
-            <p className="text-xs text-gray-400 mt-1">{card.sub}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{card.sub}</p>
           )}
           {card.custom}
         </div>

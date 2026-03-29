@@ -24,6 +24,7 @@ const navItems = [
   { title: "Verify", href: "/dashboard/models-verify", icon: CheckCircle },
   { title: "Monitoring", href: "/dashboard/monitoring", icon: MapPin },
   { title: "Giám sát rác", href: "/dashboard/garbage-analytics", icon: MapPin },
+  { title: "Waste Monitoring", href: "/dashboard/monitoring", icon: MapPin },
   { title: "Users", href: "/dashboard/users-ocean", icon: Brain },
 ]
 
