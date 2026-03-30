@@ -8,6 +8,7 @@ import { ReportList } from "@/components/monitoring/ReportList";
 import { AreaDrawer } from "@/components/monitoring/AreaDrawer";
 import { WARDS } from "@/data/wardData";
 import { WASTE_REPORTS } from "@/data/reportData";
+import { activityService } from "@/services/activity.service";
 
 const MapView = dynamic(
   () => import("@/components/monitoring/MapView").then((m) => m.MapView),
@@ -16,7 +17,7 @@ const MapView = dynamic(
 
 export default function MonitoringPage() {
   const [areas] = useState<UrbanArea[]>(WARDS);
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<WasteReport[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,18 +32,8 @@ export default function MonitoringPage() {
           activityService.getOverview(),
         ]);
 
-        setReports(
-          reportsData.map((r) => ({
-            id: parseInt(r.id.replace(/\D/g, "")) || Math.floor(Math.random() * 1000),
-            area: r.area.name,
-            desc: r.description,
-            status: r.status === "collected" ? "done" : (r.status as any),
-            time: new Date(r.reported_at).toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-          }))
-        );
+        setReports(reportsData);
+
 
         setSummary({
           totalWaste: WARDS.reduce((s, w) => s + w.totalWaste, 0),
@@ -134,7 +125,7 @@ export default function MonitoringPage() {
           <div className="col-span-7 h-full">
             <MapView
               areas={areas}
-              reports={wasteReports}
+              reports={reports}
               selectedAreaId={selectedArea?.id ?? null}
               highlightAreaName={highlightAreaName}
               onAreaSelect={handleAreaSelect}
@@ -146,7 +137,7 @@ export default function MonitoringPage() {
           {/* Report list 30% */}
           <div className="col-span-3 h-full overflow-hidden">
             <ReportList
-              wasteReports={wasteReports}
+              wasteReports={reports}
               loading={loading}
               onReportClick={handleReportClick}
               selectedArea={selectedArea?.name ?? null}
@@ -157,7 +148,7 @@ export default function MonitoringPage() {
 
       <AreaDrawer
         area={selectedArea}
-        wasteReports={wasteReports}
+        wasteReports={reports}
         onClose={handleDrawerClose}
       />
     </div>

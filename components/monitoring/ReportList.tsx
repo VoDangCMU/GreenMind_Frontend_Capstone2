@@ -11,23 +11,23 @@ interface ReportListProps {
 }
 
 const STATUS_CFG: Record<ReportStatus, { label: string; bg: string; text: string; dot: string }> = {
-  pending:  { label: "Chờ xử lý",    bg: "bg-red-50",     text: "text-red-700",     dot: "bg-red-400"     },
-  assigned: { label: "Đang thu gom", bg: "bg-blue-50",    text: "text-blue-700",    dot: "bg-blue-400"    },
-  done:     { label: "Hoàn thành",   bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
+  pending: { label: "Chờ xử lý", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-400" },
+  assigned: { label: "Đang thu gom", bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-400" },
+  done: { label: "Hoàn thành", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
 };
 
 const WASTE_TYPE_CFG: Record<WasteType, { label: string }> = {
-  plastic:   { label: "Nhựa"    },
-  organic:   { label: "Hữu cơ"  },
-  mixed:     { label: "Hỗn hợp" },
-  hazardous: { label: "Nguy hại"},
+  plastic: { label: "Nhựa" },
+  organic: { label: "Hữu cơ" },
+  mixed: { label: "Hỗn hợp" },
+  hazardous: { label: "Nguy hại" },
 };
 
 const FILTERS: { label: string; value: ReportStatus | "all" }[] = [
-  { label: "Tất cả",     value: "all"      },
-  { label: "Chờ",        value: "pending"  },
-  { label: "Đang thu",   value: "assigned" },
-  { label: "Xong",       value: "done"     },
+  { label: "Tất cả", value: "all" },
+  { label: "Chờ", value: "pending" },
+  { label: "Đang thu", value: "assigned" },
+  { label: "Xong", value: "done" },
 ];
 
 export function ReportList({ wasteReports, loading, onReportClick, selectedArea }: ReportListProps) {
@@ -35,9 +35,9 @@ export function ReportList({ wasteReports, loading, onReportClick, selectedArea 
 
   const filtered = filter === "all" ? wasteReports : wasteReports.filter(r => r.status === filter);
 
-  const pendingCount  = wasteReports.filter(r => r.status === "pending").length;
+  const pendingCount = wasteReports.filter(r => r.status === "pending").length;
   const assignedCount = wasteReports.filter(r => r.status === "assigned").length;
-  const doneCount     = wasteReports.filter(r => r.status === "done").length;
+  const doneCount = wasteReports.filter(r => r.status === "done").length;
 
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -58,8 +58,8 @@ export function ReportList({ wasteReports, loading, onReportClick, selectedArea 
         <div className="grid grid-cols-3 gap-2 mb-3">
           {[
             { label: "Chờ xử lý", count: pendingCount, color: "text-red-600", bg: "bg-red-50" },
-            { label: "Đang thu",  count: assignedCount,  color: "text-blue-600",  bg: "bg-blue-50" },
-            { label: "Xong",      count: doneCount,   color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Đang thu", count: assignedCount, color: "text-blue-600", bg: "bg-blue-50" },
+            { label: "Xong", count: doneCount, color: "text-emerald-600", bg: "bg-emerald-50" },
           ].map(s => (
             <div key={s.label} className={`${s.bg} rounded-lg px-2 py-1.5 text-center`}>
               <p className={`text-base font-bold ${s.color}`}>{s.count}</p>
@@ -74,9 +74,8 @@ export function ReportList({ wasteReports, loading, onReportClick, selectedArea 
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
-              className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all duration-150 ${
-                filter === f.value ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"
-              }`}
+              className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all duration-150 ${filter === f.value ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"
+                }`}
             >
               {f.label}
             </button>
@@ -103,18 +102,17 @@ export function ReportList({ wasteReports, loading, onReportClick, selectedArea 
         ) : (
           <div className="divide-y divide-gray-50">
             {filtered.map(report => {
-              const scfg   = STATUS_CFG[report.status];
-              const wtcfg  = WASTE_TYPE_CFG[report.wasteType];
-              const isHL   = selectedArea === report.wardName;
-              const time   = new Date(report.reportedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+              const scfg = STATUS_CFG[report.status] ?? { label: "Không xác định", bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" };
+              const wtcfg = WASTE_TYPE_CFG[report.wasteType] ?? { label: "Không xác định" };
+              const isHL = selectedArea === report.wardName;
+              const time = new Date(report.reportedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 
               return (
                 <button
                   key={report.id}
                   onClick={() => onReportClick(report)}
-                  className={`w-full text-left px-4 py-3.5 transition-all duration-150 hover:bg-gray-50 group ${
-                    isHL ? "bg-indigo-50 border-l-2 border-indigo-400" : ""
-                  }`}
+                  className={`w-full text-left px-4 py-3.5 transition-all duration-150 hover:bg-gray-50 group ${isHL ? "bg-indigo-50 border-l-2 border-indigo-400" : ""
+                    }`}
                 >
                   {/* Row 1: status badge + time */}
                   <div className="flex items-center justify-between gap-2 mb-1.5">

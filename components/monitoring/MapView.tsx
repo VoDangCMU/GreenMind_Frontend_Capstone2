@@ -29,16 +29,18 @@ const HOUSEHOLD_FILL: Record<string, string> = {
   red: "#ef4444",
   yellow: "#f59e0b",
   green: "#10b981",
+};
+
 const REPORT_COLORS: Record<string, { bg: string; border: string; pulse: boolean }> = {
-  pending:  { bg: "#ef4444", border: "#b91c1c", pulse: true  },
+  pending: { bg: "#ef4444", border: "#b91c1c", pulse: true },
   assigned: { bg: "#3b82f6", border: "#1d4ed8", pulse: false },
-  done:     { bg: "#10b981", border: "#059669", pulse: false },
+  done: { bg: "#10b981", border: "#059669", pulse: false },
 };
 
 const WASTE_TYPE_LABEL: Record<string, string> = {
-  plastic:   "Nhựa",
-  organic:   "Hữu cơ",
-  mixed:     "Hỗn hợp",
+  plastic: "Nhựa",
+  organic: "Hữu cơ",
+  mixed: "Hỗn hợp",
   hazardous: "Nguy hại",
 };
 
@@ -46,16 +48,16 @@ const WASTE_TYPE_LABEL: Record<string, string> = {
 // Build SVG report pin icon
 // ---------------------------------------------------------------------------
 function buildReportIcon(status: string): L.DivIcon {
-  const cfg     = REPORT_COLORS[status] ?? REPORT_COLORS.pending;
+  const cfg = REPORT_COLORS[status] ?? REPORT_COLORS.pending;
   const pulseStyle = cfg.pulse
     ? `animation:report-pin-pulse 1.4s ease-in-out infinite;`
     : "";
 
   return L.divIcon({
     className: "",
-    iconSize:  [28, 34],
-    iconAnchor:[14, 34],
-    popupAnchor:[0, -36],
+    iconSize: [28, 34],
+    iconAnchor: [14, 34],
+    popupAnchor: [0, -36],
     html: `
       <div style="
         position:relative;
@@ -96,13 +98,13 @@ export function MapView({
   onReportSelect,
   loading,
 }: MapViewProps) {
-  const mapContainerRef   = useRef<HTMLDivElement>(null);
-  const mapRef            = useRef<L.Map | null>(null);
-  const wardLayerRef      = useRef<L.LayerGroup | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const wardLayerRef = useRef<L.LayerGroup | null>(null);
   const householdLayerRef = useRef<L.LayerGroup | null>(null);
-  const reportLayerRef    = useRef<L.LayerGroup | null>(null);
-  const [mapLoaded,    setMapLoaded]    = useState(false);
-  const [viewLevel,    setViewLevel]    = useState<"ward" | "household">("ward");
+  const reportLayerRef = useRef<L.LayerGroup | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [viewLevel, setViewLevel] = useState<"ward" | "household">("ward");
   const [activeWardId, setActiveWardId] = useState<number | null>(null);
 
   // ─── Inject keyframe animation once ──────────────────────────────────────
@@ -126,9 +128,9 @@ export function MapView({
     if (!mapContainerRef.current || mapRef.current) return;
 
     const map = L.map(mapContainerRef.current, {
-      center:             [16.065, 108.225],
-      zoom:               13,
-      zoomControl:        false,
+      center: [16.065, 108.225],
+      zoom: 13,
+      zoomControl: false,
       attributionControl: false,
     });
 
@@ -141,7 +143,7 @@ export function MapView({
 
     wardLayerRef.current = L.layerGroup().addTo(map);
     householdLayerRef.current = L.layerGroup().addTo(map);
-    reportLayerRef.current    = L.layerGroup().addTo(map);
+    reportLayerRef.current = L.layerGroup().addTo(map);
 
     mapRef.current = map;
     setMapLoaded(true);
@@ -163,17 +165,17 @@ export function MapView({
         : reports;
 
       filtered.forEach((report) => {
-        const icon   = buildReportIcon(report.status);
+        const icon = buildReportIcon(report.status);
         const marker = L.marker([report.lat, report.lng], {
           icon,
           zIndexOffset: 300,
         }).addTo(reportLayerRef.current!);
 
         // Popup content
-        const cfg          = REPORT_COLORS[report.status];
-        const statusLabel  = report.status === "pending" ? "Chờ xử lý" : report.status === "assigned" ? "Đang thu gom" : "Hoàn thành";
-        const statusColor  = report.status === "pending" ? "#ef4444" : report.status === "assigned" ? "#3b82f6" : "#10b981";
-        const reportTime   = new Date(report.reportedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+        const cfg = REPORT_COLORS[report.status] ?? { bg: "#9ca3af", border: "#9ca3af", pulse: false };
+        const statusLabel = report.status === "pending" ? "Chờ xử lý" : report.status === "assigned" ? "Đang thu gom" : "Hoàn thành";
+        const statusColor = report.status === "pending" ? "#ef4444" : report.status === "assigned" ? "#3b82f6" : "#10b981";
+        const reportTime = new Date(report.reportedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 
         let timelineHtml = `
           <div style="margin-top:8px;border-top:1px solid #f0f0f0;padding-top:8px;">
@@ -212,7 +214,7 @@ export function MapView({
               <span style="
                 font-size:10px;font-weight:700;
                 padding:2px 8px;border-radius:99px;
-                background:${cfg.bg}22;color:${statusColor};
+                background:${cfg?.bg ?? '#9ca3af'}22;color:${statusColor};
               ">${statusLabel}</span>
             </div>
             <p style="font-size:11px;color:#444;margin:0 0 4px;">${report.description}</p>
@@ -248,7 +250,7 @@ export function MapView({
         radius: glowRadius,
         fillColor,
         fillOpacity: 0.17,
-        stroke:      false,
+        stroke: false,
         interactive: false,
         pane: "overlayPane",
       }).addTo(wardLayerRef.current!);
@@ -266,7 +268,7 @@ export function MapView({
 
         poly.on("click", () => handleWardClick(ward));
         poly.on("mouseover", () => poly.setStyle({ fillOpacity: 0.44, weight: 3.5 }));
-        poly.on("mouseout",  () => poly.setStyle({ fillOpacity: 0.26, weight: 2.5 }));
+        poly.on("mouseout", () => poly.setStyle({ fillOpacity: 0.26, weight: 2.5 }));
 
         const pendingCount = reports.filter(r => r.wardId === ward.id && r.status === "pending").length;
         const pendingBadge = pendingCount > 0
@@ -292,8 +294,8 @@ export function MapView({
 
       const labelIcon = L.divIcon({
         className: "ward-label-icon",
-        iconSize:  [148, 52],
-        iconAnchor:[74, 26],
+        iconSize: [148, 52],
+        iconAnchor: [74, 26],
         html: `
           <div style="display:flex;flex-direction:column;align-items:center;pointer-events:none;">
             <div style="
@@ -317,7 +319,7 @@ export function MapView({
         .addTo(wardLayerRef.current!)
         .on("click", () => handleWardClick(ward));
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areas, reports]);
 
   // ─── Draw HOUSEHOLD LEVEL ────────────────────────────────────────────────
@@ -349,8 +351,8 @@ export function MapView({
     // Ward banner
     const wardLabelIcon = L.divIcon({
       className: "ward-banner-icon",
-      iconSize:  [220, 28],
-      iconAnchor:[110, 14],
+      iconSize: [220, 28],
+      iconAnchor: [110, 14],
       html: `
         <div style="
           background:${WARD_FILL[ward.status]};
@@ -366,7 +368,7 @@ export function MapView({
 
     // Household markers
     households.forEach((hh) => {
-      const color  = WARD_FILL[hh.status] ?? "#6b7280";
+      const color = WARD_FILL[hh.status] ?? "#6b7280";
       const radius = 60 + (hh.waste / 600) * 120;
 
       L.circle([hh.lat, hh.lng], {
@@ -435,9 +437,9 @@ export function MapView({
   }, [highlightAreaName, areas, mapLoaded]);
 
   // ─── Summary for legend ────────────────────────────────────────────────
-  const pendingCount  = reports.filter(r => r.status === "pending").length;
+  const pendingCount = reports.filter(r => r.status === "pending").length;
   const assignedCount = reports.filter(r => r.status === "assigned").length;
-  const doneCount     = reports.filter(r => r.status === "done").length;
+  const doneCount = reports.filter(r => r.status === "done").length;
 
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
