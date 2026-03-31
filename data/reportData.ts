@@ -4,12 +4,12 @@ import type { WasteReport, Collector } from "@/types/monitoring";
 // COLLECTORS — Đội thu gom rác thành phố Đà Nẵng
 // ---------------------------------------------------------------------------
 export const COLLECTORS: Collector[] = [
-  { id: 1, name: "Nguyễn Thanh Hải",   phone: "0905 123 456", zones: [1, 2],   vehicleId: "43C-001.23", activeReports: 5 },
-  { id: 2, name: "Trần Văn Mạnh",      phone: "0905 234 567", zones: [3, 4],   vehicleId: "43C-002.45", activeReports: 3 },
-  { id: 3, name: "Lê Thị Hoa",         phone: "0905 345 678", zones: [5, 11],  vehicleId: "43C-003.67", activeReports: 4 },
-  { id: 4, name: "Phạm Quốc Bình",     phone: "0905 456 789", zones: [8, 9],   vehicleId: "43C-004.89", activeReports: 6 },
-  { id: 5, name: "Hoàng Thị Liên",     phone: "0905 567 890", zones: [6, 7],   vehicleId: "43C-005.12", activeReports: 2 },
-  { id: 6, name: "Đỗ Minh Tuấn",       phone: "0905 678 901", zones: [10, 12], vehicleId: "43C-006.34", activeReports: 1 },
+  { id: 1, name: "Nguyễn Thanh Hải", phone: "0905 123 456", zones: [1, 2], vehicleId: "43C-001.23", activeReports: 5 },
+  { id: 2, name: "Trần Văn Mạnh", phone: "0905 234 567", zones: [3, 4], vehicleId: "43C-002.45", activeReports: 3 },
+  { id: 3, name: "Lê Thị Hoa", phone: "0905 345 678", zones: [5, 11], vehicleId: "43C-003.67", activeReports: 4 },
+  { id: 4, name: "Phạm Quốc Bình", phone: "0905 456 789", zones: [8, 9], vehicleId: "43C-004.89", activeReports: 6 },
+  { id: 5, name: "Hoàng Thị Liên", phone: "0905 567 890", zones: [6, 7], vehicleId: "43C-005.12", activeReports: 2 },
+  { id: 6, name: "Đỗ Minh Tuấn", phone: "0905 678 901", zones: [10, 12], vehicleId: "43C-006.34", activeReports: 1 },
 ];
 
 const D = "2026-03-20";
@@ -30,6 +30,29 @@ export const WASTE_REPORTS: WasteReport[] = [
     description: "Rác tràn ra vỉa hè, chưa được thu gom từ hôm qua",
     status: "pending", reportedAt: h("07:12"),
     assignedTo: null, collectorId: null, resolvedAt: null,
+    imageUrl: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+    items: [
+      { name: "Plastic film", quantity: 9, area: 147757 },
+      { name: "Single-use carrier bag", quantity: 2, area: 18706 },
+    ],
+    total_objects: 11,
+    pollution: {
+      CO2: 0.6931471805569416,
+      microplastic: 0.6931471805569416,
+      dioxin: 0.5365526341607301,
+      non_biodegradable: 0.6931471805569416,
+      CH4: 0,
+      "PM2.5": 0,
+      NOx: 0,
+      SO2: 0,
+      Pb: 0,
+      Hg: 0,
+      Cd: 0,
+      nitrate: 0,
+      chemical_residue: 0,
+      toxic_chemicals: 0,
+      styrene: 0,
+    },
   },
   {
     id: "RPT-002", householdId: 101, householdName: "Hộ Nguyễn Văn An",

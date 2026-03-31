@@ -23,6 +23,7 @@ const navItems = [
   { title: "Results", href: "/dashboard/survey-results", icon: Users },
   { title: "Verify", href: "/dashboard/models-verify", icon: CheckCircle },
   { title: "Monitoring", href: "/dashboard/monitoring", icon: MapPin },
+  { title: "Quản lý hộ gia đình", href: "/dashboard/household-management", icon: MapPin },
   { title: "Giám sát rác", href: "/dashboard/garbage-analytics", icon: MapPin },
   { title: "Users", href: "/dashboard/users-ocean", icon: Brain },
 ]

@@ -12,6 +12,62 @@ export interface Household {
   reportCount: number; // số báo cáo đã gửi
 }
 
+export interface HouseholdMember {
+  name: string;
+  wasteKg: number;
+  role: string;
+}
+
+export interface HouseholdWasteHistory {
+  month: string; // YYYY-MM
+  totalWasteKg: number;
+  plasticKg: number;
+  organicKg: number;
+  mixedKg: number;
+  hazardousKg: number;
+  pollution?: PollutionMetrics;
+  pollutionCO2: number;
+  pollutionDioxin: number;
+  pollutionMicroplastic: number;
+  pollutionNonBiodegradable: number;
+}
+
+export interface PollutionMetrics {
+  Cd: number;
+  Hg: number;
+  Pb: number;
+  CH4: number;
+  CO2: number;
+  NOx: number;
+  SO2: number;
+  'PM2.5': number;
+  dioxin: number;
+  nitrate: number;
+  styrene: number;
+  microplastic: number;
+  toxic_chemicals: number;
+  chemical_residue: number;
+  non_biodegradable: number;
+}
+
+export interface HouseholdImageHistory {
+  id: number;
+  uploadedAt: string;
+  imageUrl: string;
+  label: string;
+  items?: WasteReportItem[];
+  total_objects?: number;
+  pollution?: PollutionMetrics;
+  caption?: string;
+}
+
+export interface HouseholdProfile extends Household {
+  familySize: number;
+  members: HouseholdMember[];
+  wasteHistory: HouseholdWasteHistory[];
+  imageHistory: HouseholdImageHistory[];
+}
+
 export interface UrbanArea {
   id: number;
   name: string;
@@ -37,6 +93,12 @@ export interface HeatmapPoint {
 export type WasteType = "plastic" | "organic" | "mixed" | "hazardous";
 export type ReportStatus = "pending" | "assigned" | "done";
 
+export interface WasteReportItem {
+  name: string;
+  quantity: number;
+  area: number;
+}
+
 export interface WasteReport {
   id: string;
   householdId: number;
@@ -49,13 +111,16 @@ export interface WasteReport {
   wasteType: WasteType;
   description: string;
   status: ReportStatus;
-  reportedAt: string; // ISO datetime
-  assignedTo: string | null; // tên người thu gom
+  reportedAt: string;
+  reportedBy?: string;
+  assignedTo: string | null;
   collectorId: number | null;
-  resolvedAt: string | null; // ISO datetime khi hoàn thành
+  resolvedAt: string | null;
+  imageUrl?: string;
+  items?: WasteReportItem[];
+  total_objects?: number;
+  pollution?: PollutionMetrics;
 }
-
-// ─── Collector (Người thu gom rác) ─────────────────────────────────────────
 
 export interface Collector {
   id: number;
