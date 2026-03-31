@@ -1,6 +1,6 @@
 "use client";
 
-import type { Summary } from "@/types/monitoring";
+import type { Summary } from "@/types/waste-report";
 
 interface SummaryCardsProps {
   summary: Summary;

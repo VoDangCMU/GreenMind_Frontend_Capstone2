@@ -51,14 +51,14 @@ export interface WasteReport {
   status: ReportStatus;
   reportedAt: string; // ISO datetime
   assignedTo: string | null; // tên người thu gom
-  collectorId: number | null;
+  collectorId: string | null;
   resolvedAt: string | null; // ISO datetime khi hoàn thành
 }
 
 // ─── Collector (Người thu gom rác) ─────────────────────────────────────────
 
 export interface Collector {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   zones: number[]; // wardId[] phụ trách
@@ -97,4 +97,17 @@ export interface Summary {
     organic: number;
     other: number;
   };
+}
+
+// ─── Environmental Alert Marker ────────────────────────────────────────────
+
+export type AlertLevel = "normal" | "warning" | "critical";
+
+export interface EnvAlert {
+  id: number;
+  lat: number;
+  lng: number;
+  wardName: string;
+  level: AlertLevel;
+  description?: string; // mô tả ngắn (tuỳ chọn)
 }
