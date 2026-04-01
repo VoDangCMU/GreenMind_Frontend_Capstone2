@@ -53,40 +53,37 @@ export function SummaryCards({ summary, loading }: SummaryCardsProps) {
       sub: null,
       accent: "from-violet-50 to-purple-50 border-violet-100",
       valueColor: "text-violet-700",
-      custom: (
-        <div className="mt-2 space-y-1.5">
-          {[
-            {
-              label: "Plastic",
-              pct: summary.wasteDistribution.plastic,
-              color: "bg-blue-400",
-            },
-            {
-              label: "Organic",
-              pct: summary.wasteDistribution.organic,
-              color: "bg-emerald-400",
-            },
-            {
-              label: "Other",
-              pct: summary.wasteDistribution.other,
-              color: "bg-gray-300",
-            },
-          ].map((item) => (
-            <div key={item.label}>
-              <div className="flex justify-between text-xs text-gray-500 mb-0.5">
-                <span>{item.label}</span>
-                <span className="font-medium text-gray-700">{item.pct}%</span>
+      custom: (() => {
+        const dist = summary.wasteDistribution;
+        const allTypes = [
+          { label: "Plastic",   pct: dist.plastic   ?? 0, color: "bg-blue-400" },
+          { label: "Organic",   pct: dist.organic   ?? 0, color: "bg-emerald-400" },
+          { label: "Mixed",     pct: dist.mixed     ?? 0, color: "bg-amber-400" },
+          { label: "Hazardous", pct: dist.hazardous ?? 0, color: "bg-red-400" },
+        ];
+        // Chỉ hiện loại có % > 0 (loại bỏ loại không có trong data thật)
+        const visible = allTypes.filter(t => t.pct > 0);
+        const list = visible.length > 0 ? visible : allTypes; // fallback: show all nếu tất cả = 0
+
+        return (
+          <div className="mt-2 space-y-1.5">
+            {list.map((item) => (
+              <div key={item.label}>
+                <div className="flex justify-between text-xs text-gray-500 mb-0.5">
+                  <span>{item.label}</span>
+                  <span className="font-medium text-gray-700">{item.pct}%</span>
+                </div>
+                <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${item.color} rounded-full transition-all duration-700`}
+                    style={{ width: `${item.pct}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${item.color} rounded-full transition-all duration-700`}
-                  style={{ width: `${item.pct}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      ),
+            ))}
+          </div>
+        );
+      })(),
     },
   ];
 

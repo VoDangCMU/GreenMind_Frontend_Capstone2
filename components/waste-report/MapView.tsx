@@ -290,11 +290,15 @@ export function MapView({
       if (!reportLayerRef.current) return;
       reportLayerRef.current.clearLayers();
 
+      // Level 1: hiện tất cả | Level 2: lọc theo phường
       const filtered = wardName
         ? reports.filter((r) => r.wardName === wardName)
         : reports;
 
       filtered.forEach((report) => {
+        // Bỏ qua report có tọa độ (0,0) — dữ liệu không hợp lệ
+        if (report.lat === 0 && report.lng === 0) return;
+
         const icon = buildReportIcon(report.status);
         const marker = L.marker([report.lat, report.lng], {
           icon,
@@ -302,26 +306,36 @@ export function MapView({
         }).addTo(reportLayerRef.current!);
 
         const statusLabel =
-          report.status === "pending" ? "Chờ xử lý" :
+          report.status === "pending"  ? "Chờ xử lý" :
           report.status === "assigned" ? "Đang thu gom" : "Hoàn thành";
         const statusColor =
-          report.status === "pending" ? "#ef4444" :
+          report.status === "pending"  ? "#ef4444" :
           report.status === "assigned" ? "#3b82f6" : "#10b981";
-        const reportTime = new Date(report.reportedAt).toLocaleTimeString("vi-VN", {
-          hour: "2-digit", minute: "2-digit",
-        });
+        const wasteLabel = WASTE_TYPE_LABEL[report.wasteType] ?? report.wasteType;
 
         marker.bindPopup(
-          `<div style="font-family:system-ui;min-width:210px;max-width:260px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-              <span style="font-size:13px;font-weight:700;color:#111;">${report.wardName}</span>
-              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${statusColor}22;color:${statusColor};">${statusLabel}</span>
+          `<div style="font-family:system-ui;min-width:220px;max-width:270px;">
+            <!-- Header: code + status badge -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:13px;font-weight:700;color:#111;">${report.code || report.id.slice(0, 8).toUpperCase()}</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44;">${statusLabel}</span>
             </div>
-            <p style="font-size:11px;color:#444;margin:0 0 4px;">${report.description}</p>
-            <div style="font-size:10px;color:#888;margin-bottom:4px;">${report.wasteKg} kg &nbsp;|&nbsp; ${WASTE_TYPE_LABEL[report.wasteType] ?? "Hỗn hợp"}</div>
-            <div style="font-size:10px;color:#aaa;">Báo cáo lúc ${reportTime}</div>
+            <!-- Ward -->
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+              <span style="font-size:11px;color:#6b7280;">📍</span>
+              <span style="font-size:11px;font-weight:600;color:#374151;">${report.wardName}</span>
+            </div>
+            <!-- Waste type -->
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
+              <span style="font-size:11px;color:#6b7280;">♻️</span>
+              <span style="font-size:11px;color:#374151;">Loại rác: <strong>${wasteLabel}</strong></span>
+            </div>
+            <!-- Extra info -->
+            <div style="font-size:10px;color:#9ca3af;border-top:1px solid #f3f4f6;padding-top:6px;">
+              ${report.wasteKg} kg &nbsp;·&nbsp; ${report.description}
+            </div>
           </div>`,
-          { maxWidth: 280, className: "monitoring-leaflet-popup" }
+          { maxWidth: 290, className: "monitoring-leaflet-popup" }
         );
 
         marker.on("click", () => {
@@ -334,18 +348,17 @@ export function MapView({
 
   // ── Main render logic: switch between level 1 and level 2 ───────────────
   useEffect(() => {
-    if (!mapLoaded || areas.length === 0) return;
+    if (!mapLoaded) return;
 
     if (!selectedWardName) {
-      // ── Level 1: ward overview ──
-      drawWardOverview();
-      alertLayerRef.current?.clearLayers();   // hide detail markers
-      reportLayerRef.current?.clearLayers();  // hide report pins — level 1 chỉ có ward markers
-      // fly back to overview
+      // ── Level 1: ward overview + ALL report pins ──
+      if (areas.length > 0) drawWardOverview();
+      alertLayerRef.current?.clearLayers();
+      drawReportPins(null); // hiện tất cả markers từ API
       mapRef.current?.flyTo([16.065, 108.220], 13, { duration: 0.6 });
     } else {
       // ── Level 2: ward detail ──
-      wardLayerRef.current?.clearLayers();       // hide ward overview
+      wardLayerRef.current?.clearLayers();
       drawAlertDetail(selectedWardName);
       drawReportPins(selectedWardName);
 

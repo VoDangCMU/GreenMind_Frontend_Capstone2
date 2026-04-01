@@ -7,9 +7,7 @@ import { SummaryCards } from "@/components/waste-report/SummaryCards";
 import { ReportList } from "@/components/waste-report/ReportList";
 import { AreaDrawer } from "@/components/waste-report/AreaDrawer";
 import { WARDS } from "@/data/wardData";
-// Removed COLLECTORS mock data
 import { ENV_ALERTS } from "@/data/envAlertData";
-import { activityService } from "@/services/activity.service";
 import { getAccessToken } from "@/lib/auth";
 
 const MapView = dynamic(
@@ -33,13 +31,15 @@ export default function MonitoringPage() {
       setLoading(true);
       try {
         const token = getAccessToken();
-        const [overviewData, reportsRes, collectorsRes] = await Promise.all([
-          activityService.getOverview(),
-          fetch("https://vodang-api.gauas.com/waste-monitoring", {
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined
+        const [reportsRes, collectorsRes] = await Promise.all([
+          // limit=100 để lấy toàn bộ reports, không bị giới hạn page
+          fetch("https://vodang-api.gauas.com/waste-monitoring?limit=100", {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            cache: "no-store"
           }).catch(() => null),
           fetch("https://vodang-api.gauas.com/waste-monitoring/collectors", {
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            cache: "no-store"
           }).catch(() => null)
         ]);
 
@@ -48,76 +48,108 @@ export default function MonitoringPage() {
 
         if (collectorsRes && collectorsRes.ok) {
           const cData = await collectorsRes.json();
-          if (cData && Array.isArray(cData.data)) {
-            validCollectors = cData.data.map((c: any) => ({
-              id: c.id,
-              name: c.fullName || "Không rõ",
-              phone: c.phoneNumber || "Không có SĐT",
-              zones: [],
-              vehicleId: "",
-              activeReports: c.activeReports || 0
-            }));
-          }
+          const collectorList = Array.isArray(cData) ? cData : (cData?.data ?? []);
+          validCollectors = collectorList.map((c: any) => ({
+            id: c.id,
+            name: c.fullName || "Không rõ",
+            phone: c.phoneNumber || "Không có SĐT",
+            zones: [],
+            vehicleId: "",
+            activeReports: c.activeReports || 0
+          }));
         }
         setCollectors(validCollectors);
 
         if (reportsRes && reportsRes.ok) {
           const apiData = await reportsRes.json();
-          if (Array.isArray(apiData)) {
-            validReports = apiData.map((r: any) => {
-              // Map wasteType
-              const wTypeStr = (r.items?.[0]?.name || "").toLowerCase();
-              let wasteType: WasteType = "mixed";
-              if (wTypeStr.includes("plastic") || wTypeStr.includes("nhựa")) wasteType = "plastic";
-              else if (wTypeStr.includes("organic") || wTypeStr.includes("hữu cơ")) wasteType = "organic";
-              else if (wTypeStr.includes("hazardous") || wTypeStr.includes("nguy hại")) wasteType = "hazardous";
+          // API trả về { data: [...], total, page, limit }
+          const rawList: any[] = Array.isArray(apiData) ? apiData : (apiData?.data ?? []);
 
-              // Map status 
-              let status: ReportStatus = "pending";
-              if (r.status === "assigned") status = "assigned";
-              if (r.status === "done" || r.status === "collected" || r.status === "resolved") status = "done";
+          const wasteTypeMap: Record<string, WasteType> = {
+            plastic: "plastic",
+            organic: "organic",
+            hazardous: "hazardous",
+            mixed: "mixed",
+          };
+          const statusMap: Record<string, ReportStatus> = {
+            pending: "pending",
+            assigned: "assigned",
+            done: "done",
+            collected: "done",
+            resolved: "done",
+          };
 
-              return {
-                id: r.id,
-                householdId: 0,
-                householdName: r.reportedBy?.fullName || "Người thu gom",
-                wardId: 0, // Not used strictly, we rely on wardName
-                wardName: r.wardName || "Không rõ",
-                lat: r.lat || 16.0708,
-                lng: r.lng || 108.2215,
-                wasteKg: r.wasteKg || 0,
-                wasteType,
-                description: r.description || "Không có nội dung",
-                status,
-                reportedAt: r.createdAt || new Date().toISOString(),
-                assignedTo: r.assignedCollector?.fullName || null,
-                collectorId: r.assignedCollectorId ? -1 : null,
-                resolvedAt: r.resolvedAt || null,
-              } as WasteReport;
-            });
-          }
+          validReports = rawList.map((r: any) => ({
+            id: r.id,
+            code: r.code || "",
+            householdId: 0,
+            householdName: r.reportedBy || "Không rõ",
+            wardId: 0,
+            wardName: r.wardName || "Không rõ",
+            lat: r.lat ?? 0,
+            lng: r.lng ?? 0,
+            wasteKg: r.wasteKg || 0,
+            wasteType: wasteTypeMap[r.wasteType] ?? "mixed",
+            description: r.description || "Không có nội dung",
+            status: statusMap[r.status] ?? "pending",
+            reportedAt: r.createdAt || new Date().toISOString(),
+            assignedTo: r.assignedTo || null,
+            collectorId: r.collectorId || null,
+            resolvedAt: r.resolvedAt || null,
+          } as WasteReport));
         }
 
         setReports(validReports);
 
+        // Tính summary từ dữ liệu thực
+        const totalKg = validReports.reduce((s, r) => s + r.wasteKg, 0);
+        const uniqueWards = new Set(validReports.map(r => r.wardName)).size;
+        const totalCount = validReports.length || 1; // tránh chia 0
+
+        // Đếm số lượng report theo từng wasteType → tính %
+        const countByType = (type: WasteType) =>
+          validReports.filter(r => r.wasteType === type).length;
+
+        const plasticCount = countByType("plastic");
+        const organicCount = countByType("organic");
+        const mixedCount = countByType("mixed");
+        const hazardousCount = countByType("hazardous");
+
+        // Làm tròn, điều chỉnh bucket lớn nhất để tổng = 100
+        const toRaw = (n: number) => Math.round((n / totalCount) * 100);
+        let plasticPct = toRaw(plasticCount);
+        let organicPct = toRaw(organicCount);
+        let mixedPct = toRaw(mixedCount);
+        let hazardousPct = toRaw(hazardousCount);
+        const diff = 100 - plasticPct - organicPct - mixedPct - hazardousPct;
+        // Cộng phần dư vào bucket lớn nhất
+        const maxPct = Math.max(plasticPct, organicPct, mixedPct, hazardousPct);
+        if (diff !== 0) {
+          if (mixedPct === maxPct) mixedPct += diff;
+          else if (plasticPct === maxPct) plasticPct += diff;
+          else if (organicPct === maxPct) organicPct += diff;
+          else hazardousPct += diff;
+        }
+
         setSummary({
-          totalWaste: WARDS.reduce((s, w) => s + w.totalWaste, 0),
-          urbanAreas: WARDS.length,
-          pendingReports: validReports.filter((r) => r.status === "pending").length,
+          totalWaste: totalKg,
+          urbanAreas: uniqueWards,
+          pendingReports: validReports.filter(r => r.status === "pending").length,
           wasteDistribution: {
-            plastic: overviewData.avgPlastic,
-            organic: 100 - overviewData.avgPlastic - 20,
-            other: 20,
+            plastic: plasticPct,
+            organic: organicPct,
+            mixed: mixedPct,
+            hazardous: hazardousPct,
           },
         });
       } catch (err) {
         console.error("Failed to fetch monitoring data:", err);
         setReports([]);
         setSummary({
-          totalWaste: WARDS.reduce((s, w) => s + w.totalWaste, 0),
-          urbanAreas: WARDS.length,
+          totalWaste: 0,
+          urbanAreas: 0,
           pendingReports: 0,
-          wasteDistribution: { plastic: 42, organic: 38, other: 20 },
+          wasteDistribution: { plastic: 0, organic: 0, mixed: 0, hazardous: 0 },
         });
       } finally {
         setLoading(false);
@@ -147,9 +179,9 @@ export default function MonitoringPage() {
       }
 
       // Có thể đọc JSON response (assignedData = await res.json()) nhưng ở đây ta chỉ cần update State
-      setReports(prev => prev.map(r => 
-        r.id === reportId 
-          ? { ...r, status: "assigned", assignedTo: collector.name, collectorId: collector.id } 
+      setReports(prev => prev.map(r =>
+        r.id === reportId
+          ? { ...r, status: "assigned", assignedTo: collector.name, collectorId: collector.id }
           : r
       ));
     } catch (err) {
@@ -219,7 +251,7 @@ export default function MonitoringPage() {
           summary={
             summary ?? {
               totalWaste: 0, urbanAreas: 0, pendingReports: 0,
-              wasteDistribution: { plastic: 0, organic: 0, other: 0 },
+              wasteDistribution: { plastic: 0, organic: 0, mixed: 0, hazardous: 0 },
             }
           }
           loading={loading}

@@ -39,6 +39,7 @@ export type ReportStatus = "pending" | "assigned" | "done";
 
 export interface WasteReport {
   id: string;
+  code: string;           // e.g. "RPT001", "WR-9A6F0D4B"
   householdId: number;
   householdName: string;
   wardId: number;
@@ -49,10 +50,10 @@ export interface WasteReport {
   wasteType: WasteType;
   description: string;
   status: ReportStatus;
-  reportedAt: string; // ISO datetime
-  assignedTo: string | null; // tên người thu gom
+  reportedAt: string;
+  assignedTo: string | null;
   collectorId: string | null;
-  resolvedAt: string | null; // ISO datetime khi hoàn thành
+  resolvedAt: string | null;
 }
 
 // ─── Collector (Người thu gom rác) ─────────────────────────────────────────
@@ -95,7 +96,8 @@ export interface Summary {
   wasteDistribution: {
     plastic: number;
     organic: number;
-    other: number;
+    mixed: number;
+    hazardous: number;
   };
 }
 
