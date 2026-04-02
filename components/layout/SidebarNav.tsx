@@ -15,15 +15,16 @@ import {
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { title: "Dashboard",     href: "/dashboard",              icon: LayoutDashboard },
-  { title: "Models",        href: "/dashboard/tree",         icon: TreePine },
-  { title: "Questions",     href: "/dashboard/questions",    icon: MessageSquare },
-  { title: "Surveys",       href: "/dashboard/survey",       icon: FileText },
-  { title: "Results",       href: "/dashboard/survey-results", icon: Users },
-  { title: "Verify",        href: "/dashboard/models-verify", icon: CheckCircle },
-  { title: "Waste Report",  href: "/dashboard/waste-report",   icon: MapPin },
-  { title: "Giám sát rác",  href: "/dashboard/garbage-analytics", icon: MapPin },
-  { title: "Users",         href: "/dashboard/users-ocean",  icon: Brain },
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Models", href: "/dashboard/tree", icon: TreePine },
+  { title: "Questions", href: "/dashboard/questions", icon: MessageSquare },
+  { title: "Surveys", href: "/dashboard/survey", icon: FileText },
+  { title: "Results", href: "/dashboard/survey-results", icon: Users },
+  { title: "Verify", href: "/dashboard/models-verify", icon: CheckCircle },
+  { title: "Waste Report", href: "/dashboard/waste-report", icon: MapPin },
+  { title: "Giám sát rác", href: "/dashboard/garbage-analytics", icon: MapPin },
+  { title: "Quản lý hộ gia đình", href: "/dashboard/household-management", icon: MapPin },
+  { title: "Users", href: "/dashboard/users-ocean", icon: Brain },
 ]
 
 interface SidebarNavProps {
