@@ -20,6 +20,25 @@ export function HouseholdDetailsPanel({ household, reports }: HouseholdDetailsPa
         return reports.filter((r) => r.householdId === household.id);
     }, [household, reports]);
 
+    const historyItems = useMemo(() => {
+        if (!household) return [];
+
+        const imageByDate = new Map<string, typeof household.imageHistory[0]>();
+        household.imageHistory.forEach((image) => {
+            const key = new Date(image.uploadedAt).toDateString();
+            imageByDate.set(key, image);
+        });
+
+        return householdReports.map((report) => {
+            const reportDate = new Date(report.reportedAt).toDateString();
+            return {
+                ...report,
+                image: imageByDate.get(reportDate) ?? null,
+                reportDate,
+            };
+        });
+    }, [household, householdReports]);
+
     if (!household) {
         return (
             <div className="p-4 rounded-2xl border border-dashed border-gray-200 bg-white h-full flex items-center justify-center text-gray-500">
@@ -33,9 +52,9 @@ export function HouseholdDetailsPanel({ household, reports }: HouseholdDetailsPa
     const pctOrganic = Math.round((latest.organicKg / latest.totalWasteKg) * 100);
 
     return (
-        <div className="space-y-5 max-h-[78vh] overflow-y-auto p-3">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Card className="p-3 shadow-sm border border-gray-100">
+        <div className="space-y-6 h-[82vh] max-h-[82vh] overflow-y-auto p-4 bg-slate-50 rounded-2xl shadow-inner">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                <Card className="p-4 shadow-lg border border-slate-200 bg-white">
                     <CardHeader>
                         <CardTitle>Thông tin hộ dân</CardTitle>
                     </CardHeader>
@@ -53,7 +72,7 @@ export function HouseholdDetailsPanel({ household, reports }: HouseholdDetailsPa
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-sm border border-gray-100">
+                <Card className="shadow-lg border border-slate-200 bg-white">
                     <CardHeader>
                         <CardTitle>Thành viên hộ gia đình</CardTitle>
                     </CardHeader>
@@ -81,6 +100,39 @@ export function HouseholdDetailsPanel({ household, reports }: HouseholdDetailsPa
                     </CardContent>
                 </Card>
             </div>
+
+            <Card className="shadow-lg border border-slate-200 bg-white">
+                <CardHeader>
+                    <CardTitle>Biểu đồ đường tổng rác 12 tháng</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="w-full h-80 md:h-88 xl:h-96">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={household.wasteHistory}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                                <XAxis dataKey="month" tickFormatter={(value) => value.slice(5)} />
+                                <YAxis />
+                                <Tooltip formatter={(value: any) => {
+                                    if (value == null) return "";
+                                    const val = Number(value);
+                                    if (Number.isNaN(val)) return String(value);
+                                    return `${val.toLocaleString()} kg`;
+                                }} />
+                                <Legend verticalAlign="top" align="right" height={36} />
+                                <Line
+                                    type="monotone"
+                                    dataKey="totalWasteKg"
+                                    stroke="#10b981"
+                                    strokeWidth={3}
+                                    dot={{ r: 4, fill: "#10b981" }}
+                                    activeDot={{ r: 6 }}
+                                    connectNulls
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card className="shadow-sm border border-gray-100">
                 <CardHeader>
@@ -180,24 +232,6 @@ export function HouseholdDetailsPanel({ household, reports }: HouseholdDetailsPa
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                            <div className="text-xs text-slate-600">CO2</div>
-                            <div className="font-semibold text-slate-900">{latest.pollution?.CO2?.toFixed(3) ?? latest.pollutionCO2.toFixed(3)}</div>
-                        </div>
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                            <div className="text-xs text-slate-600">Dioxin</div>
-                            <div className="font-semibold text-slate-900">{latest.pollution?.dioxin?.toFixed(3) ?? latest.pollutionDioxin.toFixed(3)}</div>
-                        </div>
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                            <div className="text-xs text-slate-600">Microplastic</div>
-                            <div className="font-semibold text-slate-900">{latest.pollution?.microplastic?.toFixed(3) ?? latest.pollutionMicroplastic.toFixed(3)}</div>
-                        </div>
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                            <div className="text-xs text-slate-600">Non-biodegradable</div>
-                            <div className="font-semibold text-slate-900">{latest.pollution?.non_biodegradable?.toFixed(3) ?? latest.pollutionNonBiodegradable.toFixed(3)}</div>
-                        </div>
-                    </div>
                 </CardContent>
             </Card>
 
@@ -215,68 +249,42 @@ export function HouseholdDetailsPanel({ household, reports }: HouseholdDetailsPa
                                 return reportDate === imageDate;
                             });
 
-                            const reportInfo = relatedReport || householdReports[0] || null;
-
                             return (
-                                <div key={image.id} className="border rounded-xl p-2 bg-slate-50">
-                                    <div className="flex gap-2 items-start">
-                                        <img src={image.imageUrl} alt={image.label} className="h-20 w-28 object-cover rounded-md" />
-                                        <div className="text-xs flex-1">
-                                            <p className="font-semibold text-slate-700">{image.label}</p>
-                                            <p className="text-slate-500">{image.uploadedAt}</p>
-                                            {image.caption && <p className="text-slate-600">{image.caption}</p>}
-                                            {reportInfo ? (
-                                                <div className="mt-2 rounded-md border border-slate-200 bg-white p-2 text-xs">
-                                                    <div className="font-semibold text-slate-700">Thông tin báo cáo liên quan</div>
-                                                    <div>Rác: {reportInfo.wasteKg.toFixed(1)} kg</div>
-                                                    <div>Phân loại: {reportInfo.wasteType}</div>
-                                                    <div>Trạng thái: {reportInfo.status}</div>
-                                                    <div>Người gửi: {reportInfo.reportedBy || reportInfo.householdName || "Chưa rõ"}</div>
-                                                    {reportInfo.imageUrl && (
-                                                        <div className="mt-1">Ảnh báo cáo: <a className="text-sky-700" href={reportInfo.imageUrl} target="_blank" rel="noreferrer">Xem</a></div>
-                                                    )}
-                                                    {reportInfo.total_objects != null && (
-                                                        <div>Tổng đối tượng: {reportInfo.total_objects}</div>
-                                                    )}
-                                                    {reportInfo.items?.length ? (
-                                                        <div className="mt-1">
-                                                            <div className="font-semibold">Chi tiết đồ vật:</div>
-                                                            <ul className="ml-4 list-disc">
-                                                                {reportInfo.items.map((item) => (
-                                                                    <li key={item.name}>
-                                                                        {item.name} - {item.quantity} (diện tích {item.area})
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    ) : null}
-                                                    {reportInfo.pollution && (
-                                                        <div className="mt-1">
-                                                            <div className="font-semibold">Mức độ ô nhiễm:</div>
-                                                            <div className="grid grid-cols-2 gap-1 text-xs">
-                                                                {Object.entries(reportInfo.pollution).map(([key, value]) => (
-                                                                    <div key={key}>{key}: {Number(value).toFixed(3)}</div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="mt-2 text-xs text-slate-500">Không có báo cáo liên quan trong cùng ngày.</div>
-                                            )}
+                                <div key={image.id} className="border rounded-xl p-3 bg-white shadow-sm transition hover:shadow-md">
+                                    <div className="flex gap-3 items-start">
+                                        <img src={image.imageUrl} alt={image.label} className="h-20 w-28 object-cover rounded-lg border" />
+                                        <div className="text-xs flex-1 space-y-1">
+                                            <div className="flex items-center justify-between">
+                                                <p className="font-semibold text-slate-700">Ảnh rác thải {new Date(image.uploadedAt).toLocaleDateString("vi-VN")}</p>
+                                                <span className="text-[11px] text-slate-500">{new Date(image.uploadedAt).toLocaleTimeString("vi-VN")}</span>
+                                            </div>
+                                            <p className="text-slate-600">{image.caption || "Rác thải hộ gia đình"}</p>
+
+                                            <p className="text-sm">
+                                                <span className="font-medium">Người gửi:</span> {relatedReport?.reportedBy || relatedReport?.householdName || "Chưa rõ"}
+                                            </p>
+
+                                            <div className="flex flex-wrap gap-2 text-xs">
+                                                {relatedReport ? (
+                                                    <>
+                                                        <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700">{relatedReport.status}</span>
+                                                        <span className="px-2 py-1 rounded bg-slate-100">{relatedReport.wasteType}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="px-2 py-1 rounded bg-rose-100 text-rose-700">Không có báo cáo cùng ngày</span>
+                                                )}
+                                            </div>
 
                                             {image.total_objects != null && (
-                                                <div className="mt-2 text-xs">
-                                                    <span className="font-semibold">Tổng đối tượng ảnh:</span> {image.total_objects}
-                                                </div>
+                                                <p className="text-xs text-slate-500">Tổng đối tượng: {image.total_objects}</p>
                                             )}
 
                                             {image.items?.length ? (
-                                                <div className="mt-2 text-xs">
-                                                    <div className="font-semibold">Danh sách vật phẩm trong ảnh:</div>
-                                                    <ul className="ml-4 list-disc">
+                                                <div className="text-xs">
+                                                    <p className="font-medium">Danh sách vật phẩm:</p>
+                                                    <ul className="ml-4 list-disc space-y-1">
                                                         {image.items.map((item) => (
-                                                            <li key={item.name}>{item.name} - {item.quantity} (area {item.area})</li>
+                                                            <li key={item.name} className="leading-tight">{item.name} - {item.quantity} (area {item.area})</li>
                                                         ))}
                                                     </ul>
                                                 </div>
@@ -284,10 +292,10 @@ export function HouseholdDetailsPanel({ household, reports }: HouseholdDetailsPa
 
                                             {image.pollution && (
                                                 <div className="mt-2 text-xs">
-                                                    <div className="font-semibold">Pollution image:</div>
-                                                    <div className="grid grid-cols-2 gap-1">
+                                                    <p className="font-medium">Pollution image:</p>
+                                                    <div className="grid grid-cols-2 gap-1 text-slate-600">
                                                         {Object.entries(image.pollution).map(([key, value]) => (
-                                                            <div key={key}>{key}: {Number(value).toFixed(3)}</div>
+                                                            <div key={key} className="bg-slate-50 rounded px-2 py-1">{key}: {Number(value).toFixed(3)}</div>
                                                         ))}
                                                     </div>
                                                 </div>

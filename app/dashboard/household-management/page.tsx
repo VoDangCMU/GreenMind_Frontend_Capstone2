@@ -30,19 +30,23 @@ export default function HouseholdManagementPage() {
     }, [allHouseholds]);
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-slate-50">
-            <div className="shrink-0 px-6 pt-4 pb-3 bg-white border-b border-gray-200">
+        <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-sky-50">
+            <div className="shrink-0 px-6 pt-4 pb-3 bg-white/90 backdrop-blur border-b border-gray-200 shadow-sm">
                 <div className="flex flex-wrap justify-between items-center gap-3">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Quản lý hộ gia đình - Đà Nẵng</h1>
-                        <p className="text-sm text-gray-500 mt-1">Bản đồ vị trí hộ dân, thống kê rác hàng tháng, lịch sử hình ảnh.</p>
+                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Quản lý hộ gia đình - Đà Nẵng</h1>
+                        <p className="text-sm text-slate-500 mt-1">Bản đồ vị trí hộ dân, thống kê rác hàng tháng, lịch sử hình ảnh.</p>
                     </div>
-                    <div className="text-sm text-slate-600 space-y-1">
+                    <div className="text-sm text-slate-600 space-y-2 rounded-xl bg-white p-3 shadow-sm border border-gray-200">
                         <p>Hộ dân: <strong>{allHouseholds.length}</strong></p>
                         <p>Ngày: <strong>{new Date().toLocaleDateString("vi-VN")}</strong></p>
                         <p>Tổng rác/ngày: <strong>{summary.totalWastePerDay.toFixed(1)} kg</strong></p>
                         <p>Báo cáo: <strong>{summary.totalReports}</strong></p>
-                        <p>Trạng thái: <strong className="text-red-500">{summary.red}</strong> | <strong className="text-amber-500">{summary.yellow}</strong> | <strong className="text-emerald-500">{summary.green}</strong></p>
+                        <p>Trạng thái:
+                            <span className="ml-2 px-2 py-1 rounded-md bg-red-100 text-red-700">{summary.red}</span>
+                            <span className="ml-2 px-2 py-1 rounded-md bg-amber-100 text-amber-700">{summary.yellow}</span>
+                            <span className="ml-2 px-2 py-1 rounded-md bg-emerald-100 text-emerald-700">{summary.green}</span>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -62,7 +66,7 @@ export default function HouseholdManagementPage() {
                     </div>
 
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <DialogContent className="max-w-none">
+                        <DialogContent className="w-[90vw] max-w-[90vw] sm:w-[75vw] sm:max-w-[75vw] h-[90vh] max-h-[90vh] overflow-hidden">
                             <DialogTitle>Chi tiết hộ gia đình</DialogTitle>
                             <DialogDescription>
                                 Xem thông tin toàn diện, thành viên, rác thải, ảnh và báo cáo.
