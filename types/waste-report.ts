@@ -101,6 +101,7 @@ export interface WasteReportItem {
 
 export interface WasteReport {
   id: string;
+  code: string;
   householdId: number;
   householdName: string;
   wardId: number;
@@ -112,6 +113,7 @@ export interface WasteReport {
   description: string;
   status: ReportStatus;
   reportedAt: string;
+<<<<<<< HEAD:types/monitoring.ts
   reportedBy?: string;
   assignedTo: string | null;
   collectorId: number | null;
@@ -120,10 +122,17 @@ export interface WasteReport {
   items?: WasteReportItem[];
   total_objects?: number;
   pollution?: PollutionMetrics;
+=======
+  assignedTo: string | null;
+  collectorId: string | null;
+  resolvedAt: string | null;
+  imageUrl: string | null;           // ảnh báo cáo rác ban đầu
+  imageEvidenceUrl: string | null;   // ảnh bằng chứng sau khi thu gom (status done)
+>>>>>>> a56796c383533b3638c7f3cc9309bd2fe5b459c0:types/waste-report.ts
 }
 
 export interface Collector {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   zones: number[]; // wardId[] phụ trách
@@ -160,6 +169,20 @@ export interface Summary {
   wasteDistribution: {
     plastic: number;
     organic: number;
-    other: number;
+    mixed: number;
+    hazardous: number;
   };
+}
+
+// ─── Environmental Alert Marker ────────────────────────────────────────────
+
+export type AlertLevel = "normal" | "warning" | "critical";
+
+export interface EnvAlert {
+  id: number;
+  lat: number;
+  lng: number;
+  wardName: string;
+  level: AlertLevel;
+  description?: string; // mô tả ngắn (tuỳ chọn)
 }

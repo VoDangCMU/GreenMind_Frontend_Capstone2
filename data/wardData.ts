@@ -1,4 +1,4 @@
-import type { UrbanArea, Household } from "@/types/monitoring";
+import type { UrbanArea, Household } from "@/types/waste-report";
 
 // ---------------------------------------------------------------------------
 // CẤU TRÚC ĐỊA LÝ ĐÀ NẴNG (tham khảo OpenStreetMap + Google Maps):

@@ -14,14 +14,16 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import type { UrbanArea, WasteReport } from "@/types/monitoring";
+import type { UrbanArea, WasteReport, Collector } from "@/types/waste-report";
 import { HOUSEHOLDS } from "@/data/wardData";
-import { COLLECTORS } from "@/data/reportData";
+// Removed COLLECTORS import
 
 interface AreaDrawerProps {
   area: UrbanArea | null;
   wasteReports: WasteReport[];
+  collectors: Collector[];
   onClose: () => void;
+  onAssign?: (reportId: string, collectorId: string) => void;
 }
 
 const AREA_DETAILS: Record<
@@ -220,7 +222,7 @@ const REPORT_STATUS_CFG = {
   done:     { label: "Hoàn thành",   bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
 };
 
-export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
+export function AreaDrawer({ area, wasteReports, collectors, onClose, onAssign }: AreaDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
 
   // Local mutable copy of reports (for assign action)
@@ -231,7 +233,7 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
   // Selected report for detail view
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   // Collector selection for pending assign
-  const [selectedCollectorId, setSelectedCollectorId] = useState<number | null>(null);
+  const [selectedCollectorId, setSelectedCollectorId] = useState<string | null>(null);
   // Success flash
   const [assignedFlash, setAssignedFlash] = useState(false);
 
@@ -239,8 +241,14 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
 
   function handleAssign() {
     if (!selectedReport || selectedCollectorId === null) return;
-    const collector = COLLECTORS.find(c => c.id === selectedCollectorId);
+    const collector = collectors.find(c => c.id === selectedCollectorId);
     if (!collector) return;
+    
+    // Call the parent handler to sync state globally
+    if (onAssign) {
+      onAssign(selectedReport.id, selectedCollectorId);
+    }
+    
     setLocalReports(prev =>
       prev.map(r =>
         r.id === selectedReport.id
@@ -275,22 +283,10 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
   const statusCfg = area ? STATUS_LABEL[area.status] : null;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px] transition-opacity duration-300 ${
-          area ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div
-        ref={drawerRef}
-        className={`fixed top-0 right-0 h-full w-[600px] z-50 bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
-          area ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
+    <div
+      ref={drawerRef}
+      className="w-full h-full bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col overflow-hidden"
+    >
         {/* Drawer header */}
         <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div>
@@ -331,7 +327,7 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
             <>
               {/* Report pipeline for this ward — TOP */}
               {(() => {
-                const wardReports = localReports.filter(r => r.wardId === area.id);
+                const wardReports = localReports.filter(r => r.wardName === area.name);
                 if (wardReports.length === 0) return null;
                 const pendingCount = wardReports.filter(r => r.status === "pending").length;
                 return (
@@ -462,9 +458,9 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
                   },
                   {
                     label: "Báo cáo chờ",
-                    value: wasteReports.filter(r => r.wardId === area.id && r.status === "pending").length,
+                    value: localReports.filter(r => r.wardName === area.name && r.status === "pending").length,
                     accent: "text-amber-600",
-                    sub: `/ ${wasteReports.filter(r => r.wardId === area.id).length} tổng`,
+                    sub: `/ ${localReports.filter(r => r.wardName === area.name).length} tổng`,
                   },
                 ].map((stat) => (
                   <div key={stat.label} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
@@ -546,47 +542,6 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
                 </ResponsiveContainer>
               </ChartCard>
 
-              {/* Chart 3: Electricity Consumption */}
-              <ChartCard title="Tiêu thụ điện (kWh)">
-                <ResponsiveContainer width="100%" height={120}>
-                  <AreaChart data={detail.electricityByMonth}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fontSize: 10, fill: "#9ca3af" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 10, fill: "#9ca3af" }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={40}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        fontSize: 11,
-                        borderRadius: 8,
-                        border: "none",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                      }}
-                    />
-                    <defs>
-                      <linearGradient id="electricGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Area
-                      type="monotone"
-                      dataKey="kwh"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      fill="url(#electricGrad)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartCard>
 
               {/* Chart 4: Waste Emission Trend */}
               <ChartCard title="Xu hướng phát thải CO₂ (tấn)">
@@ -639,7 +594,7 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
 
         {/* ── Report Detail Panel (slides in over the drawer content) ── */}
         <div
-          className={`absolute inset-0 z-10 bg-white flex flex-col transition-transform duration-300 ease-out ${
+          className={`absolute inset-0 z-10 bg-white rounded-2xl flex flex-col transition-transform duration-300 ease-out ${
             selectedReport ? "translate-x-0" : "translate-x-full"
           }`}
         >
@@ -760,7 +715,7 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
 
                       {/* Collector list */}
                       <div className="space-y-2">
-                        {COLLECTORS.map(c => (
+                        {collectors.map(c => (
                           <label
                             key={c.id}
                             className={`flex items-center gap-3 rounded-lg p-2.5 cursor-pointer border transition-all ${
@@ -818,7 +773,6 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
             );
           })()}
         </div>
-      </div>
-    </>
+    </div>
   );
 }
