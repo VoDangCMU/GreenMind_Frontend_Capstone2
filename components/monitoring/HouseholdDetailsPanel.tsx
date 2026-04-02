@@ -201,37 +201,6 @@ export function HouseholdDetailsPanel({ household, reports }: HouseholdDetailsPa
                 </CardContent>
             </Card>
 
-            <Card className="shadow-sm border border-gray-100">
-                <CardHeader>
-                    <CardTitle>Lịch sử báo cáo rác</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-2 max-h-56 overflow-y-auto">
-                        {householdReports.map((report) => (
-                            <div key={report.id} className="rounded-xl border bg-slate-50 p-2">
-                                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                                    <div className="font-semibold text-slate-700">{report.id}</div>
-                                    <div className="text-slate-500">{new Date(report.reportedAt).toLocaleString("vi-VN")}</div>
-                                </div>
-                                <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                    <div>Khối lượng: <span className="font-semibold">{report.wasteKg.toFixed(1)} kg</span></div>
-                                    <div>Trạng thái: <span className="font-semibold">{report.status}</span></div>
-                                    <div>Người gửi: <span className="font-semibold">{report.reportedBy || report.householdName || "Chưa rõ"}</span></div>
-                                    <div>Phân loại: <span className="font-semibold">{report.wasteType}</span></div>
-                                </div>
-                                {report.description && (
-                                    <div className="mt-1 text-xs text-slate-600">
-                                        {report.description}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                        {!householdReports.length && (
-                            <div className="text-sm text-slate-500">Chưa có báo cáo cho hộ này.</div>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
 
             <Card className="shadow-sm border border-gray-100">
                 <CardHeader>
