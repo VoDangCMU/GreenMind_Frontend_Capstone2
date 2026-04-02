@@ -15,6 +15,11 @@ const MapView = dynamic(
   { ssr: false }
 );
 
+const MapWard = dynamic(
+  () => import("@/components/waste-report/MapWard").then((m) => m.MapWard),
+  { ssr: false }
+);
+
 export default function MonitoringPage() {
   const [areas] = useState<UrbanArea[]>(WARDS);
   const [reports, setReports] = useState<WasteReport[]>([]);
@@ -96,6 +101,8 @@ export default function MonitoringPage() {
             assignedTo: r.assignedTo || null,
             collectorId: r.collectorId || null,
             resolvedAt: r.resolvedAt || null,
+            imageUrl: r.imageUrl || null,
+            imageEvidenceUrl: r.imageEvidenceUrl || null,
           } as WasteReport));
         }
 
@@ -203,11 +210,9 @@ export default function MonitoringPage() {
   }, []);
 
   const handleReportClick = useCallback((report: WasteReport) => {
-    setHighlightAreaName(report.wardName);
-    setSelectedWardName(report.wardName);
-    const matched = areas.find(a => a.name === report.wardName);
-    if (matched) setSelectedArea(matched);
-  }, [areas]);
+    // Theo yêu cầu: không làm thay đổi map state khi click vào report
+    // Map vẫn giữ nguyên level 1 (boundary).
+  }, []);
 
   const handleClearSelection = useCallback(() => {
     setSelectedWardName(null);
@@ -218,7 +223,7 @@ export default function MonitoringPage() {
   const now = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-gray-50">
       {/* Header — fixed */}
       <div className="shrink-0 px-6 pt-4 pb-3 bg-white border-b border-gray-100">
         <div className="flex items-center justify-between">

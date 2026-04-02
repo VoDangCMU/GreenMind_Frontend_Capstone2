@@ -2,7 +2,135 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
+import { createRoot } from "react-dom/client";
+import { WardChartPopup } from "./WardChartPopup";
 import type { UrbanArea, WasteReport, EnvAlert } from "@/types/waste-report";
+
+// Fix Leaflet's default icon path resolving issue in Next.js
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+// ---------------------------------------------------------------------------
+// Nominatim boundary cache — 2 tầng:
+//   1. localStorage  → tồn tại qua reload, đóng/mở tab
+//   2. _memCache     → Map in-memory, truy cập O(1) trong session
+//
+// ⚠ Bump CACHE_VERSION để invalidate cache cũ khi cần
+// ---------------------------------------------------------------------------
+const CACHE_VERSION = "v2";                              // v1 → v2: xoá null poisoned entries
+const LS_PREFIX = `nominatim_boundary_${CACHE_VERSION}_`;
+const LS_OLD_PREFIXES = ["nominatim_boundary_v1_"];       // các version cũ cần dọn
+const _memCache = new Map<string, GeoJSON.GeoJsonObject | null>();
+
+// Dọn dẹp các key thuộc version cũ (chạy 1 lần khi module load)
+if (typeof window !== "undefined") {
+  try {
+    const oldKeys = Object.keys(localStorage).filter((k) =>
+      LS_OLD_PREFIXES.some((prefix) => k.startsWith(prefix))
+    );
+    oldKeys.forEach((k) => localStorage.removeItem(k));
+    if (oldKeys.length > 0) {
+      console.info(`[boundary-cache] Cleaned ${oldKeys.length} stale keys from old versions`);
+    }
+  } catch { /* ignore */ }
+}
+
+/** Đọc từ localStorage → geo object hoặc undefined nếu chưa có */
+function lsGet(ward: string): GeoJSON.GeoJsonObject | null | undefined {
+  try {
+    const raw = localStorage.getItem(LS_PREFIX + ward);
+    if (raw === null) return undefined;          // chưa có trong LS
+    const parsed = JSON.parse(raw);
+    // Paranoia check: nếu parse ra null thì coi như chưa có (không trust)
+    // Chỉ trust null nếu đây là v2+ (proxy hoạt động)
+    return parsed as GeoJSON.GeoJsonObject | null;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Ghi vào localStorage */
+function lsSet(ward: string, geo: GeoJSON.GeoJsonObject | null): void {
+  try {
+    localStorage.setItem(LS_PREFIX + ward, JSON.stringify(geo));
+  } catch { /* quota exceeded — ignore */ }
+}
+
+/** Xoá toàn bộ cache boundary (dùng khi cần refresh) */
+export function clearBoundaryCache(): void {
+  _memCache.clear();
+  Object.keys(localStorage)
+    .filter((k) => k.startsWith(LS_PREFIX))
+    .forEach((k) => localStorage.removeItem(k));
+}
+
+async function fetchWardBoundary(
+  ward: string
+): Promise<{ ward: string; geo: GeoJSON.GeoJsonObject | null }> {
+  // 1️⃣ In-memory cache
+  if (_memCache.has(ward)) return { ward, geo: _memCache.get(ward)! };
+
+  // 2️⃣ localStorage cache
+  const cached = lsGet(ward);
+  if (cached !== undefined) {
+    _memCache.set(ward, cached);          // warm in-memory
+    return { ward, geo: cached };
+  }
+
+  // 3️⃣ Gọi qua Next.js proxy (tránh CORS với Nominatim)
+  try {
+    const q = `${ward}, Đà Nẵng, Việt Nam`;
+    const res = await fetch(`/api/nominatim?q=${encodeURIComponent(q)}`);
+    if (!res.ok) throw new Error(`Proxy error ${res.status}`);
+    const data = await res.json();
+    const geo: GeoJSON.GeoJsonObject | null =
+      Array.isArray(data) && data.length > 0 && data[0].geojson
+        ? data[0].geojson
+        : null;
+
+    _memCache.set(ward, geo);
+    lsSet(ward, geo);                     // persist vào localStorage
+    return { ward, geo };
+  } catch {
+    _memCache.set(ward, null);
+    lsSet(ward, null);
+    return { ward, geo: null };
+  }
+}
+
+// Danh sách phường cần vẽ boundary
+const WARD_NAMES = [
+  "An Hải", "An Khê", "An Thắng", "Avyương", "Bà Nà", "Bàn Thạch",
+  "Bến Giằng", "Bến Hiên", "Cẩm Lệ", "Chiên Đàn", "Duy Nghĩa", "Duy Xuyên",
+  "Đại Lộc", "Đắc Pring", "Điện Bàn", "Điện Bàn Bắc", "Điện Bàn Đông",
+  "Điện Bàn Tây", "Đồng Dương", "Đông Giang", "Đức Phú", "Gò Nổi", "Hà Nha",
+  "Hải Châu", "Hải Vân", "Hiệp Đức", "Hòa Cường", "Hòa Khánh", "Hòa Tiến",
+  "Hòa Vang", "Hòa Xuân", "Hoàng Sa", "Hội An", "Hội An Đông", "Hội An Tây",
+  "Hùng Sơn", "Hương Trà", "Khâm Đức", "La Dêeê", "La Êeê", "Lãnh Ngọc",
+  "Liên Chiểu", "Nam Giang", "Nam Phước", "Nam Trà My", "Ngũ Hành Sơn",
+  "Nông Sơn", "Núi Thành", "Phú Ninh", "Phú Thuận", "Phước Chánh",
+  "Phước Hiệp", "Phước Năng", "Phước Thành", "Phước Trà", "Quảng Phú",
+  "Quế Phước", "Quế Sơn", "Quế Sơn Trung", "Sông Kôn", "Sông Vàng",
+  "Sơn Cẩm Hà", "Sơn Trà", "Tam Anh", "Tam Hải", "Tam Kỳ", "Tam Mỹ",
+  "Tam Xuân", "Tân Hiệp", "Tây Giang", "Tây Hồ", "Thạnh Bình", "Thanh Khê",
+  "Thạnh Mỹ", "Thăng An", "Thăng Bình", "Thăng Điền", "Thăng Phú",
+  "Thăng Trường", "Thu Bồn", "Thượng Đức", "Tiên Phước", "Trà Đốc",
+  "Trà Giáp", "Trà Leng", "Trà Liên", "Trà Linh", "Trà My", "Trà Tân",
+  "Trà Tập", "Trà Vân", "Việt An", "Vu Gia", "Xuân Phú",
+];
+
+const BOUNDARY_DEFAULT: L.PathOptions = {
+  color: "#3b82f6", weight: 1.5,
+  fillColor: "#3b82f6", fillOpacity: 0.08, opacity: 0.7,
+};
+const BOUNDARY_HOVER: L.PathOptions = {
+  color: "#1d4ed8", weight: 2.5,
+  fillColor: "#1d4ed8", fillOpacity: 0.22, opacity: 1,
+};
 
 interface MapViewProps {
   areas: UrbanArea[];
@@ -24,22 +152,22 @@ const ALERT_CFG: Record<
   string,
   { color: string; border: string; label: string; pulse: boolean }
 > = {
-  normal:   { color: "#10b981", border: "#059669", label: "Bình thường", pulse: false },
-  warning:  { color: "#f59e0b", border: "#d97706", label: "Cảnh báo",    pulse: false },
-  critical: { color: "#ef4444", border: "#b91c1c", label: "Nguy hiểm",   pulse: true  },
+  normal: { color: "#10b981", border: "#059669", label: "Bình thường", pulse: false },
+  warning: { color: "#f59e0b", border: "#d97706", label: "Cảnh báo", pulse: false },
+  critical: { color: "#ef4444", border: "#b91c1c", label: "Nguy hiểm", pulse: true },
 };
 
 // Ward-level status → badge color (derived from UrbanArea.status)
 const WARD_STATUS_CFG: Record<string, { color: string; border: string; label: string }> = {
-  red:    { color: "#ef4444", border: "#b91c1c", label: "Nguy hiểm"  },
-  yellow: { color: "#f59e0b", border: "#d97706", label: "Cảnh báo"   },
-  green:  { color: "#10b981", border: "#059669", label: "Bình thường" },
+  red: { color: "#ef4444", border: "#b91c1c", label: "Nguy hiểm" },
+  yellow: { color: "#f59e0b", border: "#d97706", label: "Cảnh báo" },
+  green: { color: "#10b981", border: "#059669", label: "Bình thường" },
 };
 
 const REPORT_COLORS: Record<string, { bg: string; border: string; pulse: boolean }> = {
-  pending:  { bg: "#ef4444", border: "#b91c1c", pulse: true  },
+  pending: { bg: "#ef4444", border: "#b91c1c", pulse: true },
   assigned: { bg: "#3b82f6", border: "#1d4ed8", pulse: false },
-  done:     { bg: "#10b981", border: "#059669", pulse: false },
+  done: { bg: "#10b981", border: "#059669", pulse: false },
 };
 
 const WASTE_TYPE_LABEL: Record<string, string> = {
@@ -174,12 +302,22 @@ export function MapView({
   const mapRef = useRef<L.Map | null>(null);
   // Layer for ward-overview markers (level 1)
   const wardLayerRef = useRef<L.LayerGroup | null>(null);
+  // Layer for ward boundary polygons from Nominatim (level 1)
+  const boundaryLayerRef = useRef<L.LayerGroup | null>(null);
   // Layer for env-alert detail markers (level 2)
   const alertLayerRef = useRef<L.LayerGroup | null>(null);
   // Layer for report pins (always on top)
   const reportLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [boundaryLoading, setBoundaryLoading] = useState(false);
+  const [boundaryLoaded, setBoundaryLoaded] = useState(0);
+
+  const [popupWardData, setPopupWardData] = useState<{ wardName: string; reports: WasteReport[] } | null>(null);
+
+  // Ref luôn trỏ vào reports mới nhất — dùng trong popup click handler
+  const reportsRef = useRef<typeof reports>(reports);
+  useEffect(() => { reportsRef.current = reports; }, [reports]);
 
   // ── Inject keyframe once ────────────────────────────────────────────────
   useEffect(() => {
@@ -215,8 +353,9 @@ export function MapView({
     L.control.zoom({ position: "topleft" }).addTo(map);
     L.control.attribution({ position: "bottomleft", prefix: false }).addTo(map);
 
-    wardLayerRef.current   = L.layerGroup().addTo(map);
-    alertLayerRef.current  = L.layerGroup().addTo(map);
+    wardLayerRef.current = L.layerGroup().addTo(map);
+    boundaryLayerRef.current = L.layerGroup().addTo(map); // polygons dưới ward markers
+    alertLayerRef.current = L.layerGroup().addTo(map);
     reportLayerRef.current = L.layerGroup().addTo(map);
 
     mapRef.current = map;
@@ -284,6 +423,101 @@ export function MapView({
     [envAlerts]
   );
 
+  // ── BOUNDARY: fetch + draw 1 lần khi map sẵn sàng ─────────────────────────
+  // Không phụ thuộc vào reports — popup sẽ đọc từ reportsRef tại thời điểm click
+  const drawWardBoundaries = useCallback(async () => {
+    if (!boundaryLayerRef.current) return;
+    boundaryLayerRef.current.clearLayers();
+    setBoundaryLoading(true);
+    let loaded = 0;
+    const BATCH = 8;
+
+    for (let i = 0; i < WARD_NAMES.length; i += BATCH) {
+      if (!boundaryLayerRef.current) break;
+
+      const batch = WARD_NAMES.slice(i, i + BATCH);
+      const results = await Promise.all(batch.map(fetchWardBoundary));
+
+      results.forEach(({ ward, geo }) => {
+        if (!geo || !boundaryLayerRef.current) return;
+
+        // Style mặc định xanh — sẽ cập nhật màu khi reports có dữ liệu
+        const defaultStyle: L.PathOptions = {
+          color: "#3b82f6", weight: 1.8,
+          fillColor: "#3b82f6", fillOpacity: 0.08, opacity: 0.8,
+        };
+        const hoverBaseStyle: L.PathOptions = {
+          color: "#1d4ed8", weight: 2.8,
+          fillColor: "#1d4ed8", fillOpacity: 0.22, opacity: 1,
+        };
+
+        const geoLayer = L.geoJSON(geo, {
+          style: () => ({ ...defaultStyle }),
+          onEachFeature: (_feat, featureLayer) => {
+            if (!(featureLayer instanceof L.Path)) return;
+
+            featureLayer.on({
+              mouseover: () => {
+                // Tính màu dynamic từ reports hiện tại
+                const snap = reportsRef.current;
+                const wPending = snap.filter(
+                  (r) => r.wardName.toLowerCase().includes(ward.toLowerCase()) ||
+                    ward.toLowerCase().includes(r.wardName.toLowerCase())
+                ).filter(r => r.status === "pending").length;
+                const wTotal = snap.filter(
+                  (r) => r.wardName.toLowerCase().includes(ward.toLowerCase()) ||
+                    ward.toLowerCase().includes(r.wardName.toLowerCase())
+                ).length;
+                const hColor = wPending > 3 ? "#ef4444"
+                  : wPending > 0 ? "#f59e0b"
+                    : wTotal > 0 ? "#10b981"
+                      : "#1d4ed8";
+                featureLayer.setStyle({ ...hoverBaseStyle, color: hColor, fillColor: hColor });
+              },
+              mouseout: () => {
+                featureLayer.setStyle({ ...defaultStyle });
+              },
+              click: (e: L.LeafletMouseEvent) => {
+                // Zoom vào polygon
+                const bounds = (featureLayer as unknown as L.Polygon).getBounds?.();
+                if (bounds) {
+                  mapRef.current?.flyToBounds(bounds.pad(0.08), {
+                    duration: 0.6, maxZoom: 15,
+                  });
+                }
+
+                // Lọc danh sách reports thuộc phường hiện tại
+                const snap = reportsRef.current;
+                const wardReports = snap.filter(
+                  (r) => r.wardName.toLowerCase().includes(ward.toLowerCase()) ||
+                    ward.toLowerCase().includes(r.wardName.toLowerCase())
+                );
+
+                // Hiện Popup bự ở giữa màn hình (React state)
+                setPopupWardData({ wardName: ward, reports: wardReports });
+              },
+            });
+
+            featureLayer.bindTooltip(ward, {
+              sticky: true, direction: "top", offset: [0, -4],
+              className: "monitoring-leaflet-tooltip",
+            });
+          },
+        });
+
+        boundaryLayerRef.current!.addLayer(geoLayer);
+        loaded++;
+        setBoundaryLoaded(loaded);
+      });
+
+      if (i + BATCH < WARD_NAMES.length) {
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    }
+
+    setBoundaryLoading(false);
+  }, []); // deps rỗng — chỉ chạy 1 lần khi mount
+
   // ── Draw report pins ─────────────────────────────────────────────────────
   const drawReportPins = useCallback(
     (wardName: string | null) => {
@@ -306,11 +540,11 @@ export function MapView({
         }).addTo(reportLayerRef.current!);
 
         const statusLabel =
-          report.status === "pending"  ? "Chờ xử lý" :
-          report.status === "assigned" ? "Đang thu gom" : "Hoàn thành";
+          report.status === "pending" ? "Chờ xử lý" :
+            report.status === "assigned" ? "Đang thu gom" : "Hoàn thành";
         const statusColor =
-          report.status === "pending"  ? "#ef4444" :
-          report.status === "assigned" ? "#3b82f6" : "#10b981";
+          report.status === "pending" ? "#ef4444" :
+            report.status === "assigned" ? "#3b82f6" : "#10b981";
         const wasteLabel = WASTE_TYPE_LABEL[report.wasteType] ?? report.wasteType;
 
         marker.bindPopup(
@@ -351,18 +585,24 @@ export function MapView({
     if (!mapLoaded) return;
 
     if (!selectedWardName) {
-      // ── Level 1: ward overview + ALL report pins ──
-      if (areas.length > 0) drawWardOverview();
-      alertLayerRef.current?.clearLayers();
-      drawReportPins(null); // hiện tất cả markers từ API
-      mapRef.current?.flyTo([16.065, 108.220], 13, { duration: 0.6 });
-    } else {
-      // ── Level 2: ward detail ──
+      // ── Level 1: boundary polygons + report pins ──
       wardLayerRef.current?.clearLayers();
+      alertLayerRef.current?.clearLayers();
+      drawReportPins(null);
+      // Boundary layer luôn được hiện ở level 1
+      if (boundaryLayerRef.current && !mapRef.current?.hasLayer(boundaryLayerRef.current)) {
+        mapRef.current?.addLayer(boundaryLayerRef.current);
+      }
+      mapRef.current?.flyTo([16.065, 108.220], 10, { duration: 0.6 });
+    } else {
+      // ── Level 2: ward detail — ẩn boundary để gọn bản đồ ──
+      wardLayerRef.current?.clearLayers();
+      if (boundaryLayerRef.current) {
+        mapRef.current?.removeLayer(boundaryLayerRef.current);
+      }
       drawAlertDetail(selectedWardName);
       drawReportPins(selectedWardName);
 
-      // Fly to the selected ward
       const ward = areas.find((a) => a.name === selectedWardName);
       if (ward) {
         if (ward.bounds && ward.bounds.length >= 3) {
@@ -379,10 +619,15 @@ export function MapView({
     areas,
     reports,
     envAlerts,
-    drawWardOverview,
     drawAlertDetail,
     drawReportPins,
   ]);
+
+  // ── Fetch boundaries 1 lần ngay khi map sẵn sàng ────────────────────────────
+  useEffect(() => {
+    if (!mapLoaded) return;
+    drawWardBoundaries();
+  }, [mapLoaded, drawWardBoundaries]);
 
   // ── Highlight from ReportList click ────────────────────────────────────
   useEffect(() => {
@@ -401,12 +646,12 @@ export function MapView({
   const visibleAlerts = selectedWardName
     ? envAlerts.filter((a) => a.wardName === selectedWardName)
     : envAlerts;
-  const normalCount   = visibleAlerts.filter((a) => a.level === "normal").length;
-  const warningCount  = visibleAlerts.filter((a) => a.level === "warning").length;
+  const normalCount = visibleAlerts.filter((a) => a.level === "normal").length;
+  const warningCount = visibleAlerts.filter((a) => a.level === "warning").length;
   const criticalCount = visibleAlerts.filter((a) => a.level === "critical").length;
-  const pendingCount  = reports.filter((r) => !selectedWardName || r.wardName === selectedWardName).filter(r => r.status === "pending").length;
+  const pendingCount = reports.filter((r) => !selectedWardName || r.wardName === selectedWardName).filter(r => r.status === "pending").length;
   const assignedCount = reports.filter((r) => !selectedWardName || r.wardName === selectedWardName).filter(r => r.status === "assigned").length;
-  const doneCount     = reports.filter((r) => !selectedWardName || r.wardName === selectedWardName).filter(r => r.status === "done").length;
+  const doneCount = reports.filter((r) => !selectedWardName || r.wardName === selectedWardName).filter(r => r.status === "done").length;
 
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
@@ -418,6 +663,23 @@ export function MapView({
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-sm text-gray-500">Đang tải bản đồ…</p>
+          </div>
+        </div>
+      )}
+
+      {/* Boundary loading badge — non-blocking, góc dưới trái */}
+      {mapLoaded && !selectedWardName && boundaryLoading && (
+        <div className="absolute bottom-4 left-4 z-[1000] bg-white/90 backdrop-blur-sm border border-blue-100 shadow-sm rounded-xl px-3 py-2 text-xs flex items-center gap-2">
+          <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-blue-700">Đang tải ranh giới phường…</p>
+            <div className="mt-1 w-28 h-1 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-400 rounded-full transition-all duration-300"
+                style={{ width: `${(boundaryLoaded / WARD_NAMES.length) * 100}%` }}
+              />
+            </div>
+            <p className="text-gray-400 mt-0.5">{boundaryLoaded} / {WARD_NAMES.length}</p>
           </div>
         </div>
       )}
@@ -464,9 +726,9 @@ export function MapView({
             // Level 2 legend: env alert levels
             <>
               {[
-                { color: ALERT_CFG.normal.color,   label: `Bình thường (${normalCount})`  },
-                { color: ALERT_CFG.warning.color,  label: `Cảnh báo (${warningCount})`    },
-                { color: ALERT_CFG.critical.color, label: `Nguy hiểm (${criticalCount})`  },
+                { color: ALERT_CFG.normal.color, label: `Bình thường (${normalCount})` },
+                { color: ALERT_CFG.warning.color, label: `Cảnh báo (${warningCount})` },
+                { color: ALERT_CFG.critical.color, label: `Nguy hiểm (${criticalCount})` },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full border-2 border-white shadow-sm flex-shrink-0" style={{ background: item.color }} />
@@ -475,15 +737,16 @@ export function MapView({
               ))}
             </>
           ) : (
-            // Level 1 legend: ward status
+            // Level 1 legend: boundary color meaning
             <>
               {[
-                { color: "#ef4444", label: "Nguy hiểm"   },
-                { color: "#f59e0b", label: "Cảnh báo"     },
-                { color: "#10b981", label: "Bình thường"  },
+                { color: "#ef4444", label: "Nhiều báo cáo chờ" },
+                { color: "#f59e0b", label: "Có báo cáo chờ" },
+                { color: "#10b981", label: "Đã xử lý xong" },
+                { color: "#3b82f6", label: "Không có báo cáo" },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full border-2 border-white shadow-sm flex-shrink-0" style={{ background: item.color }} />
+                  <span className="w-3 h-3 rounded-sm border-2 border-white shadow-sm flex-shrink-0" style={{ background: item.color }} />
                   <span className="text-gray-500 whitespace-nowrap">{item.label}</span>
                 </div>
               ))}
@@ -496,15 +759,28 @@ export function MapView({
               Báo cáo rác
             </p>
             {[
-              { color: "#ef4444", label: `Chờ xử lý (${pendingCount})`    },
+              { color: "#ef4444", label: `Chờ xử lý (${pendingCount})` },
               { color: "#3b82f6", label: `Đang thu gom (${assignedCount})` },
-              { color: "#10b981", label: `Hoàn thành (${doneCount})`       },
+              { color: "#10b981", label: `Hoàn thành (${doneCount})` },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: item.color }} />
                 <span className="text-gray-500 whitespace-nowrap">{item.label}</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* React Modal (thay vì Leaflet Popup) cho thống kê Phường */}
+      {popupWardData && (
+        <div className="absolute inset-0 z-[2000] bg-white/95 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full h-full p-6 flex flex-col">
+            <WardChartPopup 
+              wardName={popupWardData.wardName} 
+              reports={popupWardData.reports} 
+              onClose={() => setPopupWardData(null)}
+            />
           </div>
         </div>
       )}

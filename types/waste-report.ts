@@ -39,7 +39,7 @@ export type ReportStatus = "pending" | "assigned" | "done";
 
 export interface WasteReport {
   id: string;
-  code: string;           // e.g. "RPT001", "WR-9A6F0D4B"
+  code: string;
   householdId: number;
   householdName: string;
   wardId: number;
@@ -54,6 +54,8 @@ export interface WasteReport {
   assignedTo: string | null;
   collectorId: string | null;
   resolvedAt: string | null;
+  imageUrl: string | null;           // ảnh báo cáo rác ban đầu
+  imageEvidenceUrl: string | null;   // ảnh bằng chứng sau khi thu gom (status done)
 }
 
 // ─── Collector (Người thu gom rác) ─────────────────────────────────────────
