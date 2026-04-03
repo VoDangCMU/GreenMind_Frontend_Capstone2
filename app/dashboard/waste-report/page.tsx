@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import type { Summary, UrbanArea, WasteReport, WasteType, ReportStatus, Collector } from "@/types/waste-report";
 import { SummaryCards } from "@/components/waste-report/SummaryCards";
-import { ReportList } from "@/components/waste-report/ReportList";
+import { ReportList, ReportDetailModal } from "@/components/waste-report/ReportList";
 import { AreaDrawer } from "@/components/waste-report/AreaDrawer";
 import { WARDS } from "@/data/wardData";
 import { ENV_ALERTS } from "@/data/envAlertData";
@@ -30,6 +30,7 @@ export default function MonitoringPage() {
   const [selectedArea, setSelectedArea] = useState<UrbanArea | null>(null);
   const [highlightAreaName, setHighlightAreaName] = useState<string | null>(null);
   const [selectedWardName, setSelectedWardName] = useState<string | null>(null);
+  const [selectedReportPopup, setSelectedReportPopup] = useState<WasteReport | null>(null);
 
   useEffect(() => {
     async function fetchAll() {
@@ -210,8 +211,8 @@ export default function MonitoringPage() {
   }, []);
 
   const handleReportClick = useCallback((report: WasteReport) => {
-    // Theo yêu cầu: không làm thay đổi map state khi click vào report
-    // Map vẫn giữ nguyên level 1 (boundary).
+    // Hiển thị modal detail của report
+    setSelectedReportPopup(report);
   }, []);
 
   const handleClearSelection = useCallback(() => {
@@ -308,6 +309,14 @@ export default function MonitoringPage() {
           </div>
         </div>
       </div>
+
+      {/* Detail Modal cho map marker click */}
+      {selectedReportPopup && (
+        <ReportDetailModal
+          report={selectedReportPopup}
+          onClose={() => setSelectedReportPopup(null)}
+        />
+      )}
     </div>
   );
 }

@@ -16,16 +16,17 @@ import {
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { title: "Dashboard",     href: "/dashboard",              icon: LayoutDashboard },
-  { title: "Models",        href: "/dashboard/tree",         icon: TreePine },
-  { title: "Questions",     href: "/dashboard/questions",    icon: MessageSquare },
-  { title: "Surveys",       href: "/dashboard/survey",       icon: FileText },
-  { title: "Results",       href: "/dashboard/survey-results", icon: Users },
-  { title: "Verify",        href: "/dashboard/models-verify", icon: CheckCircle },
-  { title: "Waste Report",  href: "/dashboard/waste-report",   icon: MapPin },
-  { title: "Giám sát rác",  href: "/dashboard/garbage-analytics", icon: MapPin },
-  { title: "Env. Impact",   href: "/dashboard/environmental-impact", icon: Wind },
-  { title: "Users",         href: "/dashboard/users-ocean",  icon: Brain },
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Models", href: "/dashboard/tree", icon: TreePine },
+  { title: "Questions", href: "/dashboard/questions", icon: MessageSquare },
+  { title: "Surveys", href: "/dashboard/survey", icon: FileText },
+  { title: "Results", href: "/dashboard/survey-results", icon: Users },
+  { title: "Verify", href: "/dashboard/models-verify", icon: CheckCircle },
+  { title: "Waste Report", href: "/dashboard/waste-report", icon: MapPin },
+  { title: "Giám sát rác", href: "/dashboard/garbage-analytics", icon: MapPin },
+  { title: "Env. Impact", href: "/dashboard/environmental-impact", icon: Wind },
+  { title: "Household Management", href: "/dashboard/household-management", icon: MapPin },
+  { title: "Users", href: "/dashboard/users-ocean", icon: Brain },
 ]
 
 interface SidebarNavProps {
@@ -55,11 +56,9 @@ export function SidebarNav({ isMobile = false }: SidebarNavProps) {
                 : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
             )}
           >
-            {/* Icon — luôn hiển thị, canh giữa khi thu */}
             <item.icon
               className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : "text-slate-400")}
             />
-            {/* Label — ẩn khi thu, hiện khi hover (dùng group từ Sidebar) */}
             <span
               className={cn(
                 "truncate whitespace-nowrap overflow-hidden",

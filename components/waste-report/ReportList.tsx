@@ -31,7 +31,7 @@ const FILTERS: { label: string; value: ReportStatus | "all" }[] = [
 ];
 
 // ─── Detail Modal ────────────────────────────────────────────────────────────
-function ReportDetailModal({
+export function ReportDetailModal({
   report,
   onClose,
 }: {
