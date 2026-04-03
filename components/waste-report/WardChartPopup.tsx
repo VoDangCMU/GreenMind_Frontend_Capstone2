@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { getAccessToken } from "@/lib/auth";
 import { type WasteReport } from "@/types/waste-report";
 import {
-  ComposedChart,
-  Bar,
+  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -19,10 +19,11 @@ import { vi } from "date-fns/locale";
 interface WardChartPopupProps {
   wardName: string;
   reports: WasteReport[];
+  allReports?: WasteReport[];
   onClose?: () => void;
 }
 
-export function WardChartPopup({ wardName, reports, onClose }: WardChartPopupProps) {
+export function WardChartPopup({ wardName, reports, allReports, onClose }: WardChartPopupProps) {
   // Tính toán tóm tắt
   const stats = useMemo(() => {
     const wPending = reports.filter((r) => r.status === "pending").length;
@@ -33,37 +34,90 @@ export function WardChartPopup({ wardName, reports, onClose }: WardChartPopupPro
     return { wPending, wAssigned, wDone, wTotalKg, wTotal };
   }, [reports]);
 
-  const [timeView, setTimeView] = useState<"day" | "month" | "year">("day");
+  const [globalReports, setGlobalReports] = useState<WasteReport[]>(allReports || []);
+  const [loadingChart, setLoadingChart] = useState(true);
+
+  useEffect(() => {
+    async function fetchAllStatuses() {
+      try {
+        const token = getAccessToken();
+        // Lấy dữ liệu mới nhất (số lượng lớn) để thống kê 100% biểu đồ không bị gò ép bởi status đang mở của user
+        const res = await fetch("https://vodang-api.gauas.com/waste-monitoring?limit=2000", {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        if (res.ok) {
+          const apiData = await res.json();
+          const rawList = Array.isArray(apiData) ? apiData : (apiData?.data ?? []);
+          const mapped = rawList.map((r: any) => ({
+            id: r.id,
+            wardName: r.wardName || "Không rõ",
+            wasteKg: r.wasteKg || 0,
+            reportedAt: r.createdAt || new Date().toISOString(),
+            status: r.status || "pending",
+          } as WasteReport));
+          setGlobalReports(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch all statuses for chart", err);
+      } finally {
+        setLoadingChart(false);
+      }
+    }
+    fetchAllStatuses();
+  }, []);
+
+  // Tìm top 10 phường có tổng số báo cáo nhiều nhất từ globalReports
+  const top10Wards = useMemo(() => {
+    if (!globalReports || globalReports.length === 0) return [wardName];
+    const counts: Record<string, number> = {};
+    globalReports.forEach(r => {
+      counts[r.wardName] = (counts[r.wardName] || 0) + 1;
+    });
+    // Sắp xếp và lấy 10 phường cao nhất
+    const top = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(e => e[0]);
+    // Đảm bảo wardName hiện tại có trong mảng, hoặc bạn có thể giữ nguyên top 10
+    return top;
+  }, [allReports, wardName]);
+
+
+
+  const [timeView, setTimeView] = useState<"day" | "month" | "year">("month");
 
   // Nhóm dự liệu cho biểu đồ theo ngày/tháng/năm
   const chartData = useMemo(() => {
-    if (reports.length === 0) return [];
+    if (!globalReports || globalReports.length === 0) return [];
+    const map = new Map<string, any>();
 
-    const map = new Map<string, { count: number; kg: number; sortKey: string; displayDate: string }>();
+    globalReports.forEach((r) => {
+      if (!top10Wards.includes(r.wardName)) return;
 
-    reports.forEach((r) => {
       try {
         const d = typeof r.reportedAt === "string" ? parseISO(r.reportedAt) : new Date(r.reportedAt);
-        // Fallback safely if date parsing fails
         if (isNaN(d.getTime())) return;
 
         let key = "";
         let display = "";
         if (timeView === "day") {
-           key = format(d, "yyyy-MM-dd");
-           display = format(d, "dd/MM", { locale: vi });
+          key = format(d, "yyyy-MM-dd");
+          display = format(d, "dd/MM", { locale: vi });
         } else if (timeView === "month") {
-           key = format(d, "yyyy-MM");
-           display = format(d, "MM/yyyy", { locale: vi });
+          key = format(d, "yyyy-MM");
+          display = format(d, "MM/yyyy", { locale: vi });
         } else {
-           key = format(d, "yyyy");
-           display = format(d, "yyyy");
+          key = format(d, "yyyy");
+          display = format(d, "yyyy");
         }
 
-        const existing = map.get(key) || { count: 0, kg: 0, sortKey: key, displayDate: display };
-        existing.count += 1;
-        existing.kg += r.wasteKg;
-        map.set(key, existing);
+        if (!map.has(key)) {
+          const initObj: any = { sortKey: key, displayDate: display };
+          top10Wards.forEach(w => initObj[w] = 0);
+          map.set(key, initObj);
+        }
+
+        map.get(key)[r.wardName] += 1;
       } catch (err) {
         // ignore invalid dates
       }
@@ -73,32 +127,55 @@ export function WardChartPopup({ wardName, reports, onClose }: WardChartPopupPro
 
     // Nếu chỉ có 1 data point, thêm 2 điểm ảo 2 bên để graph render cân bằng
     if (sorted.length === 1) {
-       // Thêm "-01" để đảm bảo parseISO xử lý đúng format nếu chỉ có "yyyy" hoặc "yyyy-MM"
-       const centerD = parseISO(sorted[0].sortKey + (timeView==="month"?"-01":timeView==="year"?"-01-01":""));
-       const preD = new Date(centerD); 
-       const postD = new Date(centerD);
-       
-       if (timeView === "day") { 
-         preD.setDate(preD.getDate() - 1); 
-         postD.setDate(postD.getDate() + 1); 
-       } else if (timeView === "month") { 
-         preD.setMonth(preD.getMonth() - 1); 
-         postD.setMonth(postD.getMonth() + 1); 
-       } else { 
-         preD.setFullYear(preD.getFullYear() - 1); 
-         postD.setFullYear(postD.getFullYear() + 1); 
-       }
+      const centerD = parseISO(sorted[0].sortKey + (timeView === "month" ? "-01" : timeView === "year" ? "-01-01" : ""));
+      const preD = new Date(centerD);
+      const postD = new Date(centerD);
 
-       const displayFormat = timeView === "day" ? "dd/MM" : timeView === "month" ? "MM/yyyy" : "yyyy";
-       return [
-          { count: 0, kg: 0, sortKey: "00", displayDate: format(preD, displayFormat, { locale: vi }) },
-          sorted[0],
-          { count: 0, kg: 0, sortKey: "ZZ", displayDate: format(postD, displayFormat, { locale: vi }) }
-       ];
+      if (timeView === "day") {
+        preD.setDate(preD.getDate() - 1);
+        postD.setDate(postD.getDate() + 1);
+      } else if (timeView === "month") {
+        preD.setMonth(preD.getMonth() - 1);
+        postD.setMonth(postD.getMonth() + 1);
+      } else {
+        preD.setFullYear(preD.getFullYear() - 1);
+        postD.setFullYear(postD.getFullYear() + 1);
+      }
+
+      const displayFormat = timeView === "day" ? "dd/MM" : timeView === "month" ? "MM/yyyy" : "yyyy";
+      return [
+        { sortKey: "00", displayDate: format(preD, displayFormat, { locale: vi }) },
+        sorted[0],
+        { sortKey: "ZZ", displayDate: format(postD, displayFormat, { locale: vi }) }
+      ];
     }
 
     return sorted;
-  }, [reports, timeView]);
+  }, [globalReports, top10Wards, timeView]);
+
+  // Màu cố định cho tối đa 10 phường
+  const COLORS = ["#0ea5e9", "#22c55e", "#f59e0b", "#ef4444", "#a855f7", "#fb923c", "#14b8a6", "#ec4899", "#8b5cf6", "#64748b"];
+
+  const SortedTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || payload.length === 0) {
+      return null;
+    }
+    const sortedPayload = [...payload].sort((a, b) => (b.value || 0) - (a.value || 0));
+    return (
+      <div className="rounded-md border border-slate-200 bg-white p-2 shadow-lg z-[10000]">
+        <p className="text-xs font-semibold text-slate-500 mb-1">{label}</p>
+        <div className="max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+          {sortedPayload.map((entry: any) => (
+            <div key={entry.dataKey} className="flex items-center gap-2 text-xs mb-1">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
+              <span className="w-24 truncate">{entry.name || entry.dataKey}</span>
+              <span className="ml-auto font-semibold whitespace-nowrap">{entry.value?.toLocaleString()} báo cáo</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="font-sans flex flex-col w-full h-full">
@@ -117,12 +194,12 @@ export function WardChartPopup({ wardName, reports, onClose }: WardChartPopupPro
           <span className="text-[10px] text-gray-400">Không có dữ liệu</span>
         )}
         {onClose && (
-          <button 
+          <button
             onClick={onClose}
             className="ml-auto w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M18 6L6 18M6 6l12 12"/>
+              <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
         )}
@@ -130,126 +207,109 @@ export function WardChartPopup({ wardName, reports, onClose }: WardChartPopupPro
 
       {/* Stats Board */}
       {stats.wTotal > 0 ? (
-        <>
-          <div className="grid grid-cols-4 gap-3 mb-4">
-            <div className="bg-red-50 rounded-xl p-3 text-center flex flex-col justify-center">
-              <div className="text-lg font-extrabold text-red-500 leading-tight">{stats.wPending}</div>
-              <div className="text-xs text-gray-500 mt-1">Chờ xử lý</div>
-            </div>
-            <div className="bg-blue-50 rounded-xl p-3 text-center flex flex-col justify-center">
-              <div className="text-lg font-extrabold text-blue-500 leading-tight">{stats.wAssigned}</div>
-              <div className="text-xs text-gray-500 mt-1">Thu gom</div>
-            </div>
-            <div className="bg-emerald-50 rounded-xl p-3 text-center flex flex-col justify-center">
-              <div className="text-lg font-extrabold text-emerald-500 leading-tight">{stats.wDone}</div>
-              <div className="text-xs text-gray-500 mt-1">Xong</div>
-            </div>
-            <div className="bg-violet-50 rounded-xl p-3 text-center flex flex-col justify-center">
-              <div className="text-lg font-extrabold text-violet-500 leading-tight">{stats.wTotalKg}</div>
-              <div className="text-xs text-gray-500 mt-1">Kg rác</div>
-            </div>
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          <div className="bg-red-50 rounded-xl p-3 text-center flex flex-col justify-center">
+            <div className="text-lg font-extrabold text-red-500 leading-tight">{stats.wPending}</div>
+            <div className="text-xs text-gray-500 mt-1">Chờ xử lý</div>
           </div>
-
-          <div className="flex items-center justify-between gap-4 mb-4 mt-2">
-            <div className="text-sm text-gray-400 flex items-center gap-1.5">
-              <span>Tổng số {stats.wTotal} báo cáo</span>
-              <span>·</span>
-              <span className="font-medium text-gray-500">Biểu đồ rác thải</span>
-            </div>
-            
-            <div className="bg-gray-100/80 p-1 rounded-xl flex gap-1 shadow-inner border border-gray-200/50">
-              {[
-                {id: "day", label: "Ngày"}, 
-                {id: "month", label: "Tháng"}, 
-                {id: "year", label: "Năm"}
-              ].map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setTimeView(t.id as any)}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                    timeView === t.id 
-                      ? "bg-white text-blue-600 shadow-sm border border-gray-200/60" 
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50 border border-transparent"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+          <div className="bg-blue-50 rounded-xl p-3 text-center flex flex-col justify-center">
+            <div className="text-lg font-extrabold text-blue-500 leading-tight">{stats.wAssigned}</div>
+            <div className="text-xs text-gray-500 mt-1">Thu gom</div>
           </div>
-
-          {/* Chart Container */}
-          <div className="flex-1 min-h-[260px] w-full bg-white border border-gray-100 rounded-xl overflow-hidden -ml-2 pb-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 15, right: 10, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                <XAxis 
-                  dataKey="sortKey"
-                  scale="band"
-                  tickFormatter={(val) => {
-                    const item = chartData.find((d) => d.sortKey === val);
-                    return item ? item.displayDate : val;
-                  }}
-                  tick={{ fontSize: 9, fill: "#9ca3af" }}
-                  tickLine={false}
-                  axisLine={{ stroke: "#e5e7eb" }}
-                />
-                
-                {/* Trục Y trái: Khối lượng (Bar) */}
-                <YAxis
-                  yAxisId="left"
-                  tick={{ fontSize: 9, fill: "#9ca3af" }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(val) => `${val}kg`}
-                />
-                
-                {/* Trục Y phải: Số lượng report (Line) */}
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  tick={{ fontSize: 9, fill: "#ef4444" }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(val) => `${val} đơn`}
-                />
-                
-                <RechartsTooltip
-                  contentStyle={{ borderRadius: "8px", fontSize: "11px", padding: "6px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                  labelStyle={{ fontWeight: "bold", color: "#374151", marginBottom: "4px" }}
-                  cursor={{ fill: "#f9fafb" }}
-                />
-
-                {/* Khối lượng (Bar) dùng trục trái */}
-                <Bar 
-                  yAxisId="left" 
-                  dataKey="kg" 
-                  name="Khối lượng (kg)" 
-                  fill="#8b5cf6" 
-                  radius={[4, 4, 0, 0]}
-                  barSize={18}
-                />
-
-                {/* Số lượng báo cáo (Line) dùng trục phải */}
-                <Line
-                  yAxisId="right"
-                  type="linear"
-                  dataKey="count"
-                  name="Báo cáo"
-                  stroke="#ef4444"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "#ef4444", strokeWidth: 1.5, stroke: "#fff" }}
-                  activeDot={{ r: 5 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+          <div className="bg-emerald-50 rounded-xl p-3 text-center flex flex-col justify-center">
+            <div className="text-lg font-extrabold text-emerald-500 leading-tight">{stats.wDone}</div>
+            <div className="text-xs text-gray-500 mt-1">Xong</div>
           </div>
-        </>
+          <div className="bg-violet-50 rounded-xl p-3 text-center flex flex-col justify-center">
+            <div className="text-lg font-extrabold text-violet-500 leading-tight">{stats.wTotalKg}</div>
+            <div className="text-xs text-gray-500 mt-1">Khối lượng rác (kg)</div>
+          </div>
+        </div>
       ) : (
-        <div className="text-[11px] text-gray-400 py-2 border-t border-gray-100">
-          Không có báo cáo rác nào được ghi nhận tại đây.
+        <div className="text-[11px] text-gray-400 py-3 border-y border-gray-100 mb-4 text-center">
+          Phường {wardName} hiện tại chưa có báo cáo rác nào được ghi nhận.
         </div>
       )}
+
+      <div className="flex items-center justify-between gap-4 mb-4 mt-2">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-sm font-semibold text-slate-800">Top 10 Wards Trend</h3>
+          <p className="text-xs text-slate-500">
+            Biểu đồ top 10 phường có lượng báo cáo cao nhất trong toàn hệ thống.
+          </p>
+        </div>
+
+        <div className="bg-gray-100/80 p-1 rounded-xl flex gap-1 shadow-inner border border-gray-200/50">
+          {[
+            { id: "day", label: "Ngày" },
+            { id: "month", label: "Tháng" },
+            { id: "year", label: "Năm" }
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTimeView(t.id as any)}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${timeView === t.id
+                ? "bg-white text-blue-600 shadow-sm border border-gray-200/60"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50 border border-transparent"
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-[300px] w-full bg-white border border-gray-100 rounded-xl overflow-hidden -ml-2 pb-4 relative">
+        {loadingChart && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
+            <span className="text-xs text-gray-500 font-medium animate-pulse">Đang tải dữ liệu biểu đồ...</span>
+          </div>
+        )}
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 16, right: 30, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+            <XAxis
+              dataKey="displayDate"
+              stroke="#64748b"
+              tick={{ fontSize: 11 }}
+              axisLine={{ stroke: "#e5e7eb" }}
+              tickLine={false}
+              dy={10}
+            />
+            <YAxis
+              stroke="#64748b"
+              tick={{ fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              dx={-10}
+              tickFormatter={(val) => `${val}`}
+            />
+            <RechartsTooltip content={<SortedTooltip />} cursor={{ stroke: '#f3f4f6', strokeWidth: 2 }} />
+            <Legend
+              wrapperStyle={{ fontSize: 10, paddingTop: "15px", paddingLeft: "10px", maxHeight: "60px", overflowY: "auto" }}
+              layout="horizontal"
+            />
+
+            {top10Wards.map((ward, idx) => (
+              <Line
+                key={ward}
+                type="monotone"
+                dataKey={ward}
+                name={ward}
+                stroke={COLORS[idx % COLORS.length]}
+                strokeWidth={2}
+                dot={{ r: 2, fill: "white", strokeWidth: 1.5 }}
+                activeDot={{ r: 5 }}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      `}</style>
     </div>
   );
 }

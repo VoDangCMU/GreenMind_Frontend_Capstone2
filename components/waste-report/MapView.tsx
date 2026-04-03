@@ -313,7 +313,7 @@ export function MapView({
   const [boundaryLoading, setBoundaryLoading] = useState(false);
   const [boundaryLoaded, setBoundaryLoaded] = useState(0);
 
-  const [popupWardData, setPopupWardData] = useState<{ wardName: string; reports: WasteReport[] } | null>(null);
+  const [popupWardData, setPopupWardData] = useState<{ wardName: string; reports: WasteReport[], allReports?: WasteReport[] } | null>(null);
 
   // Ref luôn trỏ vào reports mới nhất — dùng trong popup click handler
   const reportsRef = useRef<typeof reports>(reports);
@@ -494,7 +494,7 @@ export function MapView({
                 );
 
                 // Hiện Popup bự ở giữa màn hình (React state)
-                setPopupWardData({ wardName: ward, reports: wardReports });
+                setPopupWardData({ wardName: ward, reports: wardReports, allReports: snap });
               },
             });
 
@@ -524,10 +524,8 @@ export function MapView({
       if (!reportLayerRef.current) return;
       reportLayerRef.current.clearLayers();
 
-      // Level 1: hiện tất cả | Level 2: lọc theo phường
-      const filtered = wardName
-        ? reports.filter((r) => r.wardName === wardName)
-        : reports;
+      // Level 1 và 2 đều hiển thị toàn bộ báo cáo
+      const filtered = reports;
 
       filtered.forEach((report) => {
         // Bỏ qua report có tọa độ (0,0) — dữ liệu không hợp lệ
@@ -538,39 +536,6 @@ export function MapView({
           icon,
           zIndexOffset: 500,
         }).addTo(reportLayerRef.current!);
-
-        const statusLabel =
-          report.status === "pending" ? "Chờ xử lý" :
-            report.status === "assigned" ? "Đang thu gom" : "Hoàn thành";
-        const statusColor =
-          report.status === "pending" ? "#ef4444" :
-            report.status === "assigned" ? "#3b82f6" : "#10b981";
-        const wasteLabel = WASTE_TYPE_LABEL[report.wasteType] ?? report.wasteType;
-
-        marker.bindPopup(
-          `<div style="font-family:system-ui;min-width:220px;max-width:270px;">
-            <!-- Header: code + status badge -->
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:13px;font-weight:700;color:#111;">${report.code || report.id.slice(0, 8).toUpperCase()}</span>
-              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44;">${statusLabel}</span>
-            </div>
-            <!-- Ward -->
-            <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
-              <span style="font-size:11px;color:#6b7280;">📍</span>
-              <span style="font-size:11px;font-weight:600;color:#374151;">${report.wardName}</span>
-            </div>
-            <!-- Waste type -->
-            <div style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
-              <span style="font-size:11px;color:#6b7280;">♻️</span>
-              <span style="font-size:11px;color:#374151;">Loại rác: <strong>${wasteLabel}</strong></span>
-            </div>
-            <!-- Extra info -->
-            <div style="font-size:10px;color:#9ca3af;border-top:1px solid #f3f4f6;padding-top:6px;">
-              ${report.wasteKg} kg &nbsp;·&nbsp; ${report.description}
-            </div>
-          </div>`,
-          { maxWidth: 290, className: "monitoring-leaflet-popup" }
-        );
 
         marker.on("click", () => {
           if (onReportSelect) onReportSelect(report);
@@ -710,7 +675,7 @@ export function MapView({
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
           <span className="bg-white/90 backdrop-blur-sm border border-gray-100 shadow rounded-full px-4 py-1.5 text-xs text-gray-500 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            Click vào phường để xem chi tiết cảnh báo
+            Click vào phường để xem biểu đồ thống kê báo cáo của các phường
           </span>
         </div>
       )}
@@ -779,6 +744,7 @@ export function MapView({
             <WardChartPopup 
               wardName={popupWardData.wardName} 
               reports={popupWardData.reports} 
+              allReports={popupWardData.allReports}
               onClose={() => setPopupWardData(null)}
             />
           </div>
