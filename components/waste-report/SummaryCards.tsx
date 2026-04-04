@@ -10,8 +10,8 @@ interface SummaryCardsProps {
 export function SummaryCards({ summary, loading }: SummaryCardsProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(3)].map((_, i) => (
           <div
             key={i}
             className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 animate-pulse"
@@ -26,13 +26,6 @@ export function SummaryCards({ summary, loading }: SummaryCardsProps) {
   }
 
   const cards = [
-    {
-      label: "Total Waste Today",
-      value: `${summary.totalWaste.toLocaleString()} kg`,
-      sub: "Collected across all urban areas",
-      accent: "from-emerald-50 to-teal-50 border-emerald-100",
-      valueColor: "text-emerald-700",
-    },
     {
       label: "Total Urban Areas",
       value: summary.urbanAreas,
@@ -88,7 +81,7 @@ export function SummaryCards({ summary, loading }: SummaryCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
       {cards.map((card) => (
         <div
           key={card.label}

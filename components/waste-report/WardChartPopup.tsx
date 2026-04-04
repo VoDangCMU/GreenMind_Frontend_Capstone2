@@ -84,7 +84,7 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
 
 
 
-  const [timeView, setTimeView] = useState<"day" | "month" | "year">("month");
+  const [timeView, setTimeView] = useState<"day" | "month" | "year">("day");
 
   // Nhóm dự liệu cho biểu đồ theo ngày/tháng/năm
   const chartData = useMemo(() => {
@@ -207,7 +207,7 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
 
       {/* Stats Board */}
       {stats.wTotal > 0 ? (
-        <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="bg-red-50 rounded-xl p-3 text-center flex flex-col justify-center">
             <div className="text-lg font-extrabold text-red-500 leading-tight">{stats.wPending}</div>
             <div className="text-xs text-gray-500 mt-1">Chờ xử lý</div>
@@ -219,10 +219,6 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
           <div className="bg-emerald-50 rounded-xl p-3 text-center flex flex-col justify-center">
             <div className="text-lg font-extrabold text-emerald-500 leading-tight">{stats.wDone}</div>
             <div className="text-xs text-gray-500 mt-1">Xong</div>
-          </div>
-          <div className="bg-violet-50 rounded-xl p-3 text-center flex flex-col justify-center">
-            <div className="text-lg font-extrabold text-violet-500 leading-tight">{stats.wTotalKg}</div>
-            <div className="text-xs text-gray-500 mt-1">Khối lượng rác (kg)</div>
           </div>
         </div>
       ) : (

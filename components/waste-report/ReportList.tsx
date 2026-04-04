@@ -118,17 +118,11 @@ export function ReportDetailModal({
           )}
 
           {/* ── Thông tin cơ bản ── */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-[10px] text-gray-400 mb-0.5">Loại rác</p>
-              <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${wtcfg.color}`}>
-                {wtcfg.label}
-              </span>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-[10px] text-gray-400 mb-0.5">Khối lượng</p>
-              <p className="text-sm font-bold text-gray-800">{report.wasteKg.toLocaleString()} kg</p>
-            </div>
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-[10px] text-gray-400 mb-0.5">Loại rác</p>
+            <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${wtcfg.color}`}>
+              {wtcfg.label}
+            </span>
           </div>
 
           {/* ── Mô tả ── */}
@@ -347,7 +341,7 @@ export function ReportList({
                       <div className="flex items-center gap-1.5 mb-1">
                         <p className="text-xs font-semibold text-gray-800">{report.wardName}</p>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${wtcfg.color}`}>
-                          {report.wasteKg} kg · {wtcfg.label}
+                          {wtcfg.label}
                         </span>
                       </div>
 

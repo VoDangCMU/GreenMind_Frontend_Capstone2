@@ -651,10 +651,6 @@ export function AreaDrawer({ area, wasteReports, collectors, onClose, onAssign }
                         <p className="font-semibold text-gray-700">{WASTE_TYPE_LABEL[selectedReport.wasteType] ?? selectedReport.wasteType}</p>
                       </div>
                       <div>
-                        <p className="text-gray-400">Khối lượng</p>
-                        <p className="font-semibold text-gray-700">{selectedReport.wasteKg} kg</p>
-                      </div>
-                      <div>
                         <p className="text-gray-400">Báo cáo lúc</p>
                         <p className="font-semibold text-gray-700">{t}</p>
                       </div>
