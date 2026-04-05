@@ -36,6 +36,28 @@ export interface ApiHousehold {
     members?: ApiHouseholdMember[];
 }
 
+export interface ApiHouseholdDetectionItem {
+    area: number;
+    name: string;
+    quantity: number;
+}
+
+export interface ApiHouseholdDetectionRecord {
+    id: string;
+    imageUrl: string;
+    items: ApiHouseholdDetectionItem[];
+    pollution: Record<string, number> | null;
+    impact: Record<string, number> | null;
+    totalObjects: number;
+    aiAnalysis: string;
+    householdId: string;
+    detectType: string;
+    createdAt: string;
+    updatedAt: string;
+    detectedBy: Record<string, any>;
+    household: Record<string, any>;
+}
+
 export type ApiGetAllHouseholdsResponse = ApiHousehold[] | { data: ApiHousehold[] };
 
 type ApiHouseholdListEnvelope = {
@@ -91,6 +113,7 @@ function mapApiHouseholdToProfile(apiHousehold: ApiHousehold): HouseholdProfile 
 
     const mappedHousehold: Household = {
         id: numericId,
+        externalId: apiHousehold.id,
         wardId: typeof apiHousehold.urbanAreaId === "number" ? apiHousehold.urbanAreaId : 0,
         name: apiHousehold.address || "Hộ gia đình",
         address: apiHousehold.address || "Chưa rõ",
@@ -119,6 +142,49 @@ export async function getAllHouseholds(config?: AxiosRequestConfig): Promise<Api
         baseURL: HOUSEHOLDS_API_BASE_URL,
         ...config,
     });
+}
+
+export async function getHouseholdDetectionHistoryByHousehold(householdId: string): Promise<ApiHouseholdDetectionRecord[]> {
+    const response = await apiGet(`/households/get-detect-by-household/${encodeURIComponent(householdId)}`, {
+        baseURL: HOUSEHOLDS_API_BASE_URL,
+    });
+
+    if (Array.isArray(response)) {
+        return response as ApiHouseholdDetectionRecord[];
+    }
+
+    if (response && typeof response === "object") {
+        const data = (response as any).data;
+        if (Array.isArray(data)) {
+            return data as ApiHouseholdDetectionRecord[];
+        }
+        if (Array.isArray(data?.data)) {
+            return data.data as ApiHouseholdDetectionRecord[];
+        }
+    }
+
+    return [];
+}
+
+export function mapHouseholdDetectionRecordsToImageHistory(records: ApiHouseholdDetectionRecord[]) {
+    return records
+        .slice()
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .map((record) => ({
+            id: record.id,
+            uploadedAt: record.createdAt,
+            imageUrl: record.imageUrl,
+            label: record.detectType || "Lịch sử phát hiện",
+            sender: record.detectedBy?.fullName || record.detectedBy?.username || record.detectedBy?.email || undefined,
+            caption: record.detectType === "predict_pollutant_impact"
+                ? "Dự đoán tác động ô nhiễm"
+                : record.detectType === "detect_trash"
+                    ? "Phát hiện rác thải"
+                    : "Ảnh phát hiện",
+            items: record.items,
+            total_objects: record.totalObjects,
+            pollution: record.pollution ?? undefined,
+        } as import("@/types/monitoring").HouseholdImageHistory));
 }
 
 function resolveHouseholdPayload(response: ApiGetAllHouseholdsResponse | ApiHouseholdListEnvelope): {

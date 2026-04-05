@@ -3,6 +3,7 @@ export type AreaStatus = "red" | "yellow" | "green";
 export interface Household {
   id: number;
   wardId: number;
+  externalId?: string;
   name: string;
   address: string; // tên đường thực tế
   lat: number;
@@ -51,10 +52,11 @@ export interface PollutionMetrics {
 }
 
 export interface HouseholdImageHistory {
-  id: number;
+  id: string | number;
   uploadedAt: string;
   imageUrl: string;
   label: string;
+  sender?: string;
   items?: WasteReportItem[];
   total_objects?: number;
   pollution?: PollutionMetrics;
