@@ -3,6 +3,7 @@ export type AreaStatus = "red" | "yellow" | "green";
 export interface Household {
   id: number;
   wardId: number;
+  externalId?: string;
   name: string;
   address: string; // tên đường thực tế
   lat: number;
@@ -10,6 +11,63 @@ export interface Household {
   waste: number; // kg/day (thực tế: 1.5–4.0 bình thường, ≥4.0 cảnh báo, ≥5.0 nguy hiểm)
   status: AreaStatus;
   reportCount: number; // số báo cáo đã gửi
+}
+
+export interface HouseholdMember {
+  name: string;
+  wasteKg: number;
+  role: string;
+}
+
+export interface HouseholdWasteHistory {
+  month: string; // YYYY-MM
+  totalWasteKg: number;
+  plasticKg: number;
+  organicKg: number;
+  mixedKg: number;
+  hazardousKg: number;
+  pollution?: PollutionMetrics;
+  pollutionCO2: number;
+  pollutionDioxin: number;
+  pollutionMicroplastic: number;
+  pollutionNonBiodegradable: number;
+}
+
+export interface PollutionMetrics {
+  Cd: number;
+  Hg: number;
+  Pb: number;
+  CH4: number;
+  CO2: number;
+  NOx: number;
+  SO2: number;
+  'PM2.5': number;
+  dioxin: number;
+  nitrate: number;
+  styrene: number;
+  microplastic: number;
+  toxic_chemicals: number;
+  chemical_residue: number;
+  non_biodegradable: number;
+}
+
+export interface HouseholdImageHistory {
+  id: string | number;
+  uploadedAt: string;
+  imageUrl: string;
+  label: string;
+  sender?: string;
+  items?: WasteReportItem[];
+  total_objects?: number;
+  pollution?: PollutionMetrics;
+  caption?: string;
+}
+
+export interface HouseholdProfile extends Household {
+  familySize: number;
+  members: HouseholdMember[];
+  wasteHistory: HouseholdWasteHistory[];
+  imageHistory: HouseholdImageHistory[];
 }
 
 export interface UrbanArea {
@@ -37,9 +95,14 @@ export interface HeatmapPoint {
 export type WasteType = "plastic" | "organic" | "mixed" | "hazardous";
 export type ReportStatus = "pending" | "assigned" | "done";
 
+export interface WasteReportItem {
+  name: string;
+  quantity: number;
+  area: number;
+}
+
 export interface WasteReport {
   id: string;
-  code: string;
   householdId: number;
   householdName: string;
   wardId: number;
@@ -51,17 +114,18 @@ export interface WasteReport {
   description: string;
   status: ReportStatus;
   reportedAt: string;
+  reportedBy?: string;
   assignedTo: string | null;
-  collectorId: string | null;
+  collectorId: number | null;
   resolvedAt: string | null;
-  imageUrl: string | null;           // ảnh báo cáo rác ban đầu
-  imageEvidenceUrl: string | null;   // ảnh bằng chứng sau khi thu gom (status done)
+  imageUrl?: string;
+  items?: WasteReportItem[];
+  total_objects?: number;
+  pollution?: PollutionMetrics;
 }
 
-// ─── Collector (Người thu gom rác) ─────────────────────────────────────────
-
 export interface Collector {
-  id: string;
+  id: number;
   name: string;
   phone: string;
   zones: number[]; // wardId[] phụ trách
@@ -98,20 +162,6 @@ export interface Summary {
   wasteDistribution: {
     plastic: number;
     organic: number;
-    mixed: number;
-    hazardous: number;
+    other: number;
   };
-}
-
-// ─── Environmental Alert Marker ────────────────────────────────────────────
-
-export type AlertLevel = "normal" | "warning" | "critical";
-
-export interface EnvAlert {
-  id: number;
-  lat: number;
-  lng: number;
-  wardName: string;
-  level: AlertLevel;
-  description?: string; // mô tả ngắn (tuỳ chọn)
 }

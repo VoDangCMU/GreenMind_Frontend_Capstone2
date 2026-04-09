@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import type { Summary, UrbanArea, WasteReport, WasteType, ReportStatus, Collector } from "@/types/waste-report";
 import { SummaryCards } from "@/components/waste-report/SummaryCards";
-import { ReportList } from "@/components/waste-report/ReportList";
+import { ReportList, ReportDetailModal } from "@/components/waste-report/ReportList";
 import { AreaDrawer } from "@/components/waste-report/AreaDrawer";
 import { WARDS } from "@/data/wardData";
 import { ENV_ALERTS } from "@/data/envAlertData";
@@ -12,6 +12,11 @@ import { getAccessToken } from "@/lib/auth";
 
 const MapView = dynamic(
   () => import("@/components/waste-report/MapView").then((m) => m.MapView),
+  { ssr: false }
+);
+
+const MapWard = dynamic(
+  () => import("@/components/waste-report/MapWard").then((m) => m.MapWard),
   { ssr: false }
 );
 
@@ -25,6 +30,7 @@ export default function MonitoringPage() {
   const [selectedArea, setSelectedArea] = useState<UrbanArea | null>(null);
   const [highlightAreaName, setHighlightAreaName] = useState<string | null>(null);
   const [selectedWardName, setSelectedWardName] = useState<string | null>(null);
+  const [selectedReportPopup, setSelectedReportPopup] = useState<WasteReport | null>(null);
 
   useEffect(() => {
     async function fetchAll() {
@@ -96,6 +102,8 @@ export default function MonitoringPage() {
             assignedTo: r.assignedTo || null,
             collectorId: r.collectorId || null,
             resolvedAt: r.resolvedAt || null,
+            imageUrl: r.imageUrl || null,
+            imageEvidenceUrl: r.imageEvidenceUrl || null,
           } as WasteReport));
         }
 
@@ -203,11 +211,9 @@ export default function MonitoringPage() {
   }, []);
 
   const handleReportClick = useCallback((report: WasteReport) => {
-    setHighlightAreaName(report.wardName);
-    setSelectedWardName(report.wardName);
-    const matched = areas.find(a => a.name === report.wardName);
-    if (matched) setSelectedArea(matched);
-  }, [areas]);
+    // Hiển thị modal detail của report
+    setSelectedReportPopup(report);
+  }, []);
 
   const handleClearSelection = useCallback(() => {
     setSelectedWardName(null);
@@ -218,7 +224,7 @@ export default function MonitoringPage() {
   const now = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-gray-50">
       {/* Header — fixed */}
       <div className="shrink-0 px-6 pt-4 pb-3 bg-white border-b border-gray-100">
         <div className="flex items-center justify-between">
@@ -303,6 +309,14 @@ export default function MonitoringPage() {
           </div>
         </div>
       </div>
+
+      {/* Detail Modal cho map marker click */}
+      {selectedReportPopup && (
+        <ReportDetailModal
+          report={selectedReportPopup}
+          onClose={() => setSelectedReportPopup(null)}
+        />
+      )}
     </div>
   );
 }

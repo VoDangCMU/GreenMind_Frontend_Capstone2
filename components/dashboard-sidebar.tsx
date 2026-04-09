@@ -17,11 +17,6 @@ const navItems = [
     icon: BarChart3,
   },
   {
-    title: "Garbage Monitoring",
-    href: "/dashboard/garbage-analytics",
-    icon: Trash2,
-  },
-  {
     title: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
