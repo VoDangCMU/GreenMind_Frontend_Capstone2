@@ -32,7 +32,7 @@ const navItems = [
   { title: "Env. Impact", href: "/dashboard/environmental-impact", icon: Wind },
   { title: "Household Management", href: "/dashboard/household-management", icon: MapPin },
   { title: "Users", href: "/dashboard/users-ocean", icon: Brain },
-  { title: "Blogs", href: "/dashboard/blogs", icon: BookOpen },
+  { title: "Community", href: "/dashboard/blogs", icon: BookOpen },
 ]
 
 const modelSurveyItems = [
