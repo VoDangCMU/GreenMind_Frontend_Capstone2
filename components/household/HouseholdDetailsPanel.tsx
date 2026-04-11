@@ -12,6 +12,9 @@ interface HouseholdDetailsPanelProps {
     imageHistory?: HouseholdProfile["imageHistory"];
     imageHistoryLoading?: boolean;
     historyError?: string | null;
+    greenScoreHistory?: HouseholdProfile["greenScores"];
+    greenScoreLoading?: boolean;
+    greenScoreError?: string | null;
 }
 
 type CaptureTrendPoint = {
@@ -22,6 +25,66 @@ type CaptureTrendPoint = {
     pollutionMicroplastic: number;
     pollutionNonBiodegradable: number;
 };
+
+type GreenScoreTrendPoint = {
+    month: string; // YYYY-MM
+    label: string; // formatted for axis/tooltip
+    finalScore: number | null;
+    delta?: number;
+    previousScore?: number;
+    reasons?: string[] | null;
+    items?: {
+        area: number;
+        name: string;
+        quantity: number;
+    }[] | null;
+};
+
+function buildGreenScoreTrendFromHistory(greenScoreHistory: NonNullable<HouseholdProfile["greenScores"]>): GreenScoreTrendPoint[] {
+    const now = new Date();
+    const months: string[] = [];
+    for (let i = 11; i >= 0; i -= 1) {
+        const dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(formatMonth(dt));
+    }
+
+    const latestEntryByMonth = new Map<string, NonNullable<HouseholdProfile["greenScores"]>[number]>();
+    greenScoreHistory
+        .slice()
+        .filter((entry) => !Number.isNaN(new Date(entry.createdAt).getTime()))
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .forEach((entry) => {
+            const monthKey = formatMonth(new Date(entry.createdAt));
+            latestEntryByMonth.set(monthKey, entry);
+        });
+
+    const trend: GreenScoreTrendPoint[] = [];
+
+    for (const month of months) {
+        const entry = latestEntryByMonth.get(month);
+        if (entry) {
+            trend.push({
+                month,
+                label: month.slice(5),
+                finalScore: entry.finalScore,
+                delta: entry.delta,
+                previousScore: entry.previousScore,
+                reasons: entry.reasons,
+                items: entry.items,
+            });
+        } else {
+            trend.push({
+                month,
+                label: month.slice(5),
+                finalScore: 0,
+                reasons: undefined,
+                items: null,
+            });
+        }
+    }
+
+    return trend;
+}
 
 function createSeededRandom(seed: number) {
     let state = Math.floor(seed) % 2147483647;
@@ -125,7 +188,7 @@ function generateMockImageHistory(householdId: number): HouseholdProfile["imageH
     });
 }
 
-export function HouseholdDetailsPanel({ household, reports, imageHistory: imageHistoryProp, imageHistoryLoading = false, historyError }: HouseholdDetailsPanelProps) {
+export function HouseholdDetailsPanel({ household, reports, imageHistory: imageHistoryProp, imageHistoryLoading = false, historyError, greenScoreHistory, greenScoreLoading = false, greenScoreError }: HouseholdDetailsPanelProps) {
     const householdReports = useMemo(() => {
         if (!household || !reports) return [];
         return reports.filter((r) => r.householdId === household.id);
@@ -158,7 +221,28 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
         return sum > 0 ? data : generateMockCaptureTrend(household.id);
     }, [household.id, householdReports, imageHistory]);
 
+    const greenScoreTrend = useMemo(() => {
+        if (!greenScoreHistory?.length) return [];
+
+        const data = buildGreenScoreTrendFromHistory(greenScoreHistory);
+        const hasScore = data.some((point) => point.finalScore != null);
+        return hasScore ? data : [];
+    }, [greenScoreHistory]);
+
     const latestCaptureMonth = captureTrend.length ? captureTrend[captureTrend.length - 1] : null;
+    const latestGreenScore = greenScoreTrend.length ? greenScoreTrend[greenScoreTrend.length - 1] : null;
+    const trendChartData = greenScoreTrend.length ? greenScoreTrend : captureTrend;
+    const isGreenScoreChart = greenScoreTrend.length > 0;
+
+    const displayGreenScore = household.greenScore != null ? household.greenScore : latestGreenScore?.finalScore;
+    const scoreColorClass = displayGreenScore != null
+        ? displayGreenScore < 40
+            ? "text-red-700 bg-red-100"
+            : displayGreenScore < 70
+                ? "text-amber-700 bg-amber-100"
+                : "text-emerald-700 bg-emerald-100"
+        : "text-slate-500 bg-slate-100";
+    const displayGreenDelta = latestGreenScore?.delta != null ? `${latestGreenScore.delta >= 0 ? "+" : ""}${latestGreenScore.delta}` : null;
 
     return (
         <div className="min-h-[55vh] overflow-y-auto p-2 bg-slate-50 text-slate-800">
@@ -166,18 +250,21 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                 <Card className="p-2 shadow-lg border border-slate-200 bg-white rounded-xl">
                     <CardHeader className="flex items-center gap-2 mb-1">
                         <User className="w-4 h-4 text-emerald-600" />
-                        <CardTitle className="text-base font-semibold">Household Info</CardTitle>
+                        <CardTitle className="text-base font-semibold flex items-center gap-2">Household Info
+                            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold ${scoreColorClass}`}>
+                                {displayGreenScore != null ? displayGreenScore : "?"}
+                            </span>
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2 text-sm">
                             <p><strong>Household head:</strong> {household.members.length ? household.members[0].name : household.name}</p>
                             <p>Address: {household.address}</p>
-                            <p>Ward ID: {household.wardId}</p>
-                            <p>Household size: {household.familySize} people</p>
-                            <p>Status: <span className={household.status === "red" ? "text-red-600" : household.status === "yellow" ? "text-amber-600" : "text-emerald-600"}>{household.status.toUpperCase()}</span></p>
-                            <p>Total detections: {household.reportCount}</p>
                             <p>Total image uploads: {imageHistory.length}</p>
                             <p>Latest month captures: {latestCaptureMonth ? `${latestCaptureMonth.captureCount} captures` : "No data available"}</p>
+                            <p>
+                                Latest green score: {greenScoreLoading ? "Loading..." : greenScoreError ? greenScoreError : latestGreenScore ? `${latestGreenScore.finalScore} (Δ ${latestGreenScore.delta != null ? `${latestGreenScore.delta >= 0 ? "+" : ""}${latestGreenScore.delta}` : "0"})` : "No green score data"}
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
@@ -215,25 +302,25 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
             <Card className="shadow-lg border border-slate-200 bg-white rounded-2xl">
                 <CardHeader className="mb-2 flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-emerald-600" />
-                    <CardTitle className="text-base font-semibold">12-Month Capture Trend</CardTitle>
+                    <CardTitle className="text-base font-semibold">{isGreenScoreChart ? "12-Month Green Score Trend" : "12-Month Capture Trend"}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="w-full h-48 md:h-52 xl:h-56">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={captureTrend}>
+                            <LineChart<GreenScoreTrendPoint | CaptureTrendPoint> data={trendChartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                <XAxis dataKey="month" tickFormatter={(value) => value.slice(5)} />
-                                <YAxis allowDecimals={false} />
+                                <XAxis dataKey="month" tickFormatter={(value) => String(value).slice(5)} />
+                                <YAxis allowDecimals={false} domain={isGreenScoreChart ? [0, 50] : undefined} />
                                 <Tooltip formatter={(value: any) => {
                                     if (value == null) return "";
                                     const val = Number(value);
                                     if (Number.isNaN(val)) return String(value);
-                                    return `${val.toLocaleString()} times`;
+                                    return isGreenScoreChart ? `${val.toLocaleString()} pts` : `${val.toLocaleString()} times`;
                                 }} />
                                 <Legend verticalAlign="bottom" align="center" height={36} />
                                 <Line
                                     type="monotone"
-                                    dataKey="captureCount"
+                                    dataKey={isGreenScoreChart ? "finalScore" : "captureCount"}
                                     stroke="#10b981"
                                     strokeWidth={3}
                                     dot={{ r: 4, fill: "#10b981" }}
@@ -374,16 +461,12 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                                                 <span className="font-medium">Sender:</span> {image.sender || relatedReport?.reportedBy || relatedReport?.householdName || "Unknown"}
                                             </p>
 
-                                            <div className="flex flex-wrap gap-2 text-xs">
-                                                {relatedReport ? (
-                                                    <>
-                                                        <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700">{relatedReport.status}</span>
-                                                        <span className="px-2 py-1 rounded bg-slate-100">{relatedReport.wasteType}</span>
-                                                    </>
-                                                ) : (
-                                                    <span className="px-2 py-1 rounded bg-rose-100 text-rose-700">No report on the same day</span>
-                                                )}
-                                            </div>
+                                            {relatedReport ? (
+                                                <div className="flex flex-wrap gap-2 text-xs">
+                                                    <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700">{relatedReport.status}</span>
+                                                    <span className="px-2 py-1 rounded bg-slate-100">{relatedReport.wasteType}</span>
+                                                </div>
+                                            ) : null}
 
                                             {image.total_objects != null && (
                                                 <p className="text-xs text-slate-500">Total objects: {image.total_objects}</p>

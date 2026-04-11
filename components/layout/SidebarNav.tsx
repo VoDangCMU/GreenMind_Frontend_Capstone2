@@ -16,6 +16,7 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
+  Flag,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -32,6 +33,7 @@ const navItems = [
   { title: "Env. Impact", href: "/dashboard/environmental-impact", icon: Wind },
   { title: "Household Management", href: "/dashboard/household-management", icon: MapPin },
   { title: "Users", href: "/dashboard/users-ocean", icon: Brain },
+  { title: "Campaigns", href: "/dashboard/campaign-management", icon: Flag },
   { title: "Community", href: "/dashboard/blogs", icon: BookOpen },
 ]
 
