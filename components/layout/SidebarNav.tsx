@@ -13,6 +13,7 @@ import {
   CheckCircle,
   MapPin,
   Wind,
+  BookOpen,
   ChevronDown,
   ChevronRight,
   Flag,
@@ -22,6 +23,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 const navItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Models", href: "/dashboard/tree", icon: TreePine },
+  { title: "Questions", href: "/dashboard/questions", icon: MessageSquare },
+  { title: "Surveys", href: "/dashboard/survey", icon: FileText },
+  { title: "Results", href: "/dashboard/survey-results", icon: Users },
   { title: "Verify", href: "/dashboard/models-verify", icon: CheckCircle },
   { title: "Waste Report", href: "/dashboard/waste-report", icon: MapPin },
   { title: "Giám sát rác", href: "/dashboard/garbage-analytics", icon: MapPin },
@@ -29,6 +34,7 @@ const navItems = [
   { title: "Household Management", href: "/dashboard/household-management", icon: MapPin },
   { title: "Users", href: "/dashboard/users-ocean", icon: Brain },
   { title: "Campaigns", href: "/dashboard/campaign-management", icon: Flag },
+  { title: "Community", href: "/dashboard/blogs", icon: BookOpen },
 ]
 
 const modelSurveyItems = [

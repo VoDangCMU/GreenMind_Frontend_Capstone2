@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useEffect, useState } from "react";
-import { getAllHouseholdProfiles, getHouseholdDetectionHistoryByHousehold, mapHouseholdDetectionRecordsToImageHistory } from "@/lib/household";
+import { getAllHouseholdProfiles, getHouseholdDetectionHistoryByHousehold, getHouseholdGreenScoreHistory, mapHouseholdDetectionRecordsToImageHistory } from "@/lib/household";
 import { HouseholdDetailsPanel } from "@/components/household/HouseholdDetailsPanel";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import type { HouseholdProfile } from "@/types/monitoring";
@@ -20,6 +20,9 @@ export default function HouseholdManagementPage() {
     const [selectedHouseholdHistory, setSelectedHouseholdHistory] = useState<HouseholdProfile["imageHistory"] | undefined>(undefined);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState<string | null>(null);
+    const [selectedHouseholdGreenScores, setSelectedHouseholdGreenScores] = useState<HouseholdProfile["greenScores"] | undefined>(undefined);
+    const [greenScoreLoading, setGreenScoreLoading] = useState(false);
+    const [greenScoreError, setGreenScoreError] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     useEffect(() => {
@@ -91,6 +94,67 @@ export default function HouseholdManagementPage() {
         };
     }, [selectedHousehold?.externalId]);
 
+    useEffect(() => {
+        const selectedExternalId = selectedHousehold?.externalId;
+        if (!selectedExternalId) {
+            setSelectedHouseholdGreenScores(undefined);
+            setGreenScoreLoading(false);
+            setGreenScoreError(null);
+            return;
+        }
+
+        let cancelled = false;
+        setSelectedHouseholdGreenScores(undefined);
+        setGreenScoreLoading(true);
+        setGreenScoreError(null);
+
+        const loadGreenScoreHistory = async () => {
+            try {
+                const scores = await getHouseholdGreenScoreHistory(selectedExternalId);
+                if (!cancelled) {
+                    setSelectedHouseholdGreenScores(scores);
+
+                    const sortedScores = scores
+                        .slice()
+                        .filter((item) => !Number.isNaN(new Date(item.createdAt).getTime()))
+                        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                    const latestScore = sortedScores.length ? sortedScores[sortedScores.length - 1].finalScore : undefined;
+
+                    if (latestScore != null) {
+                        setSelectedHousehold((prev) =>
+                            prev && prev.externalId === selectedExternalId
+                                ? { ...prev, greenScore: latestScore }
+                                : prev
+                        );
+
+                        setAllHouseholds((prev) =>
+                            prev.map((household) =>
+                                household.externalId === selectedExternalId
+                                    ? { ...household, greenScore: latestScore }
+                                    : household
+                            )
+                        );
+                    }
+                }
+            } catch (error: any) {
+                if (!cancelled) {
+                    setGreenScoreError(error?.message ?? "Failed to load green score history");
+                    setSelectedHouseholdGreenScores([]);
+                }
+            } finally {
+                if (!cancelled) {
+                    setGreenScoreLoading(false);
+                }
+            }
+        };
+
+        loadGreenScoreHistory();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedHousehold?.externalId]);
+
     const summary = useMemo(() => {
         const totalWastePerDay = allHouseholds.reduce((acc, hh) => acc + hh.waste, 0);
         const totalReports = allHouseholds.reduce((acc, hh) => acc + hh.reportCount, 0);
@@ -156,6 +220,9 @@ export default function HouseholdManagementPage() {
                                     imageHistory={selectedHouseholdHistory}
                                     imageHistoryLoading={historyLoading}
                                     historyError={historyError}
+                                    greenScoreHistory={selectedHouseholdGreenScores}
+                                    greenScoreLoading={greenScoreLoading}
+                                    greenScoreError={greenScoreError}
                                 />
                             )}
                             <DialogClose asChild>
