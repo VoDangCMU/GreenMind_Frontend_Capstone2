@@ -115,3 +115,15 @@ export interface EnvAlert {
   level: AlertLevel;
   description?: string; // mô tả ngắn (tuỳ chọn)
 }
+
+// ─── Campaign ────────────────────────────────────────────
+
+export interface CampaignRegion {
+  id: string;
+  name: string;
+  center: {
+    lat: number;
+    lng: number;
+  };
+  reports: WasteReport[];
+}
