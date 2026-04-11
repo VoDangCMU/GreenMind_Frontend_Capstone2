@@ -57,7 +57,30 @@ export interface ApiHouseholdDetectionRecord {
     detectedBy: Record<string, any>;
     household: Record<string, any>;
 }
+export interface ApiHouseholdGreenScoreItem {
+    id: string;
+    previousScore: number;
+    delta: number;
+    finalScore: number;
+    householdId: string;
+    items: ApiHouseholdDetectionItem[] | null;
+    reasons: string[] | null;
+    createdAt: string;
+}
 
+export interface ApiHouseholdGreenScoreResponse {
+    message?: string;
+    data?: {
+        id: string;
+        address: string;
+        urbanAreaId: string | number | null;
+        lat: string;
+        lng: string;
+        createdAt: string;
+        updatedAt: string;
+        greenScores: ApiHouseholdGreenScoreItem[];
+    };
+}
 export type ApiGetAllHouseholdsResponse = ApiHousehold[] | { data: ApiHousehold[] };
 
 type ApiHouseholdListEnvelope = {
@@ -160,6 +183,28 @@ export async function getHouseholdDetectionHistoryByHousehold(householdId: strin
         }
         if (Array.isArray(data?.data)) {
             return data.data as ApiHouseholdDetectionRecord[];
+        }
+    }
+
+    return [];
+}
+
+export async function getHouseholdGreenScoreHistory(householdId: string): Promise<ApiHouseholdGreenScoreItem[]> {
+    const response = await apiGet(`/households/green-score/${encodeURIComponent(householdId)}`, {
+        baseURL: HOUSEHOLDS_API_BASE_URL,
+    });
+
+    if (Array.isArray(response)) {
+        return response as ApiHouseholdGreenScoreItem[];
+    }
+
+    if (response && typeof response === "object") {
+        const data = (response as any).data;
+        if (Array.isArray(data?.greenScores)) {
+            return data.greenScores as ApiHouseholdGreenScoreItem[];
+        }
+        if (Array.isArray(response?.greenScores)) {
+            return response.greenScores as ApiHouseholdGreenScoreItem[];
         }
     }
 

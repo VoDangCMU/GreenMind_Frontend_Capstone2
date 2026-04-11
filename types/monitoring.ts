@@ -63,11 +63,24 @@ export interface HouseholdImageHistory {
   caption?: string;
 }
 
+export interface HouseholdGreenScoreItem {
+  id: string;
+  previousScore: number;
+  delta: number;
+  finalScore: number;
+  householdId: string;
+  items?: WasteReportItem[] | null;
+  reasons?: string[] | null;
+  createdAt: string;
+}
+
 export interface HouseholdProfile extends Household {
   familySize: number;
   members: HouseholdMember[];
   wasteHistory: HouseholdWasteHistory[];
   imageHistory: HouseholdImageHistory[];
+  greenScore?: number;
+  greenScores?: HouseholdGreenScoreItem[];
 }
 
 export interface UrbanArea {

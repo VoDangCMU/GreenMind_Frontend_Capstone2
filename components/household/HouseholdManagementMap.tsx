@@ -5,19 +5,28 @@ import L from "leaflet";
 import type { HouseholdProfile } from "@/types/monitoring";
 
 interface HouseholdManagementMapProps {
-    households: HouseholdProfile[];
-    selectedHouseholdId: number | null;
-    onHouseholdSelect: (household: HouseholdProfile) => void;
+    households: Array<HouseholdProfile & { greenScore?: number; lat: number | string; lng: number | string; id: string | number }>;
+    selectedHouseholdId: string | number | null;
+    onHouseholdSelect: (household: HouseholdProfile & { greenScore?: number }) => void;
     loading: boolean;
 }
 
-const STATUS_COLOR: Record<string, string> = {
-    red: "#ef4444",
-    yellow: "#f59e0b",
-    green: "#10b981",
-};
-
 const DEFAULT_MAP_CENTER: [number, number] = [16.065, 108.225];
+
+function parseNumber(value: number | string): number {
+    return typeof value === "string" ? Number(value) : value;
+}
+
+function getGreenScoreColor(score?: number | string | null): string {
+    if (score != null && !Number.isNaN(Number(score))) {
+        const numericScore = Number(score);
+        if (numericScore < 40) return "#ef4444";
+        if (numericScore < 70) return "#f59e0b";
+        return "#10b981";
+    }
+
+    return "#6b7280";
+}
 
 function isValidLatLng(lat: number, lng: number): boolean {
     return (
@@ -103,8 +112,10 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
         const indexByKey = new Map<string, number>();
 
         households.forEach((household) => {
-            const isReal = isValidLatLng(household.lat, household.lng);
-            const basePoint = isReal ? { lat: household.lat, lng: household.lng } : jitterAroundCenter(household.id);
+            const lat = parseNumber(household.lat);
+            const lng = parseNumber(household.lng);
+            const isReal = isValidLatLng(lat, lng);
+            const basePoint = isReal ? { lat, lng } : jitterAroundCenter(household.id);
             const key = `${basePoint.lat.toFixed(5)}:${basePoint.lng.toFixed(5)}`;
             const idx = indexByKey.get(key) ?? 0;
             indexByKey.set(key, idx + 1);
@@ -118,15 +129,16 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
                 boundsReal.extend([point.lat, point.lng]);
             }
 
-            const color = STATUS_COLOR[household.status] ?? "#6b7280";
+            const color = getGreenScoreColor(household.greenScore);
             const displayColor = isReal ? color : "#64748b";
+            const isSelected = selectedHouseholdId != null && String(household.id) === String(selectedHouseholdId);
 
             const marker = L.circleMarker([point.lat, point.lng], {
-                radius: household.id === selectedHouseholdId ? 10 : 7,
+                radius: isSelected ? 10 : 7,
                 color: displayColor,
                 fillColor: displayColor,
-                fillOpacity: household.id === selectedHouseholdId ? 1 : 0.75,
-                weight: household.id === selectedHouseholdId ? 3 : 1.5,
+                fillOpacity: isSelected ? 1 : 0.75,
+                weight: isSelected ? 3 : 1.5,
             }).addTo(markerLayerRef.current!);
 
             marker.bindTooltip(`
@@ -134,6 +146,7 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
                     <strong>${household.name}</strong><br/>
                     ${household.address}<br/>
                     ${isReal ? "" : "<em style=\"color:#64748b\">Thiếu tọa độ — hiển thị tạm gần trung tâm</em><br/>"}
+                    <strong>Green Score:</strong> ${household.greenScore ?? "Không có điểm"}<br/>
                     <strong>Detect:</strong> ${household.reportCount} lần<br/>
                     <strong>Ảnh up:</strong> ${household.imageHistory?.length ?? 0} lần
                 </div>
@@ -141,7 +154,7 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
 
             marker.on("click", () => onHouseholdSelect(household));
 
-            if (household.id === selectedHouseholdId) {
+            if (isSelected) {
                 marker.openTooltip();
                 mapRef.current!.flyTo([point.lat, point.lng], 15, { duration: 0.8 });
             }
@@ -164,13 +177,19 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
 
             <div className="absolute top-3 left-3 z-20 rounded-xl border border-white/40 bg-white/80 backdrop-blur px-3 py-2 text-xs text-slate-700 shadow-sm">
                 <div className="font-semibold text-sm">Household Map</div>
-                <div className="flex items-center gap-2 mt-1">
-                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-                    <span>Green</span>
-                    <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
-                    <span>Yellow</span>
-                    <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
-                    <span>Red</span>
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px]">
+                    <span className="inline-flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                        <span>Score ≥ 70</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
+                        <span>40–69</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                        <span>{"< 40"}</span>
+                    </span>
                 </div>
             </div>
 
