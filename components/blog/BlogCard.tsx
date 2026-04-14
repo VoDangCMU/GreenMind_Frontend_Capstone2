@@ -77,6 +77,11 @@ export function BlogCard({ blog, onClick }: Props) {
           <span>{formatDistanceToNow(new Date(blog.createdAt), { addSuffix: true })}</span>
         </div>
 
+        {/* Comment count */}
+        <span className="text-xs text-muted-foreground flex items-center gap-1">
+          💬 {blog.comment_count ?? 0}
+        </span>
+
         {/* Like button */}
         <button
           onClick={handleLike}
