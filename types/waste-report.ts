@@ -35,7 +35,7 @@ export interface HeatmapPoint {
 // ─── Waste Report (Báo cáo rác từ hộ dân) ──────────────────────────────────
 
 export type WasteType = "plastic" | "organic" | "mixed" | "hazardous";
-export type ReportStatus = "pending" | "done";
+export type ReportStatus = "pending" | "approved" | "done";
 
 export interface WasteReport {
   id: string;

@@ -57,11 +57,9 @@ export default function MonitoringPage() {
         };
         const statusMap: Record<string, ReportStatus> = {
           pending: "pending",
+          approved: "approved",
           done: "done",
-          collected: "done",
           resolved: "done",
-          // assigned được map về pending vì entity mới không còn status này
-          assigned: "pending",
         };
 
         validReports = rawList.map((r: any) => ({

@@ -10,8 +10,9 @@ interface ReportListProps {
 }
 
 const STATUS_CFG: Record<ReportStatus, { label: string; bg: string; text: string; dot: string; border: string }> = {
-  pending: { label: "Chờ xử lý",  bg: "bg-red-50",     text: "text-red-700",     dot: "bg-red-400",     border: "border-red-200" },
-  done:    { label: "Hoàn thành", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400", border: "border-emerald-200" },
+  pending:  { label: "Chờ xử lý",  bg: "bg-red-50",     text: "text-red-700",     dot: "bg-red-400",     border: "border-red-200" },
+  approved: { label: "Đã duyệt",   bg: "bg-blue-50",    text: "text-blue-700",    dot: "bg-blue-400",    border: "border-blue-200" },
+  done:     { label: "Hoàn thành", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400", border: "border-emerald-200" },
 };
 
 const WASTE_TYPE_CFG: Record<WasteType, { label: string; color: string }> = {
@@ -21,11 +22,12 @@ const WASTE_TYPE_CFG: Record<WasteType, { label: string; color: string }> = {
   hazardous: { label: "Nguy hại", color: "text-red-600 bg-red-50" },
 };
 
-type FilterMode = "no-campaign" | "all";
+type FilterMode = "no-campaign" | "approved" | "all";
 
 const FILTERS: { label: string; value: FilterMode }[] = [
   { label: "Chờ tạo chiến dịch", value: "no-campaign" },
-  { label: "Tất cả báo cáo",       value: "all" },
+  { label: "Đã được duyệt",       value: "approved" },
+  { label: "Tất cả báo cáo",      value: "all" },
 ];
 
 // ─── Detail Modal ────────────────────────────────────────────────────────────
@@ -353,9 +355,18 @@ export function ReportList({
     .filter(r => r.status === "pending" && !r.campaignId && (r.pollutionScore ?? 0) > 0.2)
     .sort((a, b) => (b.pollutionScore ?? 0) - (a.pollutionScore ?? 0));
 
-  const filtered = filter === "no-campaign" ? noCampaignReports : wasteReports;
+  // Báo cáo đã được duyệt (có chiến dịch)
+  const approvedReports = wasteReports
+    .filter(r => r.status === "approved")
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const filtered =
+    filter === "no-campaign" ? noCampaignReports :
+    filter === "approved"    ? approvedReports :
+    wasteReports;
 
   const noCampaignCount = noCampaignReports.length;
+  const approvedCount   = approvedReports.length;
   const totalCount      = wasteReports.length;
 
   const handleBoxClick = (report: WasteReport) => {
@@ -373,7 +384,7 @@ export function ReportList({
           </div>
 
           {/* Mini stats */}
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="grid grid-cols-3 gap-2 mb-3">
             <div
               onClick={() => setFilter("no-campaign")}
               className={`rounded-lg px-2 py-1.5 text-center cursor-pointer transition-all ${
@@ -382,6 +393,15 @@ export function ReportList({
             >
               <p className="text-base font-bold text-red-600">{noCampaignCount}</p>
               <p className="text-[10px] text-red-500/70 leading-tight">Chờ chiến dịch</p>
+            </div>
+            <div
+              onClick={() => setFilter("approved")}
+              className={`rounded-lg px-2 py-1.5 text-center cursor-pointer transition-all ${
+                filter === "approved" ? "bg-blue-100 ring-2 ring-blue-300" : "bg-blue-50 hover:bg-blue-100"
+              }`}
+            >
+              <p className="text-base font-bold text-blue-600">{approvedCount}</p>
+              <p className="text-[10px] text-blue-500/70 leading-tight">Đã duyệt</p>
             </div>
             <div
               onClick={() => setFilter("all")}
@@ -415,6 +435,16 @@ export function ReportList({
               </div>
               <p className="text-[11px] font-medium text-indigo-800 leading-relaxed">
                 Đây là các khu vực có mức độ ô nhiễm cao, <strong className="font-bold">cần được ưu tiên tạo chiến dịch thu gom</strong> sớm nhất có thể.
+              </p>
+            </div>
+          )}
+          {filter === "approved" && (
+            <div className="mt-2.5 bg-blue-50/80 border border-blue-100 p-2.5 rounded-lg flex items-start gap-2.5">
+              <div className="text-blue-500 mt-0.5 shrink-0">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <p className="text-[11px] font-medium text-blue-800 leading-relaxed">
+                Các báo cáo đã được <strong className="font-bold">phê duyệt và gán vào chiến dịch</strong>. Đang chờ thu gom thực tế.
               </p>
             </div>
           )}
