@@ -8,12 +8,15 @@ import {
   updateBlog,
   deleteBlog,
   fetchBlogById,
+  addComment,
   Blog,
+  BlogComment,
   LeaderboardUser,
 } from "@/services/blog.service"
 import { getAccessToken } from "@/lib/auth"
 import { BlogCard } from "@/components/blog/BlogCard"
 import { Leaderboard } from "@/components/blog/Leaderboard"
+import { CommentSection } from "@/components/blog/CommentSection"
 
 const MOCK_LEADERBOARD: LeaderboardUser[] = [
   { rank: 1, userId: "mock-1", fullName: "Nguyễn Bá Khoa", username: "nguyenkhoa", reportCount: 47 },
@@ -311,6 +314,8 @@ export default function BlogsPage() {
                 <span>{formatDistanceToNow(new Date(activeBlog.createdAt), { addSuffix: true })}</span>
                 <span>·</span>
                 <span>{activeBlog.like_count} likes</span>
+                <span>·</span>
+                <span>{activeBlog.comment_count ?? 0} comments</span>
               </div>
 
               <hr className="border-border" />
@@ -327,6 +332,9 @@ export default function BlogsPage() {
               />
             </div>
           </article>
+
+          {/* ── Comment Section ── */}
+          <CommentSection blog={activeBlog} setBlog={setActiveBlog} />
         </div>
       )}
 

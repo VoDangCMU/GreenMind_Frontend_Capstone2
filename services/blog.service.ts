@@ -3,12 +3,25 @@ import { getAccessToken } from "@/lib/auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://vodang-api.gauas.com"
 
+export interface BlogComment {
+  id: string
+  content: string
+  createdAt: string
+  updatedAt?: string
+  user: {
+    id: string
+    username: string
+    fullName: string
+  } | null
+}
+
 export interface Blog {
   id: string
   title: string
   content: string
   tags?: string[]
   like_count: number
+  comment_count: number
   author_id: string
   author?: {
     id: string
@@ -16,6 +29,7 @@ export interface Blog {
     fullName: string
   }
   isLiked?: boolean
+  comments?: BlogComment[]
   createdAt: string
   updatedAt: string
 }
@@ -87,6 +101,20 @@ export async function deleteBlog(id: string): Promise<void> {
 export async function toggleLike(blogId: string): Promise<{ liked: boolean; like_count: number }> {
   const res = await axios.post(`${API_URL}/blogs/${blogId}/like`, {}, { headers: authHeaders() })
   return { liked: res.data.liked, like_count: res.data.like_count }
+}
+
+export async function addComment(blogId: string, content: string): Promise<BlogComment> {
+  const res = await axios.post(`${API_URL}/blogs/${blogId}/comments`, { content }, { headers: authHeaders() })
+  return res.data.data
+}
+
+export async function updateComment(blogId: string, commentId: string, content: string): Promise<BlogComment> {
+  const res = await axios.put(`${API_URL}/blogs/${blogId}/comments/${commentId}`, { content }, { headers: authHeaders() })
+  return res.data.data
+}
+
+export async function deleteComment(blogId: string, commentId: string): Promise<void> {
+  await axios.delete(`${API_URL}/blogs/${blogId}/comments/${commentId}`, { headers: authHeaders() })
 }
 
 export async function fetchLeaderboard(): Promise<LeaderboardUser[]> {
