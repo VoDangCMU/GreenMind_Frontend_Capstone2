@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Campaign } from "@/types/campaign";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Calendar, Clock, BarChart3 } from "lucide-react";
+import { Loader2, Users, Calendar, Clock, BarChart3, CheckCircle2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getAccessToken } from "@/lib/auth";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -56,13 +56,17 @@ export default function CampaignManagementPage() {
   };
 
   const renderStatus = (status?: string) => {
-    switch (status?.toLowerCase()) {
-      case "completed":
+    switch (status?.toUpperCase()) {
+      case "COMPLETED":
         return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none">Đã hoàn thành</Badge>;
-      case "active":
+      case "ONGOING":
         return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none">Đang diễn ra</Badge>;
-      default:
+      case "PENDING":
         return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-none">Sắp diễn ra</Badge>;
+      case "CANCELLED":
+        return <Badge className="bg-red-100 text-red-600 hover:bg-red-200 border-none">Đã hủy</Badge>;
+      default:
+        return <Badge className="bg-slate-100 text-slate-600 hover:bg-slate-200 border-none">{status ?? "Không rõ"}</Badge>;
     }
   };
 
@@ -110,7 +114,10 @@ export default function CampaignManagementPage() {
     return entries;
   }, [campaigns, chartMode]);
 
-  const ongoingCampaignsCount = campaigns.filter(c => c.status?.toLowerCase() !== "completed").length;
+  const pendingCount   = campaigns.filter(c => c.status?.toUpperCase() === "PENDING").length;
+  const ongoingCount   = campaigns.filter(c => c.status?.toUpperCase() === "ONGOING").length;
+  const completedCount = campaigns.filter(c => c.status?.toUpperCase() === "COMPLETED").length;
+  const cancelledCount = campaigns.filter(c => c.status?.toUpperCase() === "CANCELLED").length;
 
   return (
     <div className="p-6 h-[calc(100vh-64px)] flex flex-col gap-6 overflow-hidden bg-slate-50">
@@ -180,26 +187,46 @@ export default function CampaignManagementPage() {
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6 min-h-0">
           
           {/* Top Quick Stats */}
-          <div className="grid grid-cols-2 bg-white gap-4 rounded-xl shadow-sm border border-slate-200 overflow-hidden shrink-0">
-             <div className="p-6 border-r border-slate-100 flex items-center gap-5">
-                <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
-                   <Calendar className="w-6 h-6 text-blue-600" />
+          <div className="grid grid-cols-4 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden shrink-0 divide-x divide-slate-100">
+             <div className="p-5 flex items-center gap-4">
+                <div className="w-11 h-11 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
+                   <Calendar className="w-5 h-5 text-slate-600" />
                 </div>
                 <div>
-                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Tổng số Chiến dịch</p>
-                   <p className="text-3xl font-black text-slate-800 mt-1">{campaigns.length}</p>
+                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tổng chiến dịch</p>
+                   <p className="text-2xl font-black text-slate-800 mt-0.5">{campaigns.length}</p>
                 </div>
              </div>
-             <div className="p-6 flex items-center gap-5">
-                <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center">
-                   <BarChart3 className="w-6 h-6 text-amber-600" />
+             <div className="p-5 flex items-center gap-4">
+                <div className="w-11 h-11 bg-amber-50 rounded-full flex items-center justify-center shrink-0">
+                   <Clock className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Chờ triển khai / Đang chạy</p>
-                   <p className="text-3xl font-black text-slate-800 mt-1">{ongoingCampaignsCount}</p>
+                   <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Sắp diễn ra</p>
+                   <p className="text-2xl font-black text-amber-700 mt-0.5">{pendingCount}</p>
+                </div>
+             </div>
+             <div className="p-5 flex items-center gap-4">
+                <div className="w-11 h-11 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
+                   <Users className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                   <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Đang diễn ra</p>
+                   <p className="text-2xl font-black text-blue-700 mt-0.5">{ongoingCount}</p>
+                </div>
+             </div>
+             <div className="p-5 flex items-center gap-4">
+                <div className="w-11 h-11 bg-emerald-50 rounded-full flex items-center justify-center shrink-0">
+                   <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                   <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Đã hoàn thành</p>
+                   <p className="text-2xl font-black text-emerald-700 mt-0.5">{completedCount}</p>
                 </div>
              </div>
           </div>
+
+
 
           {/* Chart Panel */}
           <Card className="flex-1 shadow-sm border-slate-200 flex flex-col overflow-hidden bg-white p-6">

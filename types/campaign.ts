@@ -21,7 +21,7 @@ export interface Campaign {
     fullName: string;
     username?: string;
   };
-  status?: "PENDING" | "ACTIVE" | "COMPLETED" | "pending" | "active" | "completed";
+  status?: "PENDING" | "ONGOING" | "COMPLETED" | "CANCELLED";
 }
 
 export type ParticipantStatus = "REGISTERED" | "CHECKED_IN" | "COMPLETED";
