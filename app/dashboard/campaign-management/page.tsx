@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Campaign } from "@/types/campaign";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,10 +11,11 @@ import { getAccessToken } from "@/lib/auth";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { CampaignDetailModal } from "@/components/campaign/CampaignDetailModal";
 
-export default function CampaignManagementPage() {
+function CampaignManagementContent() {
+  const searchParams = useSearchParams();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
@@ -45,6 +47,15 @@ export default function CampaignManagementPage() {
     fetchCampaigns();
   }, []);
 
+  // Auto-open modal if ?id= query param is present
+  useEffect(() => {
+    const idFromQuery = searchParams.get("id");
+    if (idFromQuery) {
+      setSelectedCampaignId(idFromQuery);
+      setIsModalOpen(true);
+    }
+  }, [searchParams]);
+
   const openCampaignDetail = (id: string) => {
     setSelectedCampaignId(id);
     setIsModalOpen(true);
@@ -73,7 +84,7 @@ export default function CampaignManagementPage() {
   // ─── CHART AGGREGATION ─────────────────────────────────────────
   const chartData = useMemo(() => {
     const counts: Record<string, number> = {};
-    
+
     if (campaigns.length === 0) return [];
 
     // Gộp dữ liệu theo Ngày/Tháng/Năm từ startDate
@@ -82,17 +93,17 @@ export default function CampaignManagementPage() {
       const d = new Date(c.startDate);
       let dateStr = "";
       if (chartMode === "day") {
-         dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+        dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
       } else if (chartMode === "month") {
-         dateStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+        dateStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
       } else {
-         dateStr = `${d.getFullYear()}`;
+        dateStr = `${d.getFullYear()}`;
       }
       counts[dateStr] = (counts[dateStr] || 0) + 1;
     });
 
     const entries = Object.entries(counts).map(([date, count]) => ({ date, count }));
-    
+
     // Sắp xếp
     entries.sort((a, b) => {
       if (chartMode === "day") {
@@ -114,8 +125,8 @@ export default function CampaignManagementPage() {
     return entries;
   }, [campaigns, chartMode]);
 
-  const pendingCount   = campaigns.filter(c => c.status?.toUpperCase() === "PENDING").length;
-  const ongoingCount   = campaigns.filter(c => c.status?.toUpperCase() === "ONGOING").length;
+  const pendingCount = campaigns.filter(c => c.status?.toUpperCase() === "PENDING").length;
+  const ongoingCount = campaigns.filter(c => c.status?.toUpperCase() === "ONGOING").length;
   const completedCount = campaigns.filter(c => c.status?.toUpperCase() === "COMPLETED").length;
   const cancelledCount = campaigns.filter(c => c.status?.toUpperCase() === "CANCELLED").length;
 
@@ -131,7 +142,7 @@ export default function CampaignManagementPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 flex-1">
-        
+
         {/* === Cột danh sách chiến dịch === */}
         <Card className="lg:col-span-5 xl:col-span-4 shadow-sm border-slate-200 flex flex-col min-h-0 overflow-hidden bg-white">
           <div className="p-4 border-b border-slate-100 bg-slate-50/50 shrink-0 flex items-center justify-between">
@@ -145,7 +156,7 @@ export default function CampaignManagementPage() {
           <ScrollArea className="flex-1 min-h-0 p-3">
             {loading ? (
               <div className="flex justify-center items-center h-32">
-                 <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
               </div>
             ) : campaigns.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-sm">
@@ -165,14 +176,14 @@ export default function CampaignManagementPage() {
                       </h3>
                       <div className="shrink-0">{renderStatus(campaign.status)}</div>
                     </div>
-                    
+
                     <div className="text-xs font-medium text-slate-500 flex items-center gap-4">
                       <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
-                        <Clock className="w-3.5 h-3.5 text-slate-400"/>
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
                         {new Date(campaign.startDate).toLocaleDateString("vi-VN")}
                       </span>
                       <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md">
-                        <Users className="w-3.5 h-3.5 text-emerald-500"/>
+                        <Users className="w-3.5 h-3.5 text-emerald-500" />
                         {campaign.participantsCount ?? campaign.participants?.length ?? 0} tham gia
                       </span>
                     </div>
@@ -185,45 +196,45 @@ export default function CampaignManagementPage() {
 
         {/* === Cột Biểu đồ thống kê === */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6 min-h-0">
-          
+
           {/* Top Quick Stats */}
           <div className="grid grid-cols-4 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden shrink-0 divide-x divide-slate-100">
-             <div className="p-5 flex items-center gap-4">
-                <div className="w-11 h-11 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
-                   <Calendar className="w-5 h-5 text-slate-600" />
-                </div>
-                <div>
-                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tổng chiến dịch</p>
-                   <p className="text-2xl font-black text-slate-800 mt-0.5">{campaigns.length}</p>
-                </div>
-             </div>
-             <div className="p-5 flex items-center gap-4">
-                <div className="w-11 h-11 bg-amber-50 rounded-full flex items-center justify-center shrink-0">
-                   <Clock className="w-5 h-5 text-amber-600" />
-                </div>
-                <div>
-                   <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Sắp diễn ra</p>
-                   <p className="text-2xl font-black text-amber-700 mt-0.5">{pendingCount}</p>
-                </div>
-             </div>
-             <div className="p-5 flex items-center gap-4">
-                <div className="w-11 h-11 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
-                   <Users className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                   <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Đang diễn ra</p>
-                   <p className="text-2xl font-black text-blue-700 mt-0.5">{ongoingCount}</p>
-                </div>
-             </div>
-             <div className="p-5 flex items-center gap-4">
-                <div className="w-11 h-11 bg-emerald-50 rounded-full flex items-center justify-center shrink-0">
-                   <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                </div>
-                <div>
-                   <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Đã hoàn thành</p>
-                   <p className="text-2xl font-black text-emerald-700 mt-0.5">{completedCount}</p>
-                </div>
-             </div>
+            <div className="p-5 flex items-center gap-4">
+              <div className="w-11 h-11 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
+                <Calendar className="w-5 h-5 text-slate-600" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tổng chiến dịch</p>
+                <p className="text-2xl font-black text-slate-800 mt-0.5">{campaigns.length}</p>
+              </div>
+            </div>
+            <div className="p-5 flex items-center gap-4">
+              <div className="w-11 h-11 bg-amber-50 rounded-full flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Sắp diễn ra</p>
+                <p className="text-2xl font-black text-amber-700 mt-0.5">{pendingCount}</p>
+              </div>
+            </div>
+            <div className="p-5 flex items-center gap-4">
+              <div className="w-11 h-11 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Đang diễn ra</p>
+                <p className="text-2xl font-black text-blue-700 mt-0.5">{ongoingCount}</p>
+              </div>
+            </div>
+            <div className="p-5 flex items-center gap-4">
+              <div className="w-11 h-11 bg-emerald-50 rounded-full flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Đã hoàn thành</p>
+                <p className="text-2xl font-black text-emerald-700 mt-0.5">{completedCount}</p>
+              </div>
+            </div>
           </div>
 
 
@@ -240,54 +251,54 @@ export default function CampaignManagementPage() {
                 </p>
               </div>
               <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0">
-                <button 
-                  onClick={() => setChartMode("day")} 
+                <button
+                  onClick={() => setChartMode("day")}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${chartMode === "day" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
                 >Ngày</button>
-                <button 
-                  onClick={() => setChartMode("month")} 
+                <button
+                  onClick={() => setChartMode("month")}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${chartMode === "month" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
                 >Tháng</button>
-                <button 
-                  onClick={() => setChartMode("year")} 
+                <button
+                  onClick={() => setChartMode("year")}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${chartMode === "year" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
                 >Năm</button>
               </div>
             </div>
-            
+
             <div className="flex-1 w-full min-h-0 relative">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis 
-                    dataKey="date" 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tickMargin={12} 
-                    tick={{ fill: "#64748b", fontSize: 13, fontWeight: 500 }} 
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={12}
+                    tick={{ fill: "#64748b", fontSize: 13, fontWeight: 500 }}
                   />
-                  <YAxis 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tickMargin={12} 
-                    tick={{ fill: "#64748b", fontSize: 13, fontWeight: 500 }} 
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={12}
+                    tick={{ fill: "#64748b", fontSize: 13, fontWeight: 500 }}
                     allowDecimals={false}
                   />
-                  <Tooltip 
+                  <Tooltip
                     cursor={{ fill: "#f1f5f9" }}
-                    contentStyle={{ 
-                      borderRadius: "12px", 
-                      border: "none", 
+                    contentStyle={{
+                      borderRadius: "12px",
+                      border: "none",
                       boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
                       fontWeight: "bold",
                     }}
                     labelStyle={{ color: "#64748b", fontSize: "12px", marginBottom: "4px", fontWeight: "normal" }}
                     formatter={(value: any) => [`${value} chiến dịch`, "Số lượng"]}
                   />
-                  <Bar 
-                    dataKey="count" 
-                    fill="#3b82f6" 
-                    radius={[6, 6, 0, 0]} 
+                  <Bar
+                    dataKey="count"
+                    fill="#3b82f6"
+                    radius={[6, 6, 0, 0]}
                     maxBarSize={60}
                     label={{ position: "top", fill: "#3b82f6", fontSize: 12, fontWeight: "bold", dy: -8 }}
                     animationDuration={1500}
@@ -300,11 +311,19 @@ export default function CampaignManagementPage() {
       </div>
 
       {/* Modal Popup Chi tiết */}
-      <CampaignDetailModal 
+      <CampaignDetailModal
         isOpen={isModalOpen}
         onClose={closeCampaignDetail}
         campaignId={selectedCampaignId}
       />
     </div>
+  );
+}
+
+export default function CampaignManagementPage() {
+  return (
+    <Suspense>
+      <CampaignManagementContent />
+    </Suspense>
   );
 }
