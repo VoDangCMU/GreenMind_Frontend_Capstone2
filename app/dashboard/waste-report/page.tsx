@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { Summary, UrbanArea, WasteReport, WasteType, ReportStatus, CampaignRegion } from "@/types/waste-report";
 import { SummaryCards } from "@/components/waste-report/SummaryCards";
@@ -22,6 +23,7 @@ const MapWard = dynamic(
 );
 
 export default function MonitoringPage() {
+  const router = useRouter();
   const [areas] = useState<UrbanArea[]>(WARDS);
   const [reports, setReports] = useState<WasteReport[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -279,6 +281,7 @@ export default function MonitoringPage() {
         region={campaignRegion}
         onSuccess={() => {
           fetchAll();
+          router.push("/dashboard/campaign-management");
         }}
       />
     </div>

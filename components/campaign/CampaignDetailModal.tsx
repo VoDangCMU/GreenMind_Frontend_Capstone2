@@ -5,9 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Campaign, CampaignParticipant } from "@/types/campaign";
 import { getAccessToken } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle2, ChevronRight, MapPin, UserCircle, Users, AlertCircle, Loader2 } from "lucide-react";
+import { Calendar, CheckCircle2, MapPin, UserCircle, Users, AlertCircle, Loader2, MessageCircle, Info } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CampaignChatPanel } from "@/components/campaign/CampaignChatPanel";
 
 interface CampaignDetailModalProps {
   isOpen: boolean;
@@ -15,13 +16,18 @@ interface CampaignDetailModalProps {
   campaignId: string | null;
 }
 
+type ActiveTab = "info" | "chat";
+
 export function CampaignDetailModal({ isOpen, onClose, campaignId }: CampaignDetailModalProps) {
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("info");
 
   useEffect(() => {
     if (!isOpen || !campaignId) return;
+    // Reset tab về info khi mở modal mới
+    setActiveTab("info");
 
     let isMounted = true;
     async function fetchDetail() {
@@ -84,7 +90,7 @@ export function CampaignDetailModal({ isOpen, onClose, campaignId }: CampaignDet
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-6xl w-[95vw] p-0 overflow-hidden flex flex-col max-h-[85vh] bg-slate-50">
+      <DialogContent className="sm:max-w-7xl w-[97vw] p-0 overflow-hidden flex flex-col max-h-[90vh] bg-slate-50">
         <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-white shrink-0">
           <DialogTitle className="text-xl font-bold flex items-center justify-between mt-1">
             <span>Thông tin Chiến dịch</span>
@@ -100,132 +106,176 @@ export function CampaignDetailModal({ isOpen, onClose, campaignId }: CampaignDet
            <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white">
               <AlertCircle className="w-10 h-10 text-red-400 mb-4" />
               <p className="text-red-600 font-medium">{error}</p>
-              <button 
-                onClick={onClose} 
+              <button
+                onClick={onClose}
                 className="mt-4 px-4 py-2 bg-slate-100 rounded-lg text-sm text-slate-600 font-medium hover:bg-slate-200"
               >
                  Đóng
               </button>
            </div>
         ) : detail ? (
-           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-             {/* Header Info Banner */}
-             <div className="px-6 py-5 bg-white border-b border-slate-100 shrink-0">
-                <div className="flex items-start justify-between mb-4 mt-2">
-                  <div className="pr-10">
-                    <h2 className="text-2xl font-bold text-slate-900 mb-1.5">{detail.name}</h2>
-                    <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">{detail.description || "Không có mô tả chi tiết."}</p>
-                  </div>
-                  <div className="shrink-0">{renderStatus(detail.status)}</div>
-                </div>
+           <div className="flex-1 min-h-0 flex overflow-hidden">
 
-                <div className="flex flex-wrap items-center gap-6 text-sm mt-5 bg-slate-50 border border-slate-100 rounded-xl p-4">
-                  {detail.createdBy?.fullName && (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                          <UserCircle className="w-6 h-6 text-slate-500" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-0.5">Người tổ chức</p>
-                          <p className="font-semibold text-slate-800">{detail.createdBy.fullName}</p>
-                        </div>
-                      </div>
-                      <div className="hidden sm:block w-px h-10 bg-slate-200" />
-                    </>
-                  )}
+             {/* ── LEFT: Info + Participants ──────────────────── */}
+             <div className="flex flex-col min-h-0 overflow-hidden border-r border-slate-100" style={{ width: "58%" }}>
 
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-0.5">Thời gian</p>
-                      <p className="font-semibold text-slate-800">
-                        {new Date(detail.startDate).toLocaleDateString("vi-VN")} - {new Date(detail.endDate).toLocaleDateString("vi-VN")}
-                      </p>
-                    </div>
-                  </div>
+               {/* Header Info Banner */}
+               <div className="px-6 py-4 bg-white border-b border-slate-100 shrink-0">
+                 <div className="flex items-start justify-between mb-3 mt-1">
+                   <div className="pr-6">
+                     <h2 className="text-xl font-bold text-slate-900 mb-1">{detail.name}</h2>
+                     <p className="text-sm text-slate-500 leading-relaxed line-clamp-2">{detail.description || "Không có mô tả chi tiết."}</p>
+                   </div>
+                   <div className="shrink-0">{renderStatus(detail.status)}</div>
+                 </div>
 
-                  <div className="hidden sm:block w-px h-10 bg-slate-200" />
+                 <div className="grid grid-cols-2 gap-3 mt-3">
+                   {detail.createdBy?.fullName && (
+                     <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-xl p-3">
+                       <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                         <UserCircle className="w-5 h-5 text-slate-500" />
+                       </div>
+                       <div className="min-w-0">
+                         <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Người tổ chức</p>
+                         <p className="font-semibold text-slate-800 text-sm truncate">{detail.createdBy.fullName}</p>
+                       </div>
+                     </div>
+                   )}
 
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-0.5">Vị trí trung tâm</p>
-                      <p className="font-semibold text-slate-800">
-                        {detail.lat.toFixed(4)}, {detail.lng.toFixed(4)}
-                      </p>
-                    </div>
-                  </div>
+                   <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                       <Calendar className="w-4 h-4 text-blue-600" />
+                     </div>
+                     <div className="min-w-0">
+                       <p className="text-[10px] text-blue-400 font-medium uppercase tracking-wider">Thời gian</p>
+                       <p className="font-semibold text-blue-800 text-xs">
+                         {new Date(detail.startDate).toLocaleDateString("vi-VN")} – {new Date(detail.endDate).toLocaleDateString("vi-VN")}
+                       </p>
+                     </div>
+                   </div>
 
-                  <div className="hidden md:block w-px h-10 bg-slate-200" />
+                   <div className="flex items-center gap-2.5 bg-purple-50 border border-purple-100 rounded-xl p-3">
+                     <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+                       <MapPin className="w-4 h-4 text-purple-600" />
+                     </div>
+                     <div className="min-w-0">
+                       <p className="text-[10px] text-purple-400 font-medium uppercase tracking-wider">Vị trí</p>
+                       <p className="font-semibold text-purple-800 text-xs">{detail.lat.toFixed(4)}, {detail.lng.toFixed(4)}</p>
+                     </div>
+                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                      <Users className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-0.5">Người tham gia</p>
-                      <p className="font-semibold text-slate-800 text-lg">
-                        {detail.participantsCount ?? finalParticipants.length}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                   <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                     <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                       <Users className="w-4 h-4 text-emerald-600" />
+                     </div>
+                     <div className="min-w-0">
+                       <p className="text-[10px] text-emerald-400 font-medium uppercase tracking-wider">Người tham gia</p>
+                       <p className="font-bold text-emerald-800 text-lg">{detail.participantsCount ?? finalParticipants.length}</p>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+
+               {/* Participants Table */}
+               <div className="flex-1 min-h-0 flex flex-col bg-white">
+                 <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50 shrink-0">
+                   <h3 className="font-semibold text-slate-800 text-sm">Danh sách Người tham gia</h3>
+                 </div>
+                 <ScrollArea className="flex-1">
+                   <Table>
+                     <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                       <TableRow>
+                         <TableHead className="w-[240px] pl-6">Người dùng</TableHead>
+                         <TableHead>Trạng thái</TableHead>
+                         <TableHead>Thay đổi lần cuối</TableHead>
+                       </TableRow>
+                     </TableHeader>
+                     <TableBody>
+                       {finalParticipants.map((p) => (
+                         <TableRow key={p.id}>
+                           <TableCell className="pl-6">
+                             <div className="flex items-center gap-3 py-1">
+                               <UserCircle className="w-8 h-8 text-slate-300" />
+                               <div>
+                                 <p className="font-semibold text-slate-900 text-sm">{p.user?.fullName || "Người dùng ẩn danh"}</p>
+                                 <p className="text-xs text-slate-500">{p.user?.email || p.user?.phoneNumber || p.user?.username || "Chưa cập nhật"}</p>
+                               </div>
+                             </div>
+                           </TableCell>
+                           <TableCell>{renderParticipantStatus(p.status)}</TableCell>
+                           <TableCell className="text-xs text-slate-500">
+                             {(() => {
+                               const dateObj = p.checkOutTime || p.checkInTime || p.updatedAt || p.createdAt;
+                               if (!dateObj) return "N/A";
+                               try {
+                                 return new Date(dateObj).toLocaleString("vi-VN", {
+                                   hour: "2-digit", minute: "2-digit",
+                                   day: "2-digit", month: "2-digit", year: "numeric"
+                                 });
+                               } catch { return "N/A"; }
+                             })()}
+                           </TableCell>
+                         </TableRow>
+                       ))}
+                     </TableBody>
+                   </Table>
+                 </ScrollArea>
+               </div>
              </div>
 
-             {/* Participants Table */}
-             <div className="flex-1 min-h-0 flex flex-col bg-white">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
-                  <h3 className="font-semibold text-slate-800">Danh sách Người tham gia</h3>
-                </div>
-                <ScrollArea className="flex-1">
-                  <Table>
-                    <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                      <TableRow>
-                        <TableHead className="w-[280px] pl-6">Người dùng</TableHead>
-                        <TableHead>Trạng thái</TableHead>
-                        <TableHead>Thay đổi lần cuối</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {finalParticipants.map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell className="pl-6">
-                            <div className="flex items-center gap-3 py-1">
-                              <UserCircle className="w-9 h-9 text-slate-300" />
-                              <div>
-                                <p className="font-semibold text-slate-900">{p.user?.fullName || "Người dùng ẩn danh"}</p>
-                                <p className="text-xs text-slate-500 font-medium">{p.user?.email || p.user?.phoneNumber || p.user?.username || "Chưa cập nhật thông tin"}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {renderParticipantStatus(p.status)}
-                          </TableCell>
-                          <TableCell className="text-sm text-slate-500 font-medium">
-                            {(() => {
-                              const dateObj = p.checkOutTime || p.checkInTime || p.updatedAt || p.createdAt;
-                              if (!dateObj) return "N/A";
-                              try {
-                                return new Date(dateObj).toLocaleString("vi-VN", {
-                                    hour: "2-digit", minute: "2-digit", 
-                                    day: "2-digit", month: "2-digit", year: "numeric"
-                                });
-                              } catch {
-                                return "N/A";
-                              }
-                            })()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
+             {/* ── RIGHT: Chat Panel ────────────────────────────── */}
+             <div className="flex flex-col min-h-0" style={{ width: "42%" }}>
+               {/* Tab header */}
+               <div className="flex items-center gap-0 px-4 pt-3 pb-0 bg-white border-b border-slate-100 shrink-0">
+                 <button
+                   onClick={() => setActiveTab("info")}
+                   className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 transition-colors ${
+                     activeTab === "info"
+                       ? "border-blue-500 text-blue-600 bg-blue-50"
+                       : "border-transparent text-slate-500 hover:text-slate-700"
+                   }`}
+                 >
+                   <Info className="w-3.5 h-3.5" />
+                   Tổng quan
+                 </button>
+                 <button
+                   onClick={() => setActiveTab("chat")}
+                   className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 transition-colors ${
+                     activeTab === "chat"
+                       ? "border-blue-500 text-blue-600 bg-blue-50"
+                       : "border-transparent text-slate-500 hover:text-slate-700"
+                   }`}
+                 >
+                   <MessageCircle className="w-3.5 h-3.5" />
+                   Chat nhóm
+                 </button>
+               </div>
+
+               {/* Tab content */}
+               <div className="flex-1 min-h-0 overflow-hidden">
+                 {activeTab === "info" ? (
+                   <div className="h-full flex flex-col items-center justify-center gap-4 p-8 text-center bg-slate-50">
+                     <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center">
+                       <Info className="w-8 h-8 text-blue-500" />
+                     </div>
+                     <div>
+                       <p className="font-semibold text-slate-700 text-base">Thông tin chiến dịch</p>
+                       <p className="text-sm text-slate-400 mt-1">Xem thông tin chi tiết bên cột trái.</p>
+                     </div>
+                     <button
+                       onClick={() => setActiveTab("chat")}
+                       className="mt-2 flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-xl transition-all active:scale-95"
+                     >
+                       <MessageCircle className="w-4 h-4" />
+                       Mở Chat nhóm
+                     </button>
+                   </div>
+                 ) : (
+                   <CampaignChatPanel campaignId={campaignId!} />
+                 )}
+               </div>
              </div>
+
            </div>
         ) : null}
       </DialogContent>
