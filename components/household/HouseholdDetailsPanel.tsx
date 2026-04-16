@@ -164,6 +164,37 @@ function buildCaptureTrendFromDates(dates: string[], householdId: number): Captu
     });
 }
 
+function normalizePersonName(name?: string) {
+    return (name ?? "").trim().toLowerCase();
+}
+
+function buildMemberShotCounts(
+    imageHistory: HouseholdProfile["imageHistory"],
+    reports?: WasteReport[]
+) {
+    const counts = new Map<string, number>();
+
+    const addShot = (name?: string) => {
+        const normalized = normalizePersonName(name);
+        if (!normalized) return;
+        counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+    };
+
+    imageHistory?.forEach((image) => {
+        addShot(image.sender);
+    });
+
+    reports?.forEach((report) => {
+        if (typeof report.reportedBy === "string") {
+            addShot(report.reportedBy);
+        } else {
+            addShot(report.householdName);
+        }
+    });
+
+    return counts;
+}
+
 function generateMockImageHistory(householdId: number): HouseholdProfile["imageHistory"] {
     const rand = createSeededRandom((householdId || 1) * 13);
     const now = new Date();
@@ -199,6 +230,10 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
         if (household?.imageHistory?.length) return household.imageHistory;
         return generateMockImageHistory(household?.id ?? 0);
     }, [household?.id, household?.imageHistory, imageHistoryProp]);
+
+    const memberShotCounts = useMemo(() => {
+        return buildMemberShotCounts(imageHistory, householdReports);
+    }, [imageHistory, householdReports]);
 
     if (!household) {
         return (
@@ -289,7 +324,9 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                                         </div>
                                         <div className="text-right min-w-[56px]">
                                             <p className="text-[10px] text-slate-500">Shots</p>
-                                            <p className="font-semibold text-slate-700">{typeof member.wasteKg === "number" ? member.wasteKg.toFixed(1) : "0.0"}</p>
+                                            <p className="font-semibold text-slate-700">
+                                                {memberShotCounts.get(normalizePersonName(member.name)) ?? 0}
+                                            </p>
                                         </div>
                                     </div>
                                 ))
