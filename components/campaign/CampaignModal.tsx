@@ -12,6 +12,7 @@ import { CampaignRegion } from "@/types/waste-report";
 import { useState } from "react";
 import { getAccessToken } from "@/lib/auth";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { createBlog } from "@/services/blog.service";
 
 const API_BASE = "https://vodang-api.gauas.com";
 
@@ -78,6 +79,24 @@ export function CampaignModal({ isOpen, onClose, region, onSuccess }: CampaignMo
         const text = await res.text();
         throw new Error(text || `Lỗi ${res.status}`);
       }
+
+      const campaignData = await res.json();
+      const campaignId: string = campaignData?.id ?? campaignData?.data?.id ?? "";
+
+      // Auto-create a community blog post for this campaign (fire-and-forget)
+      const startFormatted = startDate ? new Date(startDate).toLocaleDateString("vi-VN") : "?";
+      const endFormatted   = endDate   ? new Date(endDate).toLocaleDateString("vi-VN")   : "?";
+      const blogContent = `<p><strong>${name}</strong></p>
+<p>${description}</p>
+<p>Thời gian: <strong>${startFormatted}</strong> – <strong>${endFormatted}</strong></p>
+<p>Khu vực: ${region.name}</p>
+${campaignId ? `<p><a href="/dashboard/campaign-management?id=${campaignId}" target="_blank" rel="noopener">Xem chiến dịch: ${name}</a></p>` : ""}`;
+
+      createBlog({
+        title:   `[Chiến dịch] ${name}`,
+        content: blogContent,
+        tags:    ["chiến dịch", "tình nguyện"],
+      }).catch(() => { /* silent – campaign already created */ });
 
       setSuccess(true);
       onSuccess?.();
