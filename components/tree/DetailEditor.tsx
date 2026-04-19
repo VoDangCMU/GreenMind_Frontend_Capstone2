@@ -61,7 +61,7 @@ export default function DetailEditor() {
   };
 
   const handleGenderSelect = (gender: string) => {
-    // Single select - only one option at a time
+
     if (gender === 'all') {
       setPopulation({
         gender: ['male', 'female'],
@@ -73,7 +73,7 @@ export default function DetailEditor() {
     }
   };
 
-  // Get current selected gender option
+
   const getSelectedGenderOption = () => {
     if (context.population.gender.length === 2 &&
       context.population.gender.includes('male') &&
@@ -86,7 +86,7 @@ export default function DetailEditor() {
     return '';
   };
 
-  // Create age_range from age_from and age_to
+
   const getAgeRange = () => `${context.population.age_from}-${context.population.age_to}`;
 
   const handleGenerateKeywords = async () => {
@@ -200,17 +200,17 @@ export default function DetailEditor() {
 
   return (
     <div className="w-96 space-y-4">
-      {/* Context Form */}
+
       <Card>
         <CardHeader>
           <CardTitle>Context</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Population Section */}
+
           <div className="space-y-4 p-3 border rounded-lg bg-muted/30">
             <h4 className="text-sm font-medium">Population</h4>
 
-            {/* Age Range - 2 inputs */}
+
             <div className="space-y-2">
               <Label>Age Range</Label>
               <div className="flex items-center gap-2">
@@ -237,7 +237,7 @@ export default function DetailEditor() {
               </div>
             </div>
 
-            {/* Gender Single Select */}
+
             <div className="space-y-2">
               <Label>Gender</Label>
               <div className="flex flex-wrap gap-2">
@@ -248,8 +248,8 @@ export default function DetailEditor() {
                     <div
                       key={option.value}
                       className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${isSelected
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'hover:bg-muted'
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'hover:bg-muted'
                         }`}
                       onClick={() => handleGenderSelect(option.value)}
                     >
@@ -266,7 +266,7 @@ export default function DetailEditor() {
               </div>
             </div>
 
-            {/* Locations Multi-input */}
+
             <div className="space-y-2">
               <Label>Locations</Label>
               <div className="flex gap-2">
@@ -300,7 +300,7 @@ export default function DetailEditor() {
               )}
             </div>
 
-            {/* Urban Checkbox */}
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="urban"
@@ -315,7 +315,7 @@ export default function DetailEditor() {
             </div>
           </div>
 
-          {/* Setting */}
+
           <div className="space-y-2">
             <Label htmlFor="setting">Setting</Label>
             <Input
@@ -326,7 +326,7 @@ export default function DetailEditor() {
             />
           </div>
 
-          {/* Event */}
+
           <div className="space-y-2">
             <Label htmlFor="event">Event</Label>
             <Input
@@ -339,7 +339,7 @@ export default function DetailEditor() {
         </CardContent>
       </Card>
 
-      {/* Keywords Form */}
+
       <Card>
         <CardHeader>
           <CardTitle>Keywords</CardTitle>
@@ -374,7 +374,7 @@ export default function DetailEditor() {
             )}
           </Button>
 
-          {/* Generated Keywords */}
+
           {generatedKeywords.length > 0 && (
             <div className="space-y-2">
               <Label>Generated Keywords:</Label>
@@ -396,7 +396,7 @@ export default function DetailEditor() {
             </div>
           )}
 
-          {/* Save Model Button */}
+
           <Button
             onClick={handleSaveModel}
             disabled={!isFormValid || isSaving}

@@ -28,10 +28,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    // Mark as hydrated first to prevent hydration mismatch
+
     setIsHydrated(true);
 
-    // Check if user is logged in on app start
+
     const storedUser = getStoredUser();
     const authenticated = isAuthenticated();
 

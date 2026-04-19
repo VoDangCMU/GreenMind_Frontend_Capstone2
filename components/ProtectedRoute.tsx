@@ -32,7 +32,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [isAuth, isLoading, isHydrated, pathname, router, mounted]);
 
-  // Always render the same structure to avoid hydration mismatch
+  
   if (!mounted || !isHydrated || isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">

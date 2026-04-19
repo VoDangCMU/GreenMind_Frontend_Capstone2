@@ -18,7 +18,7 @@ interface HouseholdDetailsPanelProps {
 }
 
 type CaptureTrendPoint = {
-    month: string; // YYYY-MM
+    month: string;
     captureCount: number;
     pollutionCO2: number;
     pollutionDioxin: number;
@@ -27,8 +27,8 @@ type CaptureTrendPoint = {
 };
 
 type GreenScoreTrendPoint = {
-    month: string; // YYYY-MM
-    label: string; // formatted for axis/tooltip
+    month: string;
+    label: string;
     finalScore: number | null;
     delta?: number;
     previousScore?: number;
@@ -206,7 +206,7 @@ function generateMockImageHistory(householdId: number): HouseholdProfile["imageH
         return {
             id: (householdId || 1) * 100 + idx,
             uploadedAt: dt.toISOString(),
-            imageUrl: `https://via.placeholder.com/320x240.png?text=Household+${encodeURIComponent(String(householdId))}+%23${idx + 1}`,
+            imageUrl: `https://picsum.photos/seed/${(householdId || 1) * 100 + idx}/280/200`,
             label: `Report #${idx + 1}`,
             caption: "Mock: household waste image",
             total_objects: totalObjects,

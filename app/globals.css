@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated to light theme with clean, professional colors */
+  
   --background: oklch(0.98 0 0);
   --foreground: oklch(0.15 0 0);
   --card: oklch(1 0 0);
@@ -77,7 +77,7 @@
 }
 
 @theme inline {
-  /* Updated to use Inter font instead of Geist */
+  
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
   --color-background: var(--background);
@@ -142,5 +142,25 @@
 
   .stat-number {
     @apply bg-gradient-to-br from-blue-600 to-teal-500 bg-clip-text text-transparent;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .glassmorphism {
+    @apply bg-white/10 backdrop-blur-lg border border-white/20;
   }
 }

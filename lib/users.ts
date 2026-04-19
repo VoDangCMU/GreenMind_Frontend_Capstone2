@@ -11,7 +11,7 @@ export interface UserWithOCEAN {
     gender: string;
     location: string;
 
-    // OCEAN scores (0-100)
+    
     ocean: {
         openness: number;
         conscientiousness: number;
@@ -20,12 +20,12 @@ export interface UserWithOCEAN {
         neuroticism: number;
     };
 
-    // Survey/Scenario info
+    
     scenariosAssigned: number;
     scenariosCompleted: number;
     completionRate: number;
 
-    // Metadata
+    
     createdAt: string;
     updatedAt: string;
     lastActive?: string;
@@ -43,7 +43,7 @@ export interface UserStats {
     };
 }
 
-// Fetch all users with OCEAN scores
+
 export const getAllUsersWithOCEAN = async (filters?: any) => {
     try {
         const token = getAccessToken();

@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { loginWithEmail, loginWithGoogle } from "@/lib/auth";
 
-// Define form schemas
+
 const emailLoginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -39,7 +39,7 @@ export default function LoginPage() {
     resolver: zodResolver(emailLoginSchema),
   });
 
-  // Handle email/password login
+  
   const onEmailLogin = async (data: EmailLoginForm) => {
     setIsLoading(true);
     setError("");
@@ -47,10 +47,10 @@ export default function LoginPage() {
     try {
       const result = await loginWithEmail(data);
 
-      // Use auth context to questions-manage login state
+      
       login(result.user, result.access_token, result.refresh_token);
 
-      // Redirect to dashboard
+      
       router.push("/dashboard");
     } catch (error: any) {
       setError(error.message || "Login failed. Please try again.");
@@ -59,24 +59,24 @@ export default function LoginPage() {
     }
   };
 
-  // Handle Google login
+  
   const onGoogleLogin = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      // Initialize Google Sign-In (you'll need to add Google SDK)
-      // For now, this is a placeholder for the Google authentication flow
+      
+      
 
-      // After getting the Google token, send it to your API
-      const googleToken = "google_token_from_auth"; // This should come from Google SDK
+      
+      const googleToken = "google_token_from_auth"; 
 
       const result = await loginWithGoogle({ token: googleToken });
 
-      // Use auth context to questions-manage login state
+      
       login(result.user, result.access_token, result.refresh_token);
 
-      // Redirect to dashboard
+      
       router.push("/dashboard");
     } catch (error: any) {
       setError(error.message || "Google login failed. Please try again.");

@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig } from 'axios';
 
-// API utility functions for authentication
+
 export interface LoginResponse {
   message: string;
   user: {
@@ -23,7 +23,7 @@ export interface GoogleLoginPayload {
   token: string;
 }
 
-// Get stored access token - Define this first before using in interceptors
+
 export const getAccessToken = (): string | null => {
   if (typeof window !== 'undefined') {
     return localStorage.getItem('access_token');
@@ -31,7 +31,7 @@ export const getAccessToken = (): string | null => {
   return null;
 };
 
-// Get stored user data
+
 export const getStoredUser = () => {
   if (typeof window !== 'undefined') {
     const user = localStorage.getItem('user');
@@ -40,7 +40,7 @@ export const getStoredUser = () => {
   return null;
 };
 
-// Clear authentication data
+
 export const clearAuthData = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('access_token');
@@ -49,15 +49,15 @@ export const clearAuthData = () => {
   }
 };
 
-// Create axios instance for authenticated requests (main API)
+
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://green-api.khoav4.com',
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Create axios instance for AI API (separate base URL)
+
 const aiApiClient = axios.create({
   baseURL: 'https://ai-greenmind.khoav4.com',
   headers: {
@@ -65,7 +65,7 @@ const aiApiClient = axios.create({
   },
 });
 
-// Request interceptor to add auth token for main API
+
 apiClient.interceptors.request.use(
   (config) => {
     const token = getAccessToken();
@@ -79,7 +79,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Request interceptor to add auth token for AI API
+
 aiApiClient.interceptors.request.use(
   (config) => {
     const token = getAccessToken();
@@ -93,12 +93,12 @@ aiApiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors for main API
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid, redirect to login
+
       clearAuthData();
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
@@ -108,12 +108,12 @@ apiClient.interceptors.response.use(
   }
 );
 
-// Response interceptor to handle errors for AI API
+
 aiApiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid, redirect to login
+
       clearAuthData();
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
@@ -123,7 +123,7 @@ aiApiClient.interceptors.response.use(
   }
 );
 
-// Create authenticated axios wrapper
+
 export const authenticatedRequest = async (config: AxiosRequestConfig) => {
   try {
     const response = await apiClient(config);
@@ -136,7 +136,7 @@ export const authenticatedRequest = async (config: AxiosRequestConfig) => {
   }
 };
 
-// Create authenticated AI API wrapper
+
 export const authenticatedAiRequest = async (config: AxiosRequestConfig) => {
   try {
     const response = await aiApiClient(config);
@@ -149,7 +149,7 @@ export const authenticatedAiRequest = async (config: AxiosRequestConfig) => {
   }
 };
 
-// Helper functions for common HTTP methods with automatic auth headers
+
 export const apiGet = async (url: string, config?: AxiosRequestConfig) => {
   return authenticatedRequest({ method: 'GET', url, ...config });
 };
@@ -170,7 +170,7 @@ export const apiPatch = async (url: string, data?: any, config?: AxiosRequestCon
   return authenticatedRequest({ method: 'PATCH', url, data, ...config });
 };
 
-// Helper functions for AI API calls
+
 export const aiApiGet = async (url: string, config?: AxiosRequestConfig) => {
   return authenticatedAiRequest({ method: 'GET', url, ...config });
 };
@@ -179,10 +179,10 @@ export const aiApiPost = async (url: string, data?: any, config?: AxiosRequestCo
   return authenticatedAiRequest({ method: 'POST', url, data, ...config });
 };
 
-// Email/Password login
+
 export const loginWithEmail = async (payload: EmailLoginPayload): Promise<LoginResponse> => {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://green-api.khoav4.com';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
     const response = await axios.post(`${baseUrl}/auth/login/email`, payload, {
       headers: {
         'Content-Type': 'application/json',
@@ -197,7 +197,7 @@ export const loginWithEmail = async (payload: EmailLoginPayload): Promise<LoginR
   }
 };
 
-// Google login
+
 export const loginWithGoogle = async (payload: GoogleLoginPayload): Promise<LoginResponse> => {
   try {
     const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/login/google`, payload, {
@@ -214,12 +214,12 @@ export const loginWithGoogle = async (payload: GoogleLoginPayload): Promise<Logi
   }
 };
 
-// Check if user is authenticated
+
 export const isAuthenticated = (): boolean => {
   return !!getAccessToken();
 };
 
-// Logout function
+
 export const logout = () => {
   clearAuthData();
   window.location.href = '/login';
@@ -249,7 +249,7 @@ export const getAllModels = async (filters?: any) => {
       config.params = filters;
     }
 
-    // Use apiClient directly instead of going through authenticatedRequest
+
     const response = await apiClient(config);
     return response.data;
   } catch (error) {
@@ -274,11 +274,11 @@ export const deleteModel = async (id: string) => {
   return apiDelete(`/models/${id}`);
 };
 
-// Questions API functions
+
 export const getAllQuestions = async (filters?: any) => {
   try {
     const token = getAccessToken();
-    // Explicitly create headers with Authorization
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -297,7 +297,7 @@ export const getAllQuestions = async (filters?: any) => {
       config.params = filters;
     }
 
-    // Use apiClient directly
+
     const response = await apiClient(config);
     return response.data;
   } catch (error) {
@@ -314,12 +314,12 @@ export const createQuestion = async (questionData: any) => {
   return apiPost('/questions/create', questionData);
 };
 
-// Create multiple questions at once
+
 export const createQuestions = async (questionsData: any) => {
   try {
     const token = getAccessToken();
 
-    // Explicitly create headers with Authorization
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -335,7 +335,7 @@ export const createQuestions = async (questionsData: any) => {
       data: questionsData,
     };
 
-    // Use apiClient directly
+
     const response = await apiClient(config);
     return response.data;
   } catch (error) {
@@ -352,12 +352,12 @@ export const deleteQuestion = async (id: string) => {
   return apiDelete(`/questions/${id}`);
 };
 
-// Templates API functions
+
 export const createTemplates = async (templatesData: any) => {
   try {
     const token = getAccessToken();
 
-    // Explicitly create headers with Authorization
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -373,7 +373,7 @@ export const createTemplates = async (templatesData: any) => {
       data: templatesData,
     };
 
-    // Use apiClient directly
+
     const response = await apiClient(config);
     return response.data;
   } catch (error) {
@@ -398,7 +398,7 @@ export const deleteTemplate = async (id: string) => {
   return apiDelete(`/templates/${id}`);
 };
 
-// AI API functions (using https://ai-greenmind.khoav4.com)
+
 export const generateKeywords = async (keywordData: any) => {
   return aiApiPost('/gen_keyword_ver2', keywordData);
 };

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { OCEAN_DATA } from '@/lib/ocean-data';
 
-// Export constants for use in other components
+
 export const TRAITS = Object.keys(OCEAN_DATA) as Array<keyof typeof OCEAN_DATA>;
 
 export const BEHAVIORS = Object.values(OCEAN_DATA).flatMap(data => data.behaviors);
@@ -87,7 +87,7 @@ export default function TreeToolbox() {
             onOpenChange={() => toggleSection(key)}
           >
             <div className="space-y-1">
-              {/* Main OCEAN category - draggable */}
+              {}
               <DraggableItem
                 id={`ocean-${key}`}
                 type="ocean"
@@ -112,7 +112,7 @@ export default function TreeToolbox() {
                 </div>
               </DraggableItem>
 
-              {/* Behaviors - draggable */}
+              {}
               <CollapsibleContent className="space-y-1 ml-4">
                 {data.behaviors.map((behavior, index) => (
                   <DraggableItem

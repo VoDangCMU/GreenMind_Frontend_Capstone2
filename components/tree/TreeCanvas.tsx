@@ -22,11 +22,11 @@ export default function TreeCanvas() {
     id: 'tree-canvas',
   });
 
-  // State để chỉnh sửa behavior
+
   const [isEditingBehavior, setIsEditingBehavior] = useState(false);
   const [editBehaviorValue, setEditBehaviorValue] = useState('');
 
-  // Lấy TẤT CẢ behaviors từ tất cả traits
+
   const allBehaviors = useMemo(() => {
     const behaviors: { ocean: string; behavior: string }[] = [];
     Object.entries(OCEAN_DATA).forEach(([ocean, data]) => {
@@ -107,7 +107,7 @@ export default function TreeCanvas() {
                 <h3 className="text-lg font-semibold mb-4">Selected Model</h3>
               </div>
 
-              {/* OCEAN Category */}
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">OCEAN Category:</label>
                 <div className="p-3 bg-blue-100 border border-blue-300 rounded-md">
@@ -117,7 +117,7 @@ export default function TreeCanvas() {
                 </div>
               </div>
 
-              {/* Behavior Selection & Edit */}
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Behavior:</label>
                 {selectedBehavior ? (

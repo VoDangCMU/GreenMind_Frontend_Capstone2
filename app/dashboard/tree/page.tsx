@@ -27,11 +27,11 @@ export default function TreeModelBuilder() {
       const draggedData = active.data.current;
 
       if (draggedData?.type === 'ocean') {
-        // If dragging an OCEAN category
+        
         setSelectedOcean(draggedData.ocean);
-        setSelectedBehavior(''); // Reset behavior when changing OCEAN
+        setSelectedBehavior(''); 
       } else if (draggedData?.type === 'behavior') {
-        // If dragging a behavior
+        
         setSelectedOcean(draggedData.ocean);
         setSelectedBehavior(draggedData.behavior);
       }

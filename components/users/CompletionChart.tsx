@@ -47,7 +47,7 @@ export function CompletionChart() {
     }
   }
 
-  // Calculate distribution by location
+  
   const locationStats = users.reduce((acc: Record<string, number>, user: User) => {
     const location = user.location || "Unknown"
     acc[location] = (acc[location] || 0) + 1
@@ -59,7 +59,7 @@ export function CompletionChart() {
     value,
   }))
 
-  // Gender distribution
+  
   const genderStats = users.reduce((acc: Record<string, number>, user: any) => {
     const gender = user.gender || "Unknown"
     acc[gender] = (acc[gender] || 0) + 1

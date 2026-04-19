@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const { token } = await request.json();
 
-    // Call your backend API using the correct endpoint
+    
     const response = await axios.post(
       `${process.env.NEXT_PUBLIC_API_URL}/auth/login/google`,
       {

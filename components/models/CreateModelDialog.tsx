@@ -34,7 +34,7 @@ interface CreateModelDialogProps {
   onModelCreated: () => void
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://green-api.khoav4.com"
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function CreateModelDialog({
   open,
@@ -169,7 +169,7 @@ export function CreateModelDialog({
         : [...prev.genders, gender],
     }))
   }
-  
+
   const handleSelectBehavior = (behavior: string) => {
     setFormData({ ...formData, behavior })
     setEditBehaviorValue(behavior)
@@ -219,12 +219,12 @@ export function CreateModelDialog({
                     {option === "O"
                       ? " Openness"
                       : option === "C"
-                      ? " Conscientiousness"
-                      : option === "E"
-                      ? " Extraversion"
-                      : option === "A"
-                      ? " Agreeableness"
-                      : " Neuroticism"}
+                        ? " Conscientiousness"
+                        : option === "E"
+                          ? " Extraversion"
+                          : option === "A"
+                            ? " Agreeableness"
+                            : " Neuroticism"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -357,11 +357,10 @@ export function CreateModelDialog({
                   {genderOptions.map(option => (
                     <div
                       key={option.value}
-                      className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${
-                        formData.genders.includes(option.value)
+                      className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors ${formData.genders.includes(option.value)
                           ? "bg-primary text-primary-foreground border-primary"
                           : "hover:bg-muted"
-                      }`}
+                        }`}
                       onClick={() => handleGenderToggle(option.value)}
                     >
                       <Checkbox

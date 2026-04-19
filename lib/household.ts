@@ -243,39 +243,83 @@ export function mapHouseholdDetectionRecordsToImageHistory(records: ApiHousehold
                 .filter(Boolean)
                 .join(" + ") || "Ảnh phát hiện";
 
-            const mergedItems = group
-                .flatMap((record) => record.items ?? [])
-                .reduce((acc, item) => {
-                    const existing = acc.find((entry) => entry.name === item.name);
-                    if (existing) {
-                        existing.quantity += item.quantity;
-                    } else {
-                        acc.push({ ...item });
-                    }
-                    return acc;
-                }, [] as ApiHouseholdDetectionItem[]);
-
-            const mergedPollution = group.reduce<Record<string, number>>((acc, record) => {
-                if (record.pollution && typeof record.pollution === "object") {
-                    Object.entries(record.pollution).forEach(([key, value]) => {
-                        if (typeof value === "number" && !Number.isNaN(value)) {
-                            acc[key] = value;
-                        }
-                    });
+            const mergedPrimary = group.slice().reduce<ApiHouseholdDetectionRecord>((acc, record) => {
+                if (!acc.detectType && record.detectType) acc.detectType = record.detectType;
+                if (!acc.aiAnalysis && record.aiAnalysis) acc.aiAnalysis = record.aiAnalysis;
+                if ((!Number.isFinite(Number(acc.totalObjects))) && Number.isFinite(Number(record.totalObjects))) {
+                    acc.totalObjects = Number(record.totalObjects);
+                }
+                if ((!acc.detectedBy || (typeof acc.detectedBy === "object" && Object.keys(acc.detectedBy).length === 0)) && record.detectedBy) {
+                    acc.detectedBy = record.detectedBy;
+                }
+                if ((!acc.pollution || Object.keys(acc.pollution).length === 0) && record.pollution && typeof record.pollution === "object") {
+                    acc.pollution = record.pollution;
+                }
+                if ((!Array.isArray(acc.items) || acc.items.length === 0) && Array.isArray(record.items) && record.items.length > 0) {
+                    acc.items = record.items;
                 }
                 return acc;
-            }, {});
+            }, { ...primary });
+
+            const mergedItems = group
+                .flatMap((record) => Array.isArray(record.items) ? record.items : [])
+                .reduce<Record<string, ApiHouseholdDetectionItem>>((acc, item) => {
+                    const name = String(item.name || "").trim();
+                    if (!name) return acc;
+
+                    const quantity = Number(item.quantity);
+                    const safeQuantity = Number.isFinite(quantity) ? quantity : 0;
+                    const area = Number(item.area);
+                    const safeArea = Number.isFinite(area) ? area : 0;
+
+                    const existing = acc[name];
+                    if (!existing) {
+                        acc[name] = {
+                            ...item,
+                            quantity: safeQuantity,
+                            area: safeArea,
+                        };
+                        return acc;
+                    }
+
+                    if ((!Number.isFinite(existing.quantity) || existing.quantity === 0) && safeQuantity !== 0) {
+                        existing.quantity = safeQuantity;
+                    }
+                    if ((!Number.isFinite(existing.area) || existing.area === 0) && safeArea !== 0) {
+                        existing.area = safeArea;
+                    }
+
+                    return acc;
+                }, {});
+
+            const mappedItems = Object.values(mergedItems).map((item) => ({
+                ...item,
+                quantity: Number.isFinite(Number(item.quantity)) ? Number(item.quantity) : 0,
+                area: Number.isFinite(Number(item.area)) ? Number(item.area) : 0,
+            }));
+
+            const pollution = group
+                .reduce<Record<string, number>>((acc, record) => {
+                    if (record.pollution && typeof record.pollution === "object") {
+                        Object.entries(record.pollution).forEach(([key, value]) => {
+                            if (typeof value === "number" && !Number.isNaN(value) && !acc[key]) {
+                                acc[key] = value;
+                            }
+                        });
+                    }
+                    return acc;
+                }, {});
 
             return {
                 id: primary.id,
                 uploadedAt: primary.createdAt,
                 imageUrl: primary.imageUrl,
-                label: group.length > 1 ? "Lịch sử phát hiện" : primary.detectType || "Lịch sử phát hiện",
-                sender: primary.detectedBy?.fullName || primary.detectedBy?.username || primary.detectedBy?.email || undefined,
+                label: group.length > 1 ? "Lịch sử phát hiện" : mergedPrimary.detectType || "Lịch sử phát hiện",
+                sender: mergedPrimary.detectedBy?.fullName || mergedPrimary.detectedBy?.username || mergedPrimary.detectedBy?.email || undefined,
                 caption,
-                items: mergedItems.length ? mergedItems : undefined,
-                total_objects: Math.max(...group.map((record) => Number(record.totalObjects) || 0)),
-                pollution: Object.keys(mergedPollution).length ? mergedPollution : undefined,
+                items: mappedItems.length ? mappedItems : undefined,
+                total_objects: Number.isFinite(Number(mergedPrimary.totalObjects)) ? Number(mergedPrimary.totalObjects) : Math.max(...group.map((record) => Number(record.totalObjects) || 0)),
+                pollution: Object.keys(pollution).length ? pollution : undefined,
             } as import("@/types/monitoring").HouseholdImageHistory;
         })
         .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());

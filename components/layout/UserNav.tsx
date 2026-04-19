@@ -37,7 +37,7 @@ export function UserNav() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        {/* The label can be removed or kept, but the trigger now shows the info */}
+
         <DropdownMenuLabel className="font-normal md:hidden">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">

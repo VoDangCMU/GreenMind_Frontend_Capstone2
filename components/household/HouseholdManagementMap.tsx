@@ -55,10 +55,10 @@ function jitterAroundCenter(seed: number): { lat: number; lng: number } {
 function spreadOffset(index: number): { dLat: number; dLng: number } {
     if (index <= 0) return { dLat: 0, dLng: 0 };
 
-    // Golden-angle spiral to avoid overlap. Step ~35–200m depending on index.
+
     const goldenAngle = 137.5 * (Math.PI / 180);
     const angle = index * goldenAngle;
-    const radius = 0.00035 * Math.sqrt(index); // degrees
+    const radius = 0.00035 * Math.sqrt(index);
 
     return {
         dLat: Math.sin(angle) * radius,
@@ -161,8 +161,8 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
         });
 
         if (hasAnyMarker && selectedHouseholdId == null) {
-            // Always prefer fitting to ALL markers so none are off-screen.
-            // Refit when count increases (e.g. when data arrives paged/async).
+
+
             if (!hasFitBoundsRef.current || households.length > lastFittedCountRef.current) {
                 mapRef.current.fitBounds(boundsAll, { padding: [28, 28], maxZoom: 15 });
                 hasFitBoundsRef.current = true;

@@ -125,7 +125,7 @@ export default function QuestionBuilderPage() {
     try {
       setSaving(true)
 
-      // Add trait (ocean) and modelId to each template
+
       const templatesWithTraitAndModel = templates.map(template => ({
         ...template,
         trait: selectedModel.ocean,
@@ -407,7 +407,7 @@ export default function QuestionBuilderPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Templates list */}
+                  { }
                   <div className="space-y-3 max-h-[520px] overflow-y-auto pr-2">
                     {templates.map((template, index) => (
                       <Card key={index} className="border hover:shadow-sm transition-shadow">
@@ -458,7 +458,7 @@ export default function QuestionBuilderPage() {
                     ))}
                   </div>
 
-                  {/* Generate Questions Button */}
+
                   {selectedTemplates.length > 0 && (
                     <div className="flex justify-center pt-4 border-t mt-4">
                       <Button
@@ -478,7 +478,6 @@ export default function QuestionBuilderPage() {
           </Card>
         </div>
 
-        {/* Generated Questions Section */}
         <Card className="shadow-lg">
           <CardHeader className="border-b">
             <div className="flex items-center justify-between gap-4">

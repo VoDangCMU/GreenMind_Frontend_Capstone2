@@ -46,13 +46,13 @@ export function TopNavbar() {
   const { user, logout } = useAuth()
 
   return (
-    <header className="border-b bg-background">
+    <header className="border-b bg-transparent backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
 
-        {/* LEFT */}
+
         <div className="flex items-center gap-8">
 
-          {/* LOGO */}
+
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
               <Leaf className="h-5 w-5 text-white" />
@@ -60,7 +60,7 @@ export function TopNavbar() {
             <span className="text-lg font-semibold">GreenMind</span>
           </Link>
 
-          {/* NAV */}
+
           <nav className="hidden md:flex items-center gap-2">
             {navItems.map((item) => {
               const isActive = pathname.startsWith(item.href)
@@ -84,10 +84,10 @@ export function TopNavbar() {
           </nav>
         </div>
 
-        {/* RIGHT */}
+
         <div className="flex items-center gap-4">
 
-          {/* USER MENU */}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 rounded-full hover:bg-muted p-1">

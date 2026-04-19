@@ -23,12 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://green-api.khoav4.com"
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ProfilePage() {
   const { user, login } = useAuth()
   const { toast } = useToast()
-  
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -50,7 +50,7 @@ export default function ProfilePage() {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (!response.ok) throw new Error("Failed to fetch user profile.")
-        
+
         const profileData = await response.json()
         setFormData({
           fullName: profileData.data.fullName || "",
@@ -107,7 +107,7 @@ export default function ProfilePage() {
 
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || "Failed to update profile.")
-      
+
       const updatedUser = result.data
       if (token && refreshToken) {
         login(updatedUser, token, refreshToken)
@@ -235,7 +235,7 @@ function ProfileSkeleton() {
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-10 w-full" />
             </div>
-             <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-2 sm:col-span-2">
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-10 w-full" />
             </div>

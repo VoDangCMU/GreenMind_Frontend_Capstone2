@@ -32,7 +32,7 @@ export function useApi() {
     }
   }, []);
 
-  // Helper methods for common HTTP operations
+  
   const get = useCallback(async (url: string, callbacks?: UseApiOptions) => {
     setLoading(true);
     setError(null);

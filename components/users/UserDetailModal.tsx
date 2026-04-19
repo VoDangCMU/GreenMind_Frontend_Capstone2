@@ -52,7 +52,7 @@ interface UserDetailModalProps {
 export function UserDetailModal({ user, onClose }: UserDetailModalProps) {
     if (!user) return null
 
-    // Calculate age from dateOfBirth
+
     const calculateAge = (dateOfBirth: string): number => {
         const today = new Date()
         const birthDate = new Date(dateOfBirth)
@@ -66,7 +66,7 @@ export function UserDetailModal({ user, onClose }: UserDetailModalProps) {
 
     const userAge = calculateAge(user.dateOfBirth)
 
-    // Convert bigFive values to percentages (multiply by 100 for display)
+
     const convertToPercentage = (value: number): number => {
         return Math.round(value * 100)
     }
@@ -134,7 +134,7 @@ export function UserDetailModal({ user, onClose }: UserDetailModalProps) {
     return (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
             <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                {/* Header */}
+
                 <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white">
                     <h2 className="text-2xl font-bold">User Profile</h2>
                     <Button
@@ -148,7 +148,7 @@ export function UserDetailModal({ user, onClose }: UserDetailModalProps) {
                 </div>
 
                 <div className="p-6 space-y-6">
-                    {/* Personal Info */}
+
                     <div className="grid gap-4 md:grid-cols-2">
                         <div>
                             <div className="space-y-3">
@@ -187,7 +187,7 @@ export function UserDetailModal({ user, onClose }: UserDetailModalProps) {
                         </div>
                     </div>
 
-                    {/* OCEAN Radar Chart */}
+
                     {user.bigFive && (
                         <Card>
                             <CardHeader>
@@ -213,7 +213,7 @@ export function UserDetailModal({ user, onClose }: UserDetailModalProps) {
                         </Card>
                     )}
 
-                    {/* OCEAN Bar Chart */}
+
                     {user.bigFive && (
                         <Card>
                             <CardHeader>
@@ -237,7 +237,7 @@ export function UserDetailModal({ user, onClose }: UserDetailModalProps) {
                         </Card>
                     )}
 
-                    {/* OCEAN Breakdown */}
+
                     {user.bigFive && (
                         <Card>
                             <CardHeader>
@@ -322,7 +322,7 @@ export function UserDetailModal({ user, onClose }: UserDetailModalProps) {
                         </Card>
                     )}
 
-                    {/* Metadata */}
+
                     <div className="pt-4 border-t">
                         <div className="grid gap-2 text-sm text-muted-foreground">
                             <div className="flex justify-between">

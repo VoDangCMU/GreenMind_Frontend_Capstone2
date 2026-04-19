@@ -86,10 +86,10 @@ export default function UserManagementPage() {
     const fetchUsers = async () => {
         setLoading(true)
         try {
-            // Fetch user data with bigFive scores from single API
+
             const response = await apiGet("/auth/get-alls")
 
-            // Get users array - handle both response.data and response.data.data
+
             const usersArray = Array.isArray(response.data)
                 ? response.data
                 : (response.data?.data ? response.data.data : [])
@@ -134,7 +134,7 @@ export default function UserManagementPage() {
         } finally {
             setLoading(false)
         }
-    }    // Filter and sort users
+    }
     const filteredUsers = users
         .filter((user) => {
             if (searchQuery && !user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) &&
@@ -162,7 +162,7 @@ export default function UserManagementPage() {
             }
         })
 
-    // Calculate average OCEAN scores
+
     const avgOCEAN = users.length
         ? {
             openness: Math.round(
@@ -183,7 +183,7 @@ export default function UserManagementPage() {
         }
         : { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 }
 
-    // Prepare chart data
+
     const oceanChartData = [
         {
             name: "Average OCEAN",
@@ -195,7 +195,7 @@ export default function UserManagementPage() {
         },
     ]
 
-    // Prepare data
+
     const locations = Array.from(new Set(users.map((u) => u.location)))
     const genders = Array.from(new Set(users.map((u) => u.gender)))
 
@@ -216,7 +216,7 @@ export default function UserManagementPage() {
                     </div>
                 </div>
 
-                {/* Statistics Cards */}
+
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
                     <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-blue-50 to-blue-100/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -310,7 +310,7 @@ export default function UserManagementPage() {
                     </Card>
                 </div>
 
-                {/* OCEAN Chart */}
+
                 <Card className="border-0 shadow-lg">
                     <CardHeader>
                         <CardTitle className="text-xl">Average OCEAN Personality Scores</CardTitle>
@@ -333,7 +333,7 @@ export default function UserManagementPage() {
                     </CardContent>
                 </Card>
 
-                {/* Filters and Search */}
+
                 <Card className="border-0 shadow-lg">
                     <CardHeader className="pb-4">
                         <CardTitle className="text-lg flex items-center gap-2">
@@ -425,7 +425,7 @@ export default function UserManagementPage() {
                     </CardContent>
                 </Card>
 
-                {/* Users Table */}
+
                 <Card className="border-0 shadow-lg">
                     <CardHeader className="pb-4">
                         <div className="flex items-center justify-between">
@@ -600,7 +600,7 @@ export default function UserManagementPage() {
                     </CardContent>
                 </Card>
 
-                {/* User Detail Modal */}
+
                 <UserDetailModal
                     user={selectedUser}
                     onClose={() => {
