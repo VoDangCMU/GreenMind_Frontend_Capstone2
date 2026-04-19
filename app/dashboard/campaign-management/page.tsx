@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { Campaign } from "@/types/campaign";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +13,7 @@ import {
   CheckCircle2,
   MessageCircle,
   BarChart3,
-  X,
   MapPin,
-  ArrowLeft,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getAccessToken } from "@/lib/auth";
@@ -29,12 +28,53 @@ import {
 } from "recharts";
 import { CampaignChatPanel } from "@/components/campaign/CampaignChatPanel";
 
+// ── Suspense wrapper vì useSearchParams cần boundary trong App Router ─────────
 export default function CampaignManagementPage() {
+  return (
+    <Suspense fallback={<CampaignPageLoading />}>
+      <CampaignManagementContent />
+    </Suspense>
+  );
+}
+
+function CampaignPageLoading() {
+  return (
+    <div className="p-6 h-[calc(100vh-64px)] flex flex-col gap-6 overflow-hidden bg-slate-50">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-slate-200 rounded w-64" />
+        <div className="h-4 bg-slate-200 rounded w-96" />
+        <div className="h-[600px] bg-slate-200 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+// ── Main content — dùng useSearchParams bên trong Suspense ──────────────────
+function CampaignManagementContent() {
+  const searchParams = useSearchParams();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Campaign được chọn để chat — null = hiển thị biểu đồ
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  // Ưu tiên từ URL query, fallback vào state user chọn
+  const urlCampaignId = searchParams.get("campaignId");
+  const [userSelectedCampaign, setUserSelectedCampaign] = useState<Campaign | null>(null);
+
+  // selectedCampaign = campaign từ URL (ưu tiên cao nhất) hoặc user tự chọn
+  const selectedCampaign = (() => {
+    if (urlCampaignId) {
+      return campaigns.find((c) => c.id === urlCampaignId) ?? null;
+    }
+    return userSelectedCampaign;
+  })();
+
+  // Khi URL có campaignId, đồng bộ campaigns list → auto-select
+  useEffect(() => {
+    if (urlCampaignId && campaigns.length > 0) {
+      const found = campaigns.find((c) => c.id === urlCampaignId);
+      if (found) setUserSelectedCampaign(found);
+    }
+  }, [urlCampaignId, campaigns]);
 
   // Chart state
   const [chartMode, setChartMode] = useState<"day" | "month" | "year">("day");
@@ -163,7 +203,7 @@ export default function CampaignManagementPage() {
                   return (
                     <div
                       key={campaign.id}
-                      onClick={() => setSelectedCampaign(isSelected ? null : campaign)}
+                      onClick={() => setUserSelectedCampaign(isSelected ? null : campaign)}
                       className={`p-3.5 rounded-xl cursor-pointer transition-all border group ${
                         isSelected
                           ? "border-blue-400 bg-blue-50 ring-2 ring-blue-100 shadow-sm"
@@ -293,7 +333,7 @@ export default function CampaignManagementPage() {
 
                   {/* Nút quay lại biểu đồ */}
                   <button
-                    onClick={() => setSelectedCampaign(null)}
+                    onClick={() => setUserSelectedCampaign(null)}
                     className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all border border-slate-200"
                     title="Quay lại biểu đồ"
                   >

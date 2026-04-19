@@ -175,6 +175,11 @@ export default function MonitoringPage() {
     setCampaignRegion(region);
   }, []);
 
+  // Điều hướng đến campaign management + chọn đúng campaign để xem chat
+  const handleNavigateToCampaign = useCallback((campaignId: string) => {
+    router.push(`/dashboard/campaign-management?campaignId=${campaignId}`);
+  }, [router]);
+
   const handleClearSelection = useCallback(() => {
     setSelectedWardName(null);
     setSelectedArea(null);
@@ -258,6 +263,7 @@ export default function MonitoringPage() {
                 loading={loading}
                 onReportClick={handleReportClick}
                 onCreateCampaign={handleCreateCampaign}
+                onNavigateToCampaign={handleNavigateToCampaign}
                 selectedArea={null}
               />
             )}
