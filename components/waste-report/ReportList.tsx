@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MessageCircle } from "lucide-react";
 import type { WasteReport, ReportStatus, WasteType, UrbanArea } from "@/types/waste-report";
 
 interface ReportListProps {
@@ -6,6 +7,7 @@ interface ReportListProps {
   loading?: boolean;
   onReportClick: (report: WasteReport) => void;
   onCreateCampaign?: (report: WasteReport) => void;
+  onNavigateToCampaign?: (campaignId: string) => void;
   selectedArea: UrbanArea | null;
 }
 
@@ -35,10 +37,12 @@ export function ReportDetailModal({
   report,
   onClose,
   onCreateCampaign,
+  onNavigateToCampaign,
 }: {
   report: WasteReport;
   onClose: () => void;
   onCreateCampaign?: (report: WasteReport) => void;
+  onNavigateToCampaign?: (campaignId: string) => void;
 }) {
   const scfg  = STATUS_CFG[report.status] ?? STATUS_CFG["pending"];
   const wtcfg = WASTE_TYPE_CFG[report.wasteType] ?? { label: report.wasteType, color: "text-gray-500 bg-gray-50" };
@@ -275,10 +279,17 @@ export function ReportDetailModal({
                   <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-xl">
                     🏕️
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs text-amber-500 font-medium mb-0.5">Thuộc chiến dịch</p>
                     <p className="text-sm font-mono text-amber-700 break-all">{report.campaignId}</p>
                   </div>
+                  <button
+                    onClick={() => report.campaignId && onNavigateToCampaign?.(report.campaignId)}
+                    className="shrink-0 flex items-center gap-2 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all whitespace-nowrap"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Xem chat
+                  </button>
                 </div>
               )}
 
@@ -344,6 +355,7 @@ export function ReportList({
   loading,
   onReportClick,
   onCreateCampaign,
+  onNavigateToCampaign,
   selectedArea,
 }: ReportListProps) {
   const [filter, setFilter]             = useState<FilterMode>("no-campaign");
@@ -476,46 +488,68 @@ export function ReportList({
                 let time = "N/A";
                 try { time = new Date(report.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }); } catch {}
 
+                // Navigate to campaign if report has campaignId (approved with campaign)
+                // Otherwise open detail modal
+                const hasCampaign = !!report.campaignId;
+
                 return (
-                  <div key={report.id} className="w-full text-left">
-                    <button
-                      onClick={() => handleBoxClick(report)}
-                      className={`w-full text-left px-4 py-3.5 transition-all duration-150 hover:bg-gray-50 group block ${
-                        isHL ? "bg-indigo-50 border-l-2 border-indigo-400" : ""
-                      }`}
-                    >
-                      {/* Row 1: status + time */}
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold ${scfg.bg} ${scfg.text}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${scfg.dot} ${report.status === "pending" ? "animate-pulse" : ""}`} />
-                          {scfg.label}
-                        </span>
-                        <div className="flex items-center gap-1.5">
+                  <div
+                    key={report.id}
+                    onClick={() => {
+                      if (hasCampaign && onNavigateToCampaign) {
+                        onNavigateToCampaign(report.campaignId!);
+                      } else {
+                        handleBoxClick(report);
+                      }
+                    }}
+                    className={`w-full text-left px-4 py-3.5 transition-all duration-150 hover:bg-gray-50 group cursor-pointer ${
+                      isHL ? "bg-indigo-50 border-l-2 border-indigo-400" : ""
+                    }`}
+                  >
+                    {/* Row 1: status + time */}
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold ${scfg.bg} ${scfg.text}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${scfg.dot} ${report.status === "pending" ? "animate-pulse" : ""}`} />
+                        {scfg.label}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {hasCampaign ? (
+                          <span className="text-[9px] text-amber-500 group-hover:text-amber-600 font-medium transition-colors flex items-center gap-1">
+                            <MessageCircle className="w-3 h-3" />
+                            Xem chat →
+                          </span>
+                        ) : (
                           <span className="text-[9px] text-gray-300 group-hover:text-gray-400 transition-colors hidden group-hover:inline">
                             Xem chi tiết →
                           </span>
-                          <span className="text-[10px] text-gray-400 shrink-0 tabular-nums">{time}</span>
-                        </div>
+                        )}
+                        <span className="text-[10px] text-gray-400 shrink-0 tabular-nums">{time}</span>
                       </div>
+                    </div>
 
-                      {/* Row 2: ward + waste type */}
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <p className="text-xs font-semibold text-gray-800">{report.wardName}</p>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${wtcfg.color}`}>
-                          {wtcfg.label}
+                    {/* Row 2: ward + waste type */}
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <p className="text-xs font-semibold text-gray-800">{report.wardName}</p>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${wtcfg.color}`}>
+                        {wtcfg.label}
+                      </span>
+                      {hasCampaign && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-50 text-amber-600 flex items-center gap-1">
+                          <MessageCircle className="w-3 h-3" />
+                          có chat
                         </span>
-                      </div>
-
-                      {/* Row 3: reporter */}
-                      {report.reportedByName && (
-                        <p className="text-[11px] text-gray-500 mb-0.5 truncate">{report.reportedByName}</p>
                       )}
+                    </div>
 
-                      {/* Row 4: description */}
-                      {report.description && (
-                        <p className="text-[10px] text-gray-400 leading-relaxed line-clamp-1">{report.description}</p>
-                      )}
-                    </button>
+                    {/* Row 3: reporter */}
+                    {report.reportedByName && (
+                      <p className="text-[11px] text-gray-500 mb-0.5 truncate">{report.reportedByName}</p>
+                    )}
+
+                    {/* Row 4: description */}
+                    {report.description && (
+                      <p className="text-[10px] text-gray-400 leading-relaxed line-clamp-1">{report.description}</p>
+                    )}
                   </div>
                 );
               })}
@@ -530,6 +564,7 @@ export function ReportList({
           report={detailReport}
           onClose={() => setDetailReport(null)}
           onCreateCampaign={onCreateCampaign}
+          onNavigateToCampaign={onNavigateToCampaign}
         />
       )}
     </>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { Summary, UrbanArea, WasteReport, WasteType, ReportStatus, CampaignRegion } from "@/types/waste-report";
 import { SummaryCards } from "@/components/waste-report/SummaryCards";
@@ -22,6 +23,7 @@ const MapWard = dynamic(
 );
 
 export default function MonitoringPage() {
+  const router = useRouter();
   const [areas] = useState<UrbanArea[]>(WARDS);
   const [reports, setReports] = useState<WasteReport[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -173,6 +175,11 @@ export default function MonitoringPage() {
     setCampaignRegion(region);
   }, []);
 
+  // Điều hướng đến campaign management + chọn đúng campaign để xem chat
+  const handleNavigateToCampaign = useCallback((campaignId: string) => {
+    router.push(`/dashboard/campaign-management?campaignId=${campaignId}`);
+  }, [router]);
+
   const handleClearSelection = useCallback(() => {
     setSelectedWardName(null);
     setSelectedArea(null);
@@ -256,6 +263,7 @@ export default function MonitoringPage() {
                 loading={loading}
                 onReportClick={handleReportClick}
                 onCreateCampaign={handleCreateCampaign}
+                onNavigateToCampaign={handleNavigateToCampaign}
                 selectedArea={null}
               />
             )}
@@ -279,6 +287,7 @@ export default function MonitoringPage() {
         region={campaignRegion}
         onSuccess={() => {
           fetchAll();
+          router.push("/dashboard/campaign-management");
         }}
       />
     </div>

@@ -22,8 +22,6 @@ import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 const navItems = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Verify", href: "/dashboard/models-verify", icon: CheckCircle },
   { title: "Env. Impact", href: "/dashboard/environmental-impact", icon: Wind },
   { title: "Household Management", href: "/dashboard/household-management", icon: MapPin },
   { title: "Users", href: "/dashboard/users-ocean", icon: Brain },
@@ -37,6 +35,7 @@ const modelSurveyItems = [
   { title: "Questions", href: "/dashboard/questions", icon: MessageSquare },
   { title: "Surveys", href: "/dashboard/survey", icon: FileText },
   { title: "Results", href: "/dashboard/survey-results", icon: Users },
+  { title: "Verify", href: "/dashboard/models-verify", icon: CheckCircle },
 ]
 
 interface SidebarNavProps {
