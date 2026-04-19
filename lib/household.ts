@@ -120,7 +120,7 @@ function hashStringToNumber(value: string): number {
 }
 
 function mapApiHouseholdToProfile(apiHousehold: ApiHousehold): HouseholdProfile {
-    const numericId = hashStringToNumber(apiHousehold.id);
+    const numericId = toFiniteNumber(apiHousehold.id) ?? hashStringToNumber(apiHousehold.id);
     const members: HouseholdMember[] = (apiHousehold.members ?? []).map((m) => ({
         name: m.fullName || m.username || "Thành viên",
         wasteKg: 0,
@@ -211,25 +211,74 @@ export async function getHouseholdGreenScoreHistory(householdId: string): Promis
     return [];
 }
 
+function getDetectionCaption(detectType?: string) {
+    if (detectType === "predict_pollutant_impact") return "Dự đoán tác động ô nhiễm";
+    if (detectType === "detect_trash") return "Phát hiện rác thải";
+    return "Ảnh phát hiện";
+}
+
 export function mapHouseholdDetectionRecordsToImageHistory(records: ApiHouseholdDetectionRecord[]) {
-    return records
+    const groupedByUrl = new Map<string, ApiHouseholdDetectionRecord[]>();
+
+    records
         .slice()
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .map((record) => ({
-            id: record.id,
-            uploadedAt: record.createdAt,
-            imageUrl: record.imageUrl,
-            label: record.detectType || "Lịch sử phát hiện",
-            sender: record.detectedBy?.fullName || record.detectedBy?.username || record.detectedBy?.email || undefined,
-            caption: record.detectType === "predict_pollutant_impact"
-                ? "Dự đoán tác động ô nhiễm"
-                : record.detectType === "detect_trash"
-                    ? "Phát hiện rác thải"
-                    : "Ảnh phát hiện",
-            items: record.items,
-            total_objects: record.totalObjects,
-            pollution: record.pollution ?? undefined,
-        } as import("@/types/monitoring").HouseholdImageHistory));
+        .forEach((record) => {
+            const url = String(record.imageUrl ?? "").trim();
+            if (!url) return;
+
+            const group = groupedByUrl.get(url);
+            if (group) {
+                group.push(record);
+            } else {
+                groupedByUrl.set(url, [record]);
+            }
+        });
+
+    return Array.from(groupedByUrl.values())
+        .map((group) => {
+            const sortedGroup = group.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            const primary = sortedGroup[0];
+
+            const caption = Array.from(new Set(group.map((record) => getDetectionCaption(record.detectType))))
+                .filter(Boolean)
+                .join(" + ") || "Ảnh phát hiện";
+
+            const mergedItems = group
+                .flatMap((record) => record.items ?? [])
+                .reduce((acc, item) => {
+                    const existing = acc.find((entry) => entry.name === item.name);
+                    if (existing) {
+                        existing.quantity += item.quantity;
+                    } else {
+                        acc.push({ ...item });
+                    }
+                    return acc;
+                }, [] as ApiHouseholdDetectionItem[]);
+
+            const mergedPollution = group.reduce<Record<string, number>>((acc, record) => {
+                if (record.pollution && typeof record.pollution === "object") {
+                    Object.entries(record.pollution).forEach(([key, value]) => {
+                        if (typeof value === "number" && !Number.isNaN(value)) {
+                            acc[key] = value;
+                        }
+                    });
+                }
+                return acc;
+            }, {});
+
+            return {
+                id: primary.id,
+                uploadedAt: primary.createdAt,
+                imageUrl: primary.imageUrl,
+                label: group.length > 1 ? "Lịch sử phát hiện" : primary.detectType || "Lịch sử phát hiện",
+                sender: primary.detectedBy?.fullName || primary.detectedBy?.username || primary.detectedBy?.email || undefined,
+                caption,
+                items: mergedItems.length ? mergedItems : undefined,
+                total_objects: Math.max(...group.map((record) => Number(record.totalObjects) || 0)),
+                pollution: Object.keys(mergedPollution).length ? mergedPollution : undefined,
+            } as import("@/types/monitoring").HouseholdImageHistory;
+        })
+        .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 }
 
 function resolveHouseholdPayload(response: ApiGetAllHouseholdsResponse | ApiHouseholdListEnvelope): {
