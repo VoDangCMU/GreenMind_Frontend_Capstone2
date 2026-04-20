@@ -1,22 +1,19 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import {
   fetchBlogs,
   fetchLeaderboard,
   createBlog,
   updateBlog,
   deleteBlog,
-  fetchBlogById,
-  addComment,
   Blog,
-  BlogComment,
   LeaderboardUser,
 } from "@/services/blog.service"
 import { getAccessToken } from "@/lib/auth"
-import { BlogCard } from "@/components/blog/BlogCard"
 import { Leaderboard } from "@/components/blog/Leaderboard"
-import { CommentSection } from "@/components/blog/CommentSection"
+import { BlogFeedPost } from "@/components/blog/BlogFeedPost"
+import { BlogEditor } from "@/components/blog/BlogEditor"
 
 const MOCK_LEADERBOARD: LeaderboardUser[] = [
   { rank: 1, userId: "mock-1", fullName: "Nguyễn Bá Khoa", username: "nguyenkhoa", reportCount: 47 },
@@ -30,22 +27,21 @@ const MOCK_LEADERBOARD: LeaderboardUser[] = [
   { rank: 9, userId: "mock-9", fullName: "Do Xuan Truong", username: "dxtruong", reportCount: 7 },
   { rank: 10, userId: "mock-10", fullName: "Trần Thị Kim Chi", username: "kimchi", reportCount: 5 },
 ]
-import { BlogEditor } from "@/components/blog/BlogEditor"
-import { formatDistanceToNow } from "date-fns"
 
-type View = "list" | "detail" | "compose"
+const PAGE_SIZE = 10
+
+type View = "feed" | "compose"
 
 export default function BlogsPage() {
-  const [view, setView] = useState<View>("list")
+  const [view, setView] = useState<View>("feed")
   const [blogs, setBlogs] = useState<Blog[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>(MOCK_LEADERBOARD)
-  const [leaderboardIsMock, setLeaderboardIsMock] = useState(true)
-  const [activeBlog, setActiveBlog] = useState<Blog | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [search, setSearch] = useState("")
   const [searchInput, setSearchInput] = useState("")
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
 
   // Compose state
   const [editBlog, setEditBlog] = useState<Blog | null>(null)
@@ -56,52 +52,46 @@ export default function BlogsPage() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
 
   const isLoggedIn = !!getAccessToken()
+  const feedRef = useRef<HTMLDivElement>(null)
 
-  const loadBlogs = useCallback(async () => {
-    setLoading(true)
+  // ── Load initial page ──────────────────────────────────────
+  const loadPage = useCallback(async (pageNum: number, query: string, replace: boolean) => {
+    if (replace) setLoading(true)
+    else setLoadingMore(true)
+
     try {
-      const res = await fetchBlogs(page, 9, search || undefined)
-      setBlogs(res.data)
-      setTotalPages(res.pagination.totalPages)
+      const res = await fetchBlogs(pageNum, PAGE_SIZE, query || undefined)
+      const newBlogs = res.data
+      setBlogs(prev => replace ? newBlogs : [...prev, ...newBlogs])
+      setHasMore(pageNum < res.pagination.totalPages)
     } catch {
-      setBlogs([])
+      // silent
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
-  }, [page, search])
+  }, [])
 
   useEffect(() => {
-    loadBlogs()
-  }, [loadBlogs])
+    setPage(1)
+    loadPage(1, search, true)
+  }, [search, loadPage])
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1
+    setPage(nextPage)
+    loadPage(nextPage, search, false)
+  }
 
   useEffect(() => {
     fetchLeaderboard()
-      .then((data) => {
-        if (data && data.length > 0) {
-          setLeaderboard(data)
-          setLeaderboardIsMock(false)
-        }
-        // else: keep mock data
-      })
-      .catch(() => {
-        // keep mock data on error
-      })
+      .then((data) => { if (data && data.length > 0) setLeaderboard(data) })
+      .catch(() => { })
   }, [])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setSearch(searchInput)
-    setPage(1)
-  }
-
-  const openBlog = async (blog: Blog) => {
-    try {
-      const full = await fetchBlogById(blog.id)
-      setActiveBlog(full)
-    } catch {
-      setActiveBlog(blog)
-    }
-    setView("detail")
   }
 
   const openCompose = (blog?: Blog) => {
@@ -116,6 +106,7 @@ export default function BlogsPage() {
       setComposeContent("")
       setComposeTags("")
     }
+    setSaveMsg(null)
     setView("compose")
   }
 
@@ -137,7 +128,11 @@ export default function BlogsPage() {
         await createBlog(payload)
         setSaveMsg("Post published successfully.")
       }
-      setTimeout(() => { setView("list"); loadBlogs() }, 1000)
+      setTimeout(() => {
+        setView("feed")
+        setPage(1)
+        loadPage(1, search, true)
+      }, 1000)
     } catch {
       setSaveMsg("Failed to save post.")
     } finally {
@@ -149,21 +144,21 @@ export default function BlogsPage() {
     if (!confirm("Are you sure you want to delete this post?")) return
     try {
       await deleteBlog(blogId)
-      setView("list")
-      loadBlogs()
+      setBlogs(prev => prev.filter(b => b.id !== blogId))
     } catch {
       alert("Failed to delete post.")
     }
   }
 
+  // ── RENDER ────────────────────────────────────────────────
   return (
-    <div className="p-6 lg:p-8 space-y-8 max-w-screen-xl mx-auto">
+    <div className="p-6 lg:p-8 max-w-screen-xl mx-auto">
 
-      {/* ═══ LIST VIEW ═══ */}
-      {view === "list" && (
+      {/* ═══ FEED VIEW ═══ */}
+      {view === "feed" && (
         <>
           {/* Page header */}
-          <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-1">Community</h1>
               <p className="text-muted-foreground text-sm">Share knowledge about environmental protection</p>
@@ -179,7 +174,7 @@ export default function BlogsPage() {
             )}
           </div>
 
-          {/* Two-column layout: 1/4 leaderboard | 3/4 blog content */}
+          {/* Two-column layout */}
           <div className="flex gap-6 items-start">
 
             {/* ── LEFT: Leaderboard (sticky) ── */}
@@ -187,7 +182,7 @@ export default function BlogsPage() {
               <Leaderboard leaderboard={leaderboard} />
             </div>
 
-            {/* ── RIGHT: Search + Grid + Pagination ── */}
+            {/* ── RIGHT: Search + Feed ── */}
             <div className="flex-1 min-w-0 space-y-5">
               {/* Search */}
               <form onSubmit={handleSearch} className="flex gap-2">
@@ -207,7 +202,7 @@ export default function BlogsPage() {
                 {search && (
                   <button
                     type="button"
-                    onClick={() => { setSearch(""); setSearchInput(""); setPage(1) }}
+                    onClick={() => { setSearch(""); setSearchInput("") }}
                     className="rounded-xl border px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Clear
@@ -215,11 +210,11 @@ export default function BlogsPage() {
                 )}
               </form>
 
-              {/* Blog grid */}
+              {/* Feed skeleton */}
               {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="h-52 rounded-2xl bg-muted animate-pulse" />
+                <div className="space-y-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-48 rounded-2xl bg-muted animate-pulse" />
                   ))}
                 </div>
               ) : blogs.length === 0 ? (
@@ -228,33 +223,34 @@ export default function BlogsPage() {
                   <p className="text-sm mt-1">Be the first to share something!</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div ref={feedRef} className="space-y-5">
                   {blogs.map((blog) => (
-                    <BlogCard key={blog.id} blog={blog} onClick={openBlog} />
+                    <BlogFeedPost
+                      key={blog.id}
+                      blog={blog}
+                      onEdit={isLoggedIn ? openCompose : undefined}
+                      onDelete={isLoggedIn ? handleDelete : undefined}
+                    />
                   ))}
-                </div>
-              )}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <button
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
-                    className="rounded-lg border px-4 py-2 text-sm disabled:opacity-40 hover:bg-muted transition-colors"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="rounded-lg border px-4 py-2 text-sm disabled:opacity-40 hover:bg-muted transition-colors"
-                  >
-                    Next
-                  </button>
+                  {/* Load More */}
+                  {hasMore && (
+                    <div className="flex justify-center pt-2">
+                      <button
+                        onClick={handleLoadMore}
+                        disabled={loadingMore}
+                        className="rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-6 py-2.5 text-sm font-semibold text-emerald-700 transition-colors disabled:opacity-50"
+                      >
+                        {loadingMore ? "Loading..." : "Load more posts"}
+                      </button>
+                    </div>
+                  )}
+
+                  {!hasMore && blogs.length > 0 && (
+                    <p className="text-center text-xs text-muted-foreground py-4">
+                      You&apos;ve reached the end ✓
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -262,91 +258,15 @@ export default function BlogsPage() {
         </>
       )}
 
-      {/* ═══ DETAIL VIEW ═══ */}
-      {view === "detail" && activeBlog && (
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <button
-              onClick={() => setView("list")}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              &larr; Back to posts
-            </button>
-            {isLoggedIn && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => openCompose(activeBlog)}
-                  className="rounded-lg border px-3 py-2 text-sm hover:bg-muted transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(activeBlog.id)}
-                  className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
-
-          <article className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-            <div className="p-7 space-y-5">
-              {/* Tags */}
-              {activeBlog.tags && activeBlog.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {activeBlog.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-medium text-emerald-700"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <h1 className="text-2xl font-bold text-foreground leading-tight">{activeBlog.title}</h1>
-
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span>{activeBlog.author?.fullName || activeBlog.author?.username || "Anonymous"}</span>
-                <span>·</span>
-                <span>{formatDistanceToNow(new Date(activeBlog.createdAt), { addSuffix: true })}</span>
-                <span>·</span>
-                <span>{activeBlog.like_count} likes</span>
-                <span>·</span>
-                <span>{activeBlog.comment_count ?? 0} comments</span>
-              </div>
-
-              <hr className="border-border" />
-
-              {/* HTML content — images rendered with lazy loading (as set during creation) */}
-              <div
-                className="prose prose-sm max-w-none text-foreground
-                  [&_img]:max-w-full [&_img]:rounded-xl [&_img]:my-3 [&_img]:shadow-sm
-                  [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3
-                  [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2
-                  [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
-                  [&_a]:text-emerald-600 [&_a]:underline"
-                dangerouslySetInnerHTML={{ __html: activeBlog.content }}
-              />
-            </div>
-          </article>
-
-          {/* ── Comment Section ── */}
-          <CommentSection blog={activeBlog} setBlog={setActiveBlog} />
-        </div>
-      )}
-
       {/* ═══ COMPOSE VIEW ═══ */}
       {view === "compose" && (
         <div className="max-w-3xl mx-auto space-y-5">
           <div className="flex items-center justify-between gap-4">
             <button
-              onClick={() => setView("list")}
+              onClick={() => setView("feed")}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              &larr; Cancel
+              ← Cancel
             </button>
             <h2 className="text-xl font-bold text-foreground">
               {editBlog ? "Edit Post" : "New Post"}
