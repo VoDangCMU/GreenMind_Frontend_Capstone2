@@ -8,23 +8,25 @@ export function Sidebar() {
   return (
     <aside
       className={`
-        hidden h-full shrink-0 flex-col border-r bg-background lg:flex
-        w-16 hover:w-64
-        transition-[width] duration-200 ease-in-out
+        hidden h-full shrink-0 flex-col border-r lg:flex
+        w-14 hover:w-56
+        transition-[width] duration-300 ease-out
         overflow-hidden
         group
+        bg-gradient-to-b from-sidebar to-background
       `}
     >
-      {/* LOGO */}
-      <div className="flex h-16 items-center border-b px-4 overflow-hidden">
+      {/* Logo */}
+      <div className="flex h-16 items-center border-b border-border/50 px-3 overflow-hidden">
         <Link href="/dashboard" className="flex items-center gap-3 min-w-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-600">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
             <Leaf className="h-5 w-5 text-white" />
           </div>
           <span
-            className="text-lg font-semibold whitespace-nowrap overflow-hidden
+            className="text-lg font-semibold tracking-tight whitespace-nowrap overflow-hidden
               opacity-0 group-hover:opacity-100
-              transition-opacity duration-150 delay-75"
+              transition-all duration-200 delay-100
+              bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text"
           >
             GreenMind
           </span>
