@@ -32,8 +32,16 @@ export function ScenarioForm() {
     const demo = DEMOGRAPHICS.find((d) => d.id === demographic)
     if (!demo) return
 
-    const percentValue = Number.parseInt(percentage) / 100
-    generateScenario(trait, behavior, demo, percentValue)
+    const percentValue = Number.parseInt(percentage, 10) / 100
+    generateScenario(
+      demo.ageRange[0],
+      demo.ageRange[1],
+      demo.location,
+      percentValue,
+      undefined,
+      trait,
+      behavior,
+    )
 
     toast({
       title: "Scenario Created",
