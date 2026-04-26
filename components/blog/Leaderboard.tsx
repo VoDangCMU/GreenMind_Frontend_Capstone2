@@ -1,6 +1,7 @@
 "use client"
 
 import { LeaderboardUser } from "@/services/blog.service"
+import { Trophy } from "lucide-react"
 
 interface Props {
   leaderboard: LeaderboardUser[]
@@ -8,27 +9,22 @@ interface Props {
   subtitle?: string
   emptyTitle?: string
   emptySubtitle?: string
+  hideAvatar?: boolean
 }
 
-// Podium order: 2nd (left), 1st (center/tall), 3rd (right)
-const PODIUM_ORDER = [1, 0, 2] // indexes into top3 array
-
-const PODIUM_HEIGHT = ["h-20", "h-28", "h-16"]   // bar heights (center tallest)
+const PODIUM_ORDER = [1, 0, 2]
+const PODIUM_HEIGHT = ["h-20", "h-28", "h-16"]
 const AVATAR_SIZE = ["h-10 w-10", "h-14 w-14", "h-9 w-9"]
-const RANK_LABEL = ["2nd", "1st", "3rd"]
-
 const RANK_BG = [
-  "bg-slate-100 border-slate-300",     // 2nd
-  "bg-amber-50 border-amber-300",      // 1st
-  "bg-orange-50 border-orange-300",    // 3rd
+  "bg-slate-100 border-slate-300",
+  "bg-amber-50 border-amber-300",
+  "bg-orange-50 border-orange-300",
 ]
-
 const AVATAR_RING = [
   "ring-2 ring-slate-400",
   "ring-4 ring-amber-400",
   "ring-2 ring-orange-400",
 ]
-
 const LABEL_COLOR = [
   "text-slate-500",
   "text-amber-500 font-bold",
@@ -41,17 +37,21 @@ export function Leaderboard({
   subtitle = "Top reporters this period",
   emptyTitle = "No households yet",
   emptySubtitle = "Start tracking to see rankings",
+  hideAvatar = false,
 }: Props) {
   const top3 = leaderboard.slice(0, 3)
   const rest = leaderboard.slice(3)
   const hasLeaderboard = leaderboard.length > 0
   const podiumOrder = top3.length === 3 ? PODIUM_ORDER : top3.map((_, index) => index)
 
+  const formatLocation = (location?: string) => location?.split(",")[0]?.trim() || ""
+  const getLabel = (user: LeaderboardUser) => formatLocation(user.location) || user.fullName || user.username
+
   return (
     <aside className="flex flex-col gap-4">
       {/* Header */}
-      <div>
-        <h2 className="text-base font-bold text-foreground">{title}</h2>
+      <div className="px-5 pt-5">
+        <h3 className="text-base font-bold text-foreground">{title}</h3>
         <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
       </div>
 
@@ -64,23 +64,26 @@ export function Leaderboard({
                 if (!user) return null
                 return (
                   <div key={user.userId} className="flex flex-col items-center gap-1.5 flex-1">
-                    {/* Name */}
-                    <p className="text-xs font-semibold text-foreground text-center line-clamp-1 w-full">
-                      {(user.fullName || user.username).split(" ").slice(-1)[0]}
+                    {/* Name / Address */}
+                    <p className="text-sm font-semibold text-foreground text-center line-clamp-2 w-full">
+                      {getLabel(user)}
                     </p>
-                    {/* Report count */}
-                    <p className="text-xs text-muted-foreground">{user.reportCount}</p>
-                    {/* Trophy for 1st place */}
+                    {user.location && user.fullName && user.location !== user.fullName ? (
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 w-full">
+                        {user.fullName}
+                      </p>
+                    ) : null}
+                    <p className="text-sm text-muted-foreground">{user.reportCount}</p>
                     {user.rank === 1 && (
                       <span className="text-2xl leading-none">🏆</span>
                     )}
-                    {/* Avatar */}
-                    <div
-                      className={`${AVATAR_SIZE[pos]} rounded-full bg-linear-to-br from-emerald-400 to-teal-500 ${AVATAR_RING[pos]} flex items-center justify-center text-white font-bold text-sm shrink-0`}
-                    >
-                      {(user.fullName || user.username).charAt(0).toUpperCase()}
-                    </div>
-                    {/* Podium bar */}
+                    {!hideAvatar && (
+                      <div
+                        className={`${AVATAR_SIZE[pos]} rounded-full bg-linear-to-br from-emerald-400 to-teal-500 ${AVATAR_RING[pos]} flex items-center justify-center text-white font-bold text-sm shrink-0`}
+                      >
+                        {(user.fullName || user.username).charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div
                       className={`w-full rounded-t-lg border ${PODIUM_HEIGHT[pos]} ${RANK_BG[pos]} flex items-center justify-center`}
                     >
@@ -104,12 +107,21 @@ export function Leaderboard({
                   <span className="w-5 text-center text-xs font-bold text-muted-foreground shrink-0">
                     {user.rank}
                   </span>
-                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                    {(user.fullName || user.username).charAt(0).toUpperCase()}
+                  {!hideAvatar && (
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                      {(user.fullName || user.username).charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground text-sm line-clamp-2">
+                      {getLabel(user)}
+                    </p>
+                    {user.location && user.fullName && user.location !== user.fullName ? (
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                        {user.fullName}
+                      </p>
+                    ) : null}
                   </div>
-                  <p className="flex-1 font-medium text-foreground truncate text-xs">
-                    {user.fullName || user.username}
-                  </p>
                   <span className="text-xs font-semibold text-emerald-600 shrink-0">
                     {user.reportCount}
                   </span>

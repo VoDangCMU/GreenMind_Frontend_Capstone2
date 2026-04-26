@@ -28,6 +28,52 @@ function getGreenScoreColor(score?: number | string | null): string {
     return "#6b7280";
 }
 
+function getScoreLabel(score?: number | string | null): string {
+    if (score != null && !Number.isNaN(Number(score))) {
+        return String(Math.round(Number(score)));
+    }
+    return "N/A";
+}
+
+function buildScoreMarkerIcon(
+    score?: number | string | null,
+    isSelected: boolean = false
+): L.DivIcon {
+    const color = getGreenScoreColor(score);
+    const label = getScoreLabel(score);
+    const displayScore = label !== "N/A" ? label : "?";
+
+    // Kích thước cố định nhỏ gọn để hiển thị số
+    const size = isSelected ? 30 : 22;
+    const fontSize = isSelected ? 11 : 9;
+
+    return L.divIcon({
+        className: "",
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        html: `
+            <div style="
+                width: ${size}px;
+                height: ${size}px;
+                background: ${color};
+                border: ${isSelected ? "2.5px" : "1.5px"} solid white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 6px ${color}50, 0 1px 2px rgba(0,0,0,0.15);
+                font-family: 'Segoe UI', system-ui, sans-serif;
+                font-size: ${fontSize}px;
+                font-weight: ${isSelected ? "700" : "600"};
+                color: white;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+                cursor: pointer;
+                user-select: none;
+            ">${displayScore}</div>
+        `,
+    });
+}
+
 function isValidLatLng(lat: number, lng: number): boolean {
     return (
         Number.isFinite(lat) &&
@@ -58,7 +104,7 @@ function spreadOffset(index: number): { dLat: number; dLng: number } {
     // Golden-angle spiral to avoid overlap. Step ~35–200m depending on index.
     const goldenAngle = 137.5 * (Math.PI / 180);
     const angle = index * goldenAngle;
-    const radius = 0.00035 * Math.sqrt(index); // degrees
+    const radius = 0.0005 * Math.sqrt(index); // degrees - increased spacing
 
     return {
         dLat: Math.sin(angle) * radius,
@@ -129,16 +175,12 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
                 boundsReal.extend([point.lat, point.lng]);
             }
 
-            const color = getGreenScoreColor(household.greenScore);
-            const displayColor = isReal ? color : "#64748b";
             const isSelected = selectedHouseholdId != null && String(household.id) === String(selectedHouseholdId);
 
-            const marker = L.circleMarker([point.lat, point.lng], {
-                radius: isSelected ? 10 : 7,
-                color: displayColor,
-                fillColor: displayColor,
-                fillOpacity: isSelected ? 1 : 0.75,
-                weight: isSelected ? 3 : 1.5,
+            const icon = buildScoreMarkerIcon(household.greenScore, isSelected);
+            const marker = L.marker([point.lat, point.lng], {
+                icon,
+                zIndexOffset: isSelected ? 1000 : 100,
             }).addTo(markerLayerRef.current!);
 
             marker.bindTooltip(`
@@ -179,15 +221,15 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
                 <div className="font-semibold text-sm">Household Map</div>
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px]">
                     <span className="inline-flex items-center gap-1">
-                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                        <span className="inline-block w-4 h-4 rounded-full bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center">85</span>
                         <span>Score ≥ 70</span>
                     </span>
                     <span className="inline-flex items-center gap-1">
-                        <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
+                        <span className="inline-block w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center">55</span>
                         <span>40–69</span>
                     </span>
                     <span className="inline-flex items-center gap-1">
-                        <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                        <span className="inline-block w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">30</span>
                         <span>{"< 40"}</span>
                     </span>
                 </div>

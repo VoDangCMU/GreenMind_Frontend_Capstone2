@@ -81,6 +81,7 @@ export default function DashboardPage() {
     userId: `household-${household.id}`,
     fullName: household.name,
     username: household.name,
+    location: household.address,
     reportCount: household.greenScore != null ? household.greenScore : household.reportCount,
   }))
 
@@ -357,6 +358,7 @@ export default function DashboardPage() {
                   subtitle="Households ranked by green score"
                   emptyTitle="No households yet"
                   emptySubtitle="Start tracking scores to see rankings"
+                  hideAvatar
                 />
                 <Link
                   href="/dashboard/household-management"

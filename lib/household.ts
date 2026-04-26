@@ -34,6 +34,7 @@ export interface ApiHousehold {
     createdAt: string;
     updatedAt: string;
     members?: ApiHouseholdMember[];
+    greenScore?: number;
 }
 
 export interface ApiHouseholdDetectionItem {
@@ -132,7 +133,13 @@ function mapApiHouseholdToProfile(apiHousehold: ApiHousehold): HouseholdProfile 
     const familySize = Math.max(1, members.length);
     const waste = 0;
     const reportCount = members.length;
-    const status: AreaStatus = reportCount >= 3 ? "red" : reportCount >= 2 ? "yellow" : "green";
+
+    const greenScore = apiHousehold.greenScore;
+    const status: AreaStatus = greenScore == null
+        ? "yellow"
+        : greenScore >= 70 ? "green"
+            : greenScore >= 40 ? "yellow"
+                : "red";
 
     const mappedHousehold: Household = {
         id: numericId,
@@ -145,6 +152,7 @@ function mapApiHouseholdToProfile(apiHousehold: ApiHousehold): HouseholdProfile 
         waste,
         status,
         reportCount,
+        greenScore: apiHousehold.greenScore,
     };
 
     return {

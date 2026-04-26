@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { User, Users, TrendingUp, BarChart3 } from "lucide-react";
@@ -26,8 +26,10 @@ type CaptureTrendPoint = {
     pollutionNonBiodegradable: number;
 };
 
+type ScoreTrendPeriod = "day" | "month" | "year";
+
 type GreenScoreTrendPoint = {
-    month: string; // YYYY-MM
+    month: string; // period key
     label: string; // formatted for axis/tooltip
     finalScore: number | null;
     delta?: number;
@@ -100,6 +102,82 @@ function formatMonth(date: Date): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     return `${year}-${month}`;
+}
+
+function formatDay(date: Date): string {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    return `${day}/${month}`;
+}
+
+function formatYear(date: Date): string {
+    return String(date.getFullYear());
+}
+
+function buildGreenScoreTrendFromHistoryByPeriod(
+    greenScoreHistory: NonNullable<HouseholdProfile["greenScores"]>,
+    period: ScoreTrendPeriod,
+) {
+    const validEntries = greenScoreHistory
+        .slice()
+        .filter((entry) => !Number.isNaN(new Date(entry.createdAt).getTime()))
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    const groupKey = (date: Date) => {
+        if (period === "day") {
+            return date.toISOString().slice(0, 10);
+        }
+        if (period === "year") {
+            return String(date.getFullYear());
+        }
+        return formatMonth(date);
+    };
+
+    const labelFor = (date: Date) => {
+        if (period === "day") return formatDay(date);
+        if (period === "year") return formatYear(date);
+        return String(date.getMonth() + 1).padStart(2, "0");
+    };
+
+    const latestByPeriod = new Map<string, NonNullable<HouseholdProfile["greenScores"]>[number]>();
+    validEntries.forEach((entry) => {
+        const date = new Date(entry.createdAt);
+        const key = groupKey(date);
+        const existing = latestByPeriod.get(key);
+        if (!existing || date.getTime() > new Date(existing.createdAt).getTime()) {
+            latestByPeriod.set(key, entry);
+        }
+    });
+
+    const range: Date[] = [];
+    const now = new Date();
+    if (period === "day") {
+        for (let i = 29; i >= 0; i -= 1) {
+            range.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i));
+        }
+    } else if (period === "year") {
+        for (let i = 4; i >= 0; i -= 1) {
+            range.push(new Date(now.getFullYear() - i, 0, 1));
+        }
+    } else {
+        for (let i = 11; i >= 0; i -= 1) {
+            range.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
+        }
+    }
+
+    return range.map((date) => {
+        const key = groupKey(date);
+        const entry = latestByPeriod.get(key);
+        return {
+            month: key,
+            label: labelFor(date),
+            finalScore: entry?.finalScore ?? 0,
+            delta: entry?.delta,
+            previousScore: entry?.previousScore,
+            reasons: entry?.reasons,
+            items: entry?.items ?? null,
+        };
+    });
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -231,6 +309,14 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
         return generateMockImageHistory(household?.id ?? 0);
     }, [household?.id, household?.imageHistory, imageHistoryProp]);
 
+    const reportImageHistory = useMemo(() => {
+        if (imageHistoryProp !== undefined) return imageHistoryProp;
+        if (household?.imageHistory?.length) return household.imageHistory;
+        return [];
+    }, [household?.imageHistory, imageHistoryProp]);
+
+    const [scoreTrendPeriod, setScoreTrendPeriod] = useState<ScoreTrendPeriod>("month");
+
     const memberShotCounts = useMemo(() => {
         return buildMemberShotCounts(imageHistory, householdReports);
     }, [imageHistory, householdReports]);
@@ -256,18 +342,31 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
         return sum > 0 ? data : generateMockCaptureTrend(household.id);
     }, [household.id, householdReports, imageHistory]);
 
-    const greenScoreTrend = useMemo(() => {
+    const monthlyGreenScoreTrend = useMemo(() => {
         if (!greenScoreHistory?.length) return [];
 
-        const data = buildGreenScoreTrendFromHistory(greenScoreHistory);
+        const data = buildGreenScoreTrendFromHistoryByPeriod(greenScoreHistory, "month");
         const hasScore = data.some((point) => point.finalScore != null);
         return hasScore ? data : [];
     }, [greenScoreHistory]);
 
+    const selectedGreenScoreTrend = useMemo(() => {
+        if (!greenScoreHistory?.length) return [];
+        return buildGreenScoreTrendFromHistoryByPeriod(greenScoreHistory, scoreTrendPeriod);
+    }, [greenScoreHistory, scoreTrendPeriod]);
+
+    const latestGreenScore = useMemo(() => {
+        if (!greenScoreHistory?.length) return null;
+        const validEntries = greenScoreHistory
+            .slice()
+            .filter((entry) => !Number.isNaN(new Date(entry.createdAt).getTime()))
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        return validEntries.length ? validEntries[validEntries.length - 1] : null;
+    }, [greenScoreHistory]);
+
     const latestCaptureMonth = captureTrend.length ? captureTrend[captureTrend.length - 1] : null;
-    const latestGreenScore = greenScoreTrend.length ? greenScoreTrend[greenScoreTrend.length - 1] : null;
-    const trendChartData = greenScoreTrend.length ? greenScoreTrend : captureTrend;
-    const isGreenScoreChart = greenScoreTrend.length > 0;
+    const trendChartData = monthlyGreenScoreTrend.length ? selectedGreenScoreTrend : captureTrend;
+    const isGreenScoreChart = monthlyGreenScoreTrend.length > 0;
 
     const displayGreenScore = household.greenScore != null ? household.greenScore : latestGreenScore?.finalScore;
     const scoreColorClass = displayGreenScore != null
@@ -322,7 +421,7 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                                             <p className="font-semibold text-slate-800 truncate">{member.name || "N/A"}</p>
                                             <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{member.role || "N/A"}</p>
                                         </div>
-                                        <div className="text-right min-w-[56px]">
+                                        <div className="text-right min-w-14">
                                             <p className="text-[10px] text-slate-500">Shots</p>
                                             <p className="font-semibold text-slate-700">
                                                 {memberShotCounts.get(normalizePersonName(member.name)) ?? 0}
@@ -337,16 +436,32 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
             </div>
 
             <Card className="shadow-lg border border-slate-200 bg-white rounded-2xl">
-                <CardHeader className="mb-2 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-emerald-600" />
-                    <CardTitle className="text-base font-semibold">{isGreenScoreChart ? "12-Month Green Score Trend" : "12-Month Capture Trend"}</CardTitle>
+                <CardHeader className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 text-emerald-600" />
+                        <CardTitle className="text-base font-semibold">{isGreenScoreChart ? "Green Score Trend" : "12-Month Capture Trend"}</CardTitle>
+                    </div>
+                    {isGreenScoreChart ? (
+                        <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1">
+                            {(["day", "month", "year"] as ScoreTrendPeriod[]).map((period) => (
+                                <button
+                                    key={period}
+                                    type="button"
+                                    onClick={() => setScoreTrendPeriod(period)}
+                                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${scoreTrendPeriod === period ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                                >
+                                    {period === "day" ? "Ngày" : period === "month" ? "Tháng" : "Năm"}
+                                </button>
+                            ))}
+                        </div>
+                    ) : null}
                 </CardHeader>
                 <CardContent>
                     <div className="w-full h-48 md:h-52 xl:h-56">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart<GreenScoreTrendPoint | CaptureTrendPoint> data={trendChartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                <XAxis dataKey="month" tickFormatter={(value) => String(value).slice(5)} />
+                                <XAxis dataKey="label" tickFormatter={(value) => String(value)} />
                                 <YAxis allowDecimals={false} domain={isGreenScoreChart ? [0, 50] : undefined} />
                                 <Tooltip formatter={(value: any) => {
                                     if (value == null) return "";
@@ -472,11 +587,11 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                             <div className="rounded-2xl border border-dashed border-rose-200 bg-rose-50 px-3 py-4 text-center text-sm text-rose-700">
                                 {historyError}
                             </div>
-                        ) : imageHistory.length === 0 ? (
+                        ) : reportImageHistory.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">
-                                No detection image history available.
+                                Không có bất kì detect nào.
                             </div>
-                        ) : imageHistory.map((image) => {
+                        ) : reportImageHistory.map((image) => {
                             const relatedReport = householdReports.find((report) => {
                                 const reportDate = new Date(report.reportedAt).toDateString();
                                 const imageDate = new Date(image.uploadedAt).toDateString();
