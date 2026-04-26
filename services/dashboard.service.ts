@@ -33,6 +33,7 @@ export interface Stats {
     totalWaste: number
     totalHouseholds: number
     avgPlastic: number
+    wasteByType?: Record<string, number>
     total_areas?: number
     areaCount?: number
 }
@@ -75,6 +76,45 @@ const normalizeWasteReportToActivity = (report: WasteMonitorReport): Activity =>
         metadata: {},
         created_at: report.createdAt || new Date().toISOString(),
     }
+}
+
+function isRecord(obj: unknown): obj is Record<string, unknown> {
+    return obj !== null && typeof obj === 'object' && !Array.isArray(obj)
+}
+
+function aggregateWasteByType(reports: any[]): Record<string, number> {
+    return reports.reduce((acc, report) => {
+        if (!report || !isRecord(report)) return acc
+
+        const payload = report.wasteByType || report.wasteByTypeKg || report.wasteByTypeMass
+        if (!isRecord(payload)) return acc
+
+        Object.entries(payload).forEach(([key, value]) => {
+            const numeric = typeof value === 'number' ? value : Number(value)
+            if (Number.isFinite(numeric)) {
+                acc[key] = (acc[key] || 0) + numeric
+            }
+        })
+
+        return acc
+    }, {} as Record<string, number>)
+}
+
+function getTotalMassFromReports(reports: any[]): number {
+    return reports.reduce((sum, report) => {
+        if (report == null) return sum
+
+        if (typeof report.totalMassKg === 'number' && Number.isFinite(report.totalMassKg)) {
+            return sum + report.totalMassKg
+        }
+
+        if (isRecord(report) && typeof report.totalMassKg === 'string') {
+            const parsed = Number(report.totalMassKg)
+            return Number.isFinite(parsed) ? sum + parsed : sum
+        }
+
+        return sum
+    }, 0)
 }
 
 export const dashboardService = {
@@ -121,10 +161,12 @@ export const dashboardService = {
             : campaignsRes?.data ?? []
 
         const totalUsers = households.length
-        const totalWaste = reports.length
         const totalActivities = campaigns.length
-        const plasticReports = reports.filter((r: any) => r.wasteType === 'plastic').length
-        const avgPlastic = reports.length > 0 ? Math.round((plasticReports / reports.length) * 100) : 0
+        const wasteByType = aggregateWasteByType(reports)
+        const totalMassFromReports = getTotalMassFromReports(reports)
+        const totalWaste = totalMassFromReports > 0 ? Number(totalMassFromReports.toFixed(2)) : reports.length
+        const plasticMass = wasteByType.plastic ?? wasteByType.Plastic ?? wasteByType['plastic'] ?? 0
+        const avgPlastic = totalWaste > 0 ? Math.round((plasticMass / totalWaste) * 100) : 0
         const uniqueAreas = new Set(reports.map((r: any) => r.wardName || 'unknown')).size
 
         return {
@@ -134,6 +176,7 @@ export const dashboardService = {
             totalWaste,
             totalHouseholds: totalUsers,
             avgPlastic,
+            wasteByType,
             total_areas: uniqueAreas,
             areaCount: uniqueAreas,
         }

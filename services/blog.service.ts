@@ -52,6 +52,7 @@ export interface LeaderboardUser {
   fullName: string
   username: string
   reportCount: number
+  location?: string
 }
 
 function authHeaders() {
