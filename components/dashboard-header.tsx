@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 
 export function DashboardHeader() {
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background/60 backdrop-blur-xl px-6 md:px-10 lg:px-14">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between bg-background/60 backdrop-blur-xl px-6 md:px-10 lg:px-14">
       <div className="flex items-center gap-6">
         {/* Mobile Navigation */}
         <Sheet>

@@ -31,6 +31,7 @@ export interface Stats {
     waste_classification_count: number
     green_meal_count: number
     totalWaste: number
+    totalReports: number
     totalHouseholds: number
     avgPlastic: number
     wasteByType?: Record<string, number>
@@ -174,6 +175,7 @@ export const dashboardService = {
             waste_classification_count: 0,
             green_meal_count: 0,
             totalWaste,
+            totalReports: reports.length,
             totalHouseholds: totalUsers,
             avgPlastic,
             wasteByType,

@@ -24,17 +24,17 @@ function StatCard({ icon: Icon, label, value, gradient, subLabel }: {
 }) {
     return (
         <div
-            className="relative overflow-hidden rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 p-3"
+            className="relative overflow-hidden rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 p-2"
         >
-            <div className="relative flex items-center justify-between gap-2">
+            <div className="relative flex items-center justify-between gap-1.5">
                 <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">{label}</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</p>
-                    {subLabel && <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{subLabel}</p>}
+                    <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate">{label}</p>
+                    <p className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</p>
+                    {subLabel && <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate">{subLabel}</p>}
                 </div>
 
-                <div className={`shrink-0 p-2 rounded-lg bg-gradient-to-br ${gradient}`}>
-                    <Icon className="w-4 h-4 text-white" />
+                <div className={`shrink-0 p-1.5 rounded-lg bg-gradient-to-br ${gradient}`}>
+                    <Icon className="w-3.5 h-3.5 text-white" />
                 </div>
             </div>
         </div>
@@ -192,6 +192,8 @@ export default function HouseholdManagementPage() {
         return { totalReports, totalImageUploads, red, yellow, green, avgScore };
     }, [allHouseholds]);
 
+    const statusTotal = summary.red + summary.yellow + summary.green;
+
     const leaderboard = useMemo((): LeaderboardUser[] => {
         const sorted = allHouseholds
             .slice()
@@ -246,7 +248,7 @@ export default function HouseholdManagementPage() {
                     </div>
 
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 mt-2.5">
                         <StatCard
                             icon={Users}
                             label="Total Households"
@@ -268,20 +270,48 @@ export default function HouseholdManagementPage() {
                             gradient="from-amber-500 to-orange-600"
                             subLabel={leaderboard[0]?.fullName || "No data"}
                         />
-                        <div className="rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 p-3">
-                            <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-2">Status Distribution</p>
-                            <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xs font-bold">{summary.green}</span>
+                        <div className="rounded-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 p-1.5">
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <p className="text-[9px] uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500 font-semibold">Status</p>
+                                <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[9px] font-medium text-slate-600 dark:text-slate-300">{statusTotal}</span>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <div>
+                                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mb-1">
+                                        <div className="flex items-center gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                            <span>Healthy</span>
+                                        </div>
+                                        <span>{summary.green} · {statusTotal ? Math.round((summary.green / statusTotal) * 100) : 0}%</span>
+                                    </div>
+                                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                        <div className="h-full rounded-full bg-emerald-500" style={{ width: `${statusTotal ? Math.round((summary.green / statusTotal) * 100) : 0}%` }} />
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                                    <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 text-xs font-bold">{summary.yellow}</span>
+                                <div>
+                                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mb-1">
+                                        <div className="flex items-center gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                            <span>Warning</span>
+                                        </div>
+                                        <span>{summary.yellow} · {statusTotal ? Math.round((summary.yellow / statusTotal) * 100) : 0}%</span>
+                                    </div>
+                                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                        <div className="h-full rounded-full bg-amber-500" style={{ width: `${statusTotal ? Math.round((summary.yellow / statusTotal) * 100) : 0}%` }} />
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-red-500" />
-                                    <span className="px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold">{summary.red}</span>
+                                <div>
+                                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mb-1">
+                                        <div className="flex items-center gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-red-500" />
+                                            <span>Critical</span>
+                                        </div>
+                                        <span>{summary.red} · {statusTotal ? Math.round((summary.red / statusTotal) * 100) : 0}%</span>
+                                    </div>
+                                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                        <div className="h-full rounded-full bg-red-500" style={{ width: `${statusTotal ? Math.round((summary.red / statusTotal) * 100) : 0}%` }} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
