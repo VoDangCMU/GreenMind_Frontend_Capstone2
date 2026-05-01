@@ -186,9 +186,8 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                   {loading ? "--" : totalWaste}
-                  <span className="text-sm font-medium text-slate-400 ml-1">kg</span>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1">Total waste</p>
+                <p className="text-[10px] text-slate-500 mt-1">Total waste report</p>
               </Link>
 
               {/* Activities */}
@@ -229,7 +228,6 @@ export default function DashboardPage() {
               <div className="flex items-end justify-between">
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold tracking-tight">System Performance</h2>
-                  <p className="text-muted-foreground mt-1">Latest activity data from API</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
@@ -238,18 +236,7 @@ export default function DashboardPage() {
                     className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50"
                   >
                     <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                    <span className="hidden md:inline">Refresh</span>
                   </button>
-                  <div className="hidden md:flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-emerald-500" />
-                      <span className="text-muted-foreground">Areas</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-teal-400" />
-                      <span className="text-muted-foreground">Avg. waste</span>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -267,11 +254,6 @@ export default function DashboardPage() {
                       <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mb-1">Areas</p>
                       <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{loading ? "--" : totalAreas}</p>
                     </Link>
-                    {/* Plastic */}
-                    <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 rounded-xl">
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 mb-1">Avg. Plastic</p>
-                      <p className="text-xl font-bold text-amber-700 dark:text-amber-300">{loading ? "--" : `${avgPlastic}%`}</p>
-                    </div>
                   </div>
 
                   {/* Chart */}

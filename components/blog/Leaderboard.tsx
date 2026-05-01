@@ -65,11 +65,11 @@ export function Leaderboard({
                 return (
                   <div key={user.userId} className="flex flex-col items-center gap-1.5 flex-1">
                     {/* Name / Address */}
-                    <p className="text-sm font-semibold text-foreground text-center line-clamp-2 w-full">
+                    <p className="text-sm font-semibold text-foreground text-center whitespace-normal break-words w-full">
                       {getLabel(user)}
                     </p>
                     {user.location && user.fullName && user.location !== user.fullName ? (
-                      <p className="text-[11px] text-muted-foreground line-clamp-2 w-full">
+                      <p className="text-[11px] text-muted-foreground whitespace-normal break-words w-full">
                         {user.fullName}
                       </p>
                     ) : null}
@@ -113,11 +113,11 @@ export function Leaderboard({
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground text-sm line-clamp-2">
+                    <p className="font-medium text-foreground text-sm whitespace-normal break-words">
                       {getLabel(user)}
                     </p>
                     {user.location && user.fullName && user.location !== user.fullName ? (
-                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                      <p className="text-[11px] text-muted-foreground whitespace-normal break-words mt-0.5">
                         {user.fullName}
                       </p>
                     ) : null}
