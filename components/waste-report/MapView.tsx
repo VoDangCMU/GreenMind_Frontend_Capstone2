@@ -104,23 +104,22 @@ async function fetchWardBoundary(
 
 // Danh sách phường cần vẽ boundary
 const WARD_NAMES = [
-  "An Hải", "An Khê", "An Thắng", "Avyương", "Bà Nà", "Bàn Thạch",
-  "Bến Giằng", "Bến Hiên", "Cẩm Lệ", "Chiên Đàn", "Duy Nghĩa", "Duy Xuyên",
+  "An Hải", "An Khê", "An Thắng", "Avyương", "Bà Nà", "Thanh Khê", "Liên Chiểu",
+  "Bến Giằng", "Bến Hiên", "Cẩm Lệ", "Chiên Đàn", "Duy Nghĩa", "Duy Xuyên", "Hòa Xuân", "Ngũ Hành Sơn",
   "Đại Lộc", "Đắc Pring", "Điện Bàn", "Điện Bàn Bắc", "Điện Bàn Đông",
   "Điện Bàn Tây", "Đồng Dương", "Đông Giang", "Đức Phú", "Gò Nổi", "Hà Nha",
-  "Hải Châu", "Hải Vân", "Hiệp Đức", "Hòa Cường", "Hòa Khánh", "Hòa Tiến",
-  "Hòa Vang", "Hòa Xuân", "Hoàng Sa", "Hội An", "Hội An Đông", "Hội An Tây",
-  "Hùng Sơn", "Hương Trà", "Khâm Đức", "La Dêeê", "La Êeê", "Lãnh Ngọc",
-  "Liên Chiểu", "Nam Giang", "Nam Phước", "Nam Trà My", "Ngũ Hành Sơn",
+  "Hải Châu", "Hải Vân", "Hiệp Đức", "Hòa Cường", "Hòa Khánh", "Hòa Tiến", "Sơn Trà",
+  "Hòa Vang", "Hoàng Sa", "Hội An", "Hội An Đông", "Hội An Tây",
+  "Hùng Sơn", "Hương Trà", "Khâm Đức", "La Dêeê", "La Êeê", "Lãnh Ngọc", "Nam Giang", "Nam Phước", "Nam Trà My",
   "Nông Sơn", "Núi Thành", "Phú Ninh", "Phú Thuận", "Phước Chánh",
   "Phước Hiệp", "Phước Năng", "Phước Thành", "Phước Trà", "Quảng Phú",
   "Quế Phước", "Quế Sơn", "Quế Sơn Trung", "Sông Kôn", "Sông Vàng",
-  "Sơn Cẩm Hà", "Sơn Trà", "Tam Anh", "Tam Hải", "Tam Kỳ", "Tam Mỹ",
-  "Tam Xuân", "Tân Hiệp", "Tây Giang", "Tây Hồ", "Thạnh Bình", "Thanh Khê",
+  "Sơn Cẩm Hà", "Tam Anh", "Tam Hải", "Tam Kỳ", "Tam Mỹ",
+  "Tam Xuân", "Tân Hiệp", "Tây Giang", "Tây Hồ", "Thạnh Bình",
   "Thạnh Mỹ", "Thăng An", "Thăng Bình", "Thăng Điền", "Thăng Phú",
   "Thăng Trường", "Thu Bồn", "Thượng Đức", "Tiên Phước", "Trà Đốc",
   "Trà Giáp", "Trà Leng", "Trà Liên", "Trà Linh", "Trà My", "Trà Tân",
-  "Trà Tập", "Trà Vân", "Việt An", "Vu Gia", "Xuân Phú",
+  "Trà Tập", "Trà Vân", "Việt An", "Vu Gia", "Xuân Phú"
 ];
 
 const BOUNDARY_DEFAULT: L.PathOptions = {
