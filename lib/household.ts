@@ -219,12 +219,6 @@ export async function getHouseholdGreenScoreHistory(householdId: string): Promis
     return [];
 }
 
-function getDetectionCaption(detectType?: string) {
-    if (detectType === "predict_pollutant_impact") return "Dự đoán tác động ô nhiễm";
-    if (detectType === "detect_trash") return "Phát hiện rác thải";
-    return "Ảnh phát hiện";
-}
-
 export function mapHouseholdDetectionRecordsToImageHistory(records: ApiHouseholdDetectionRecord[]) {
     const groupedByUrl = new Map<string, ApiHouseholdDetectionRecord[]>();
 
@@ -246,10 +240,6 @@ export function mapHouseholdDetectionRecordsToImageHistory(records: ApiHousehold
         .map((group) => {
             const sortedGroup = group.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             const primary = sortedGroup[0];
-
-            const caption = Array.from(new Set(group.map((record) => getDetectionCaption(record.detectType))))
-                .filter(Boolean)
-                .join(" + ") || "Ảnh phát hiện";
 
             const mergedItems = group
                 .flatMap((record) => record.items ?? [])
@@ -278,9 +268,8 @@ export function mapHouseholdDetectionRecordsToImageHistory(records: ApiHousehold
                 id: primary.id,
                 uploadedAt: primary.createdAt,
                 imageUrl: primary.imageUrl,
-                label: group.length > 1 ? "Lịch sử phát hiện" : primary.detectType || "Lịch sử phát hiện",
+                label: "Lịch sử phát hiện",
                 sender: primary.detectedBy?.fullName || primary.detectedBy?.username || primary.detectedBy?.email || undefined,
-                caption,
                 items: mergedItems.length ? mergedItems : undefined,
                 total_objects: Math.max(...group.map((record) => Number(record.totalObjects) || 0)),
                 pollution: Object.keys(mergedPollution).length ? mergedPollution : undefined,

@@ -120,7 +120,7 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
     const lastFittedCountRef = useRef(0);
 
     useEffect(() => {
-        if (!mapContainerRef.current || mapRef.current) return;
+        if (mapRef.current || !mapContainerRef.current) return;
 
         const map = L.map(mapContainerRef.current, {
             center: [16.065, 108.225],
@@ -139,6 +139,11 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
         markerLayerRef.current = L.layerGroup().addTo(map);
         mapRef.current = map;
 
+        // Fix map size after dynamic load
+        setTimeout(() => {
+            map.invalidateSize({ pan: false });
+        }, 100);
+
         return () => {
             map.remove();
             mapRef.current = null;
@@ -151,9 +156,7 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
         markerLayerRef.current.clearLayers();
 
         const boundsAll = L.latLngBounds([]);
-        const boundsReal = L.latLngBounds([]);
         let hasAnyMarker = false;
-        let hasAnyRealMarker = false;
 
         const indexByKey = new Map<string, number>();
 
@@ -170,10 +173,6 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
 
             hasAnyMarker = true;
             boundsAll.extend([point.lat, point.lng]);
-            if (isReal) {
-                hasAnyRealMarker = true;
-                boundsReal.extend([point.lat, point.lng]);
-            }
 
             const isSelected = selectedHouseholdId != null && String(household.id) === String(selectedHouseholdId);
 
@@ -203,39 +202,24 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
         });
 
         if (hasAnyMarker && selectedHouseholdId == null) {
-            // Always prefer fitting to ALL markers so none are off-screen.
-            // Refit when count increases (e.g. when data arrives paged/async).
             if (!hasFitBoundsRef.current || households.length > lastFittedCountRef.current) {
                 mapRef.current.fitBounds(boundsAll, { padding: [28, 28], maxZoom: 15 });
                 hasFitBoundsRef.current = true;
                 lastFittedCountRef.current = households.length;
             }
         }
+
+        // Fix map size after markers are added
+        setTimeout(() => {
+            mapRef.current?.invalidateSize({ pan: false });
+        }, 200);
     }, [households, selectedHouseholdId, onHouseholdSelect]);
 
     return (
         <div className="relative w-full h-full rounded-2xl overflow-hidden border border-gray-100 shadow-lg">
             <div ref={mapContainerRef} className="w-full h-full" />
 
-            <div className="absolute top-3 left-3 z-20 rounded-xl border border-white/40 bg-white/80 backdrop-blur px-3 py-2 text-xs text-slate-700 shadow-sm">
-                <div className="font-semibold text-sm">Household Map</div>
-                <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px]">
-                    <span className="inline-flex items-center gap-1">
-                        <span className="inline-block w-4 h-4 rounded-full bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center">85</span>
-                        <span>Score ≥ 70</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                        <span className="inline-block w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center">55</span>
-                        <span>40–69</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                        <span className="inline-block w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">30</span>
-                        <span>{"< 40"}</span>
-                    </span>
-                </div>
-            </div>
-
-            {(loading || !mapRef.current) && (
+            {loading && (
                 <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
                     <div className="text-center">
                         <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />

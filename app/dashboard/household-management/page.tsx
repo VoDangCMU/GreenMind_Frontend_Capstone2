@@ -24,17 +24,17 @@ function StatCard({ icon: Icon, label, value, gradient, subLabel }: {
 }) {
     return (
         <div
-            className="relative overflow-hidden rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 p-2"
+            className="relative overflow-hidden rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 p-3"
         >
-            <div className="relative flex items-center justify-between gap-1.5">
+            <div className="relative flex items-center justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate">{label}</p>
-                    <p className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</p>
-                    {subLabel && <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate">{subLabel}</p>}
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">{label}</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</p>
+                    {subLabel && <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{subLabel}</p>}
                 </div>
 
-                <div className={`shrink-0 p-1.5 rounded-lg bg-gradient-to-br ${gradient}`}>
-                    <Icon className="w-3.5 h-3.5 text-white" />
+                <div className={`shrink-0 p-2 rounded-lg bg-gradient-to-br ${gradient}`}>
+                    <Icon className="w-4 h-4 text-white" />
                 </div>
             </div>
         </div>
@@ -270,46 +270,46 @@ export default function HouseholdManagementPage() {
                             gradient="from-amber-500 to-orange-600"
                             subLabel={leaderboard[0]?.fullName || "No data"}
                         />
-                        <div className="rounded-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 p-1.5">
+                        <div className="rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 p-2">
                             <div className="flex items-center justify-between gap-2 mb-1.5">
-                                <p className="text-[9px] uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500 font-semibold">Status</p>
-                                <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[9px] font-medium text-slate-600 dark:text-slate-300">{statusTotal}</span>
+                                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 dark:text-slate-500 font-semibold">Status</p>
+                                <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-300">{statusTotal}</span>
                             </div>
 
                             <div className="space-y-1.5">
                                 <div>
-                                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mb-1">
+                                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mb-0.5">
                                         <div className="flex items-center gap-1">
-                                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                             <span>Healthy</span>
                                         </div>
                                         <span>{summary.green} · {statusTotal ? Math.round((summary.green / statusTotal) * 100) : 0}%</span>
                                     </div>
-                                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                    <div className="h-1 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                                         <div className="h-full rounded-full bg-emerald-500" style={{ width: `${statusTotal ? Math.round((summary.green / statusTotal) * 100) : 0}%` }} />
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mb-1">
+                                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mb-0.5">
                                         <div className="flex items-center gap-1">
-                                            <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                             <span>Warning</span>
                                         </div>
                                         <span>{summary.yellow} · {statusTotal ? Math.round((summary.yellow / statusTotal) * 100) : 0}%</span>
                                     </div>
-                                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                    <div className="h-1 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                                         <div className="h-full rounded-full bg-amber-500" style={{ width: `${statusTotal ? Math.round((summary.yellow / statusTotal) * 100) : 0}%` }} />
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mb-1">
+                                    <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 mb-0.5">
                                         <div className="flex items-center gap-1">
-                                            <span className="w-2 h-2 rounded-full bg-red-500" />
+                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                                             <span>Critical</span>
                                         </div>
                                         <span>{summary.red} · {statusTotal ? Math.round((summary.red / statusTotal) * 100) : 0}%</span>
                                     </div>
-                                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                    <div className="h-1 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                                         <div className="h-full rounded-full bg-red-500" style={{ width: `${statusTotal ? Math.round((summary.red / statusTotal) * 100) : 0}%` }} />
                                     </div>
                                 </div>
@@ -320,16 +320,11 @@ export default function HouseholdManagementPage() {
             </header>
 
             {/* Main Content */}
-            <div className="relative flex-1 min-h-0 p-3 lg:p-4 overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-4 h-full">
+            <div className="relative flex-1 min-h-0 p-2 lg:p-3 overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-6 gap-2 lg:gap-3 h-full">
                     {/* Map Section */}
-                    <div className="lg:col-span-3 xl:col-span-4 h-full">
+                    <div className="lg:col-span-4 xl:col-span-5 h-full">
                         <div className="relative h-full rounded-2xl overflow-hidden shadow-xl border border-white/20 dark:border-slate-700/50">
-                            {/* Top accent line */}
-                            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 z-20" />
-
-                            {/* Decorative corner */}
-                            <div className="absolute top-4 right-4 w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 blur-2xl z-10" />
 
                             {apiError && (
                                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-red-50 dark:bg-red-950/80 border border-red-200 dark:border-red-800 rounded-2xl px-5 py-2.5 shadow-xl">
