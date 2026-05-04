@@ -14,6 +14,11 @@ import {
   MessageCircle,
   BarChart3,
   MapPin,
+  ArrowLeft,
+  UserCircle,
+  X,
+  FileText,
+  Radius,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getAccessToken } from "@/lib/auth";
@@ -60,6 +65,11 @@ function CampaignManagementContent() {
   const urlCampaignId = searchParams.get("campaignId");
   const [userSelectedCampaign, setUserSelectedCampaign] = useState<Campaign | null>(null);
 
+  // View mode: list = hiển thị danh sách campaign, detail = hiển thị chi tiết campaign
+  const [viewMode, setViewMode] = useState<"list" | "detail">("list");
+  const [campaignDetail, setCampaignDetail] = useState<Campaign | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
   // selectedCampaign = campaign từ URL (ưu tiên cao nhất) hoặc user tự chọn
   const selectedCampaign = (() => {
     if (urlCampaignId) {
@@ -101,6 +111,27 @@ function CampaignManagementContent() {
     }
     fetchCampaigns();
   }, []);
+
+  // Fetch chi tiết campaign từ API
+  async function fetchCampaignDetail(id: string) {
+    setLoadingDetail(true);
+    setCampaignDetail(null);
+    try {
+      const token = getAccessToken();
+      const res = await fetch(`https://vodang-api.gauas.com/campaigns/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCampaignDetail(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch campaign detail:", error);
+    } finally {
+      setLoadingDetail(false);
+    }
+  }
 
   const renderStatus = (status?: string) => {
     switch (status?.toUpperCase()) {
@@ -175,82 +206,256 @@ function CampaignManagementContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 flex-1">
 
-        {/* ══ Cột trái: Danh sách chiến dịch ══════════════════════════════════ */}
+        {/* ══ Cột trái: Danh sách chiến dịch / Chi tiết chiến dịch ═══════════ */}
         <Card className="lg:col-span-5 xl:col-span-4 shadow-sm border-slate-200 flex flex-col min-h-0 overflow-hidden bg-white">
-          <div className="p-4 border-b border-slate-100 bg-slate-50/50 shrink-0 flex items-center justify-between">
-            <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
-              Tất cả Chiến dịch
-            </h2>
-            <Badge variant="secondary" className="bg-white border-slate-200 text-slate-700">
-              {campaigns.length}
-            </Badge>
-          </div>
+          {viewMode === "detail" && campaignDetail ? (
+            /* ── DETAIL VIEW ─────────────────────────────────────────────────── */
+            <>
+              {/* Header với nút quay lại */}
+              <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white shrink-0">
+                <button
+                  onClick={() => {
+                    setUserSelectedCampaign(null);
+                    setViewMode("list");
+                    setCampaignDetail(null);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg shadow-sm transition-all mb-3"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Quay lại danh sách
+                </button>
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="font-bold text-slate-800 text-base leading-tight line-clamp-2">
+                    {campaignDetail.name}
+                  </h2>
+                  {renderStatus(campaignDetail.status)}
+                </div>
+              </div>
 
-          <ScrollArea className="flex-1 min-h-0 p-3">
-            {loading ? (
-              <div className="flex justify-center items-center h-32">
-                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                  {/* Nội dung chi tiết */}
+              {loadingDetail ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                </div>
+              ) : (
+                <ScrollArea className="flex-1 min-h-0 p-4">
+                  <div className="space-y-4">
+                    {/* Mô tả */}
+                    {campaignDetail.description && (
+                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="w-4 h-4 text-blue-500" />
+                          <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Mô tả</span>
+                        </div>
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          {campaignDetail.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Thời gian */}
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="w-4 h-4 text-amber-500" />
+                        <span className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Thời gian</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Bắt đầu:</span>
+                          <span className="font-medium text-slate-700">
+                            {new Date(campaignDetail.startDate).toLocaleDateString("vi-VN", {
+                              day: "2-digit", month: "2-digit", year: "numeric"
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Kết thúc:</span>
+                          <span className="font-medium text-slate-700">
+                            {new Date(campaignDetail.endDate).toLocaleDateString("vi-VN", {
+                              day: "2-digit", month: "2-digit", year: "numeric"
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Vị trí */}
+                    <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MapPin className="w-4 h-4 text-purple-500" />
+                        <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Vị trí</span>
+                      </div>
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500">Tọa độ:</span>
+                          <span className="font-medium text-slate-700 font-mono text-xs">
+                            {campaignDetail.lat.toFixed(6)}, {campaignDetail.lng.toFixed(6)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Người tạo */}
+                    {campaignDetail.createdBy && (
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <UserCircle className="w-4 h-4 text-slate-500" />
+                          <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Người tạo</span>
+                        </div>
+                        <p className="font-medium text-slate-700 text-sm">
+                          {campaignDetail.createdBy.fullName}
+                        </p>
+                        {campaignDetail.createdBy.username && (
+                          <p className="text-xs text-slate-400 mt-0.5">@{campaignDetail.createdBy.username}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Thống kê */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
+                        <Users className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
+                        <p className="text-2xl font-black text-emerald-700">
+                          {campaignDetail.participantsCount ?? campaignDetail.participants?.length ?? 0}
+                        </p>
+                        <p className="text-[10px] text-emerald-600 font-medium uppercase">Người tham gia</p>
+                      </div>
+                      <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 text-center">
+                        <FileText className="w-5 h-5 text-rose-500 mx-auto mb-1" />
+                        <p className="text-2xl font-black text-rose-700">
+                          {campaignDetail.reports?.length ?? 0}
+                        </p>
+                        <p className="text-[10px] text-rose-600 font-medium uppercase">Báo cáo</p>
+                      </div>
+                    </div>
+
+                    {/* Danh sách người tham gia */}
+                    {campaignDetail.participants && campaignDetail.participants.length > 0 && (
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Users className="w-4 h-4 text-slate-500" />
+                          <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Danh sách người tham gia</span>
+                        </div>
+                        <div className="space-y-2">
+                          {campaignDetail.participants.map((participant) => (
+                            <div key={participant.id} className="flex items-center gap-3 bg-white rounded-lg p-2.5 border border-slate-100">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                <UserCircle className="w-5 h-5 text-blue-500" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-slate-800 text-sm truncate">
+                                  {participant.user?.fullName || "Người dùng"}
+                                </p>
+                                <p className="text-xs text-slate-400 truncate">
+                                  {participant.user?.email || participant.user?.phoneNumber || ""}
+                                </p>
+                              </div>
+                              <Badge className={`shrink-0 text-[10px] ${
+                                participant.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700 border-none" :
+                                participant.status === "CHECKED_IN" ? "bg-blue-100 text-blue-700 border-none" :
+                                "bg-slate-100 text-slate-600 border-none"
+                              }`}>
+                                {participant.status === "COMPLETED" ? "Hoàn thành" :
+                                 participant.status === "CHECKED_IN" ? "Đã điểm danh" : "Đăng ký"}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              )}
+            </>
+          ) : (
+            /* ── LIST VIEW ───────────────────────────────────────────────────── */
+            <>
+              <div className="p-4 border-b border-slate-100 bg-slate-50/50 shrink-0 flex items-center justify-between">
+                <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  Tất cả Chiến dịch
+                </h2>
+                <Badge variant="secondary" className="bg-white border-slate-200 text-slate-700">
+                  {campaigns.length}
+                </Badge>
               </div>
-            ) : campaigns.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-sm">
-                Không có chiến dịch nào được ghi nhận.
-              </div>
-            ) : (
-              <div className="space-y-2.5 pb-4">
-                {campaigns.map((campaign) => {
-                  const isSelected = selectedCampaign?.id === campaign.id;
-                  return (
-                    <div
-                      key={campaign.id}
-                      onClick={() => setUserSelectedCampaign(isSelected ? null : campaign)}
-                      className={`p-3.5 rounded-xl cursor-pointer transition-all border group ${
-                        isSelected
-                          ? "border-blue-400 bg-blue-50 ring-2 ring-blue-100 shadow-sm"
-                          : "border-slate-100 bg-white hover:border-blue-300 hover:shadow-sm hover:ring-2 ring-blue-50"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-2 gap-2">
-                        <h3
-                          className={`font-bold text-sm leading-snug transition-colors ${
-                            isSelected ? "text-blue-700" : "text-slate-800 group-hover:text-blue-700"
+
+              <ScrollArea className="flex-1 min-h-0 p-3">
+                {loading ? (
+                  <div className="flex justify-center items-center h-32">
+                    <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                  </div>
+                ) : campaigns.length === 0 ? (
+                  <div className="text-center py-10 text-slate-400 text-sm">
+                    Không có chiến dịch nào được ghi nhận.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 pb-4">
+                    {campaigns.map((campaign) => {
+                      const isSelected = selectedCampaign?.id === campaign.id;
+                      return (
+                        <div
+                          key={campaign.id}
+                          onClick={async () => {
+                            if (!isSelected) {
+                              await fetchCampaignDetail(campaign.id);
+                              setUserSelectedCampaign(campaign);
+                              setViewMode("detail");
+                            } else {
+                              setUserSelectedCampaign(null);
+                              setViewMode("list");
+                              setCampaignDetail(null);
+                            }
+                          }}
+                          className={`p-3.5 rounded-xl cursor-pointer transition-all border group ${
+                            isSelected
+                              ? "border-blue-400 bg-blue-50 ring-2 ring-blue-100 shadow-sm"
+                              : "border-slate-100 bg-white hover:border-blue-300 hover:shadow-sm hover:ring-2 ring-blue-50"
                           }`}
                         >
-                          {campaign.name}
-                        </h3>
-                        <div className="shrink-0">{renderStatus(campaign.status)}</div>
-                      </div>
+                          <div className="flex items-start justify-between mb-2 gap-2">
+                            <h3
+                              className={`font-bold text-sm leading-snug transition-colors ${
+                                isSelected ? "text-blue-700" : "text-slate-800 group-hover:text-blue-700"
+                              }`}
+                            >
+                              {campaign.name}
+                            </h3>
+                            <div className="shrink-0">{renderStatus(campaign.status)}</div>
+                          </div>
 
-                      <div className="text-xs font-medium text-slate-500 flex items-center gap-3">
-                        <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
-                          <Clock className="w-3 h-3 text-slate-400" />
-                          {new Date(campaign.startDate).toLocaleDateString("vi-VN")}
-                        </span>
-                        <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md">
-                          <Users className="w-3 h-3 text-emerald-500" />
-                          {campaign.participantsCount ?? campaign.participants?.length ?? 0} tham gia
-                        </span>
-                      </div>
+                          <div className="text-xs font-medium text-slate-500 flex items-center gap-3">
+                            <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                              <Clock className="w-3 h-3 text-slate-400" />
+                              {new Date(campaign.startDate).toLocaleDateString("vi-VN")}
+                            </span>
+                            <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md">
+                              <Users className="w-3 h-3 text-emerald-500" />
+                              {campaign.participantsCount ?? campaign.participants?.length ?? 0} tham gia
+                            </span>
+                          </div>
 
-                      {/* Hint khi hover */}
-                      {!isSelected && (
-                        <div className="mt-2 flex items-center gap-1 text-[10px] text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MessageCircle className="w-3 h-3" />
-                          Click để mở chat chiến dịch
+                          {/* Hint khi hover */}
+                          {!isSelected && (
+                            <div className="mt-2 flex items-center gap-1 text-[10px] text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MessageCircle className="w-3 h-3" />
+                              Click để xem chi tiết
+                            </div>
+                          )}
+                          {isSelected && (
+                            <div className="mt-2 flex items-center gap-1 text-[10px] text-blue-500">
+                              <MessageCircle className="w-3 h-3" />
+                              Đang xem chi tiết
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {isSelected && (
-                        <div className="mt-2 flex items-center gap-1 text-[10px] text-blue-500">
-                          <MessageCircle className="w-3 h-3" />
-                          Đang xem chat
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </ScrollArea>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </>
+          )}
         </Card>
 
         {/* ══ Cột phải: Stats + (Chart | Chat) ════════════════════════════════ */}
@@ -331,9 +536,13 @@ function CampaignManagementContent() {
                     </div>
                   </div>
 
-                  {/* Nút quay lại biểu đồ */}
+                  {/* Nút quay lại biểu đồ và danh sách */}
                   <button
-                    onClick={() => setUserSelectedCampaign(null)}
+                    onClick={() => {
+                      setUserSelectedCampaign(null);
+                      setViewMode("list");
+                      setCampaignDetail(null);
+                    }}
                     className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all border border-slate-200"
                     title="Quay lại biểu đồ"
                   >
@@ -357,7 +566,7 @@ function CampaignManagementContent() {
                       {chartMode === "day" ? "ngày" : chartMode === "month" ? "tháng" : "năm"}
                     </h2>
                     <p className="text-sm text-slate-500">
-                      Click vào một chiến dịch bên trái để mở chat nhóm.
+                      Click vào một chiến dịch bên trái để xem chi tiết và tham gia chat.
                     </p>
                   </div>
                   <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0">
@@ -421,7 +630,7 @@ function CampaignManagementContent() {
                 {/* Hint chưa chọn campaign */}
                 <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-400 shrink-0">
                   <MessageCircle className="w-3.5 h-3.5" />
-                  Chọn một chiến dịch từ danh sách bên trái để xem chat nhóm
+                  Chọn một chiến dịch từ danh sách bên trái để xem chi tiết và tham gia chat
                 </div>
               </div>
             )}
