@@ -28,6 +28,52 @@ function getGreenScoreColor(score?: number | string | null): string {
     return "#6b7280";
 }
 
+function getScoreLabel(score?: number | string | null): string {
+    if (score != null && !Number.isNaN(Number(score))) {
+        return String(Math.round(Number(score)));
+    }
+    return "N/A";
+}
+
+function buildScoreMarkerIcon(
+    score?: number | string | null,
+    isSelected: boolean = false
+): L.DivIcon {
+    const color = getGreenScoreColor(score);
+    const label = getScoreLabel(score);
+    const displayScore = label !== "N/A" ? label : "?";
+
+    // Kích thước cố định nhỏ gọn để hiển thị số
+    const size = isSelected ? 30 : 22;
+    const fontSize = isSelected ? 11 : 9;
+
+    return L.divIcon({
+        className: "",
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        html: `
+            <div style="
+                width: ${size}px;
+                height: ${size}px;
+                background: ${color};
+                border: ${isSelected ? "2.5px" : "1.5px"} solid white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 6px ${color}50, 0 1px 2px rgba(0,0,0,0.15);
+                font-family: 'Segoe UI', system-ui, sans-serif;
+                font-size: ${fontSize}px;
+                font-weight: ${isSelected ? "700" : "600"};
+                color: white;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+                cursor: pointer;
+                user-select: none;
+            ">${displayScore}</div>
+        `,
+    });
+}
+
 function isValidLatLng(lat: number, lng: number): boolean {
     return (
         Number.isFinite(lat) &&
@@ -58,7 +104,7 @@ function spreadOffset(index: number): { dLat: number; dLng: number } {
     // Golden-angle spiral to avoid overlap. Step ~35–200m depending on index.
     const goldenAngle = 137.5 * (Math.PI / 180);
     const angle = index * goldenAngle;
-    const radius = 0.00035 * Math.sqrt(index); // degrees
+    const radius = 0.0005 * Math.sqrt(index); // degrees - increased spacing
 
     return {
         dLat: Math.sin(angle) * radius,
@@ -74,7 +120,7 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
     const lastFittedCountRef = useRef(0);
 
     useEffect(() => {
-        if (!mapContainerRef.current || mapRef.current) return;
+        if (mapRef.current || !mapContainerRef.current) return;
 
         const map = L.map(mapContainerRef.current, {
             center: [16.065, 108.225],
@@ -93,6 +139,11 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
         markerLayerRef.current = L.layerGroup().addTo(map);
         mapRef.current = map;
 
+        // Fix map size after dynamic load
+        setTimeout(() => {
+            map.invalidateSize({ pan: false });
+        }, 100);
+
         return () => {
             map.remove();
             mapRef.current = null;
@@ -105,9 +156,7 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
         markerLayerRef.current.clearLayers();
 
         const boundsAll = L.latLngBounds([]);
-        const boundsReal = L.latLngBounds([]);
         let hasAnyMarker = false;
-        let hasAnyRealMarker = false;
 
         const indexByKey = new Map<string, number>();
 
@@ -124,21 +173,13 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
 
             hasAnyMarker = true;
             boundsAll.extend([point.lat, point.lng]);
-            if (isReal) {
-                hasAnyRealMarker = true;
-                boundsReal.extend([point.lat, point.lng]);
-            }
 
-            const color = getGreenScoreColor(household.greenScore);
-            const displayColor = isReal ? color : "#64748b";
             const isSelected = selectedHouseholdId != null && String(household.id) === String(selectedHouseholdId);
 
-            const marker = L.circleMarker([point.lat, point.lng], {
-                radius: isSelected ? 10 : 7,
-                color: displayColor,
-                fillColor: displayColor,
-                fillOpacity: isSelected ? 1 : 0.75,
-                weight: isSelected ? 3 : 1.5,
+            const icon = buildScoreMarkerIcon(household.greenScore, isSelected);
+            const marker = L.marker([point.lat, point.lng], {
+                icon,
+                zIndexOffset: isSelected ? 1000 : 100,
             }).addTo(markerLayerRef.current!);
 
             marker.bindTooltip(`
@@ -161,39 +202,24 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
         });
 
         if (hasAnyMarker && selectedHouseholdId == null) {
-            // Always prefer fitting to ALL markers so none are off-screen.
-            // Refit when count increases (e.g. when data arrives paged/async).
             if (!hasFitBoundsRef.current || households.length > lastFittedCountRef.current) {
                 mapRef.current.fitBounds(boundsAll, { padding: [28, 28], maxZoom: 15 });
                 hasFitBoundsRef.current = true;
                 lastFittedCountRef.current = households.length;
             }
         }
+
+        // Fix map size after markers are added
+        setTimeout(() => {
+            mapRef.current?.invalidateSize({ pan: false });
+        }, 200);
     }, [households, selectedHouseholdId, onHouseholdSelect]);
 
     return (
         <div className="relative w-full h-full rounded-2xl overflow-hidden border border-gray-100 shadow-lg">
             <div ref={mapContainerRef} className="w-full h-full" />
 
-            <div className="absolute top-3 left-3 z-20 rounded-xl border border-white/40 bg-white/80 backdrop-blur px-3 py-2 text-xs text-slate-700 shadow-sm">
-                <div className="font-semibold text-sm">Household Map</div>
-                <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px]">
-                    <span className="inline-flex items-center gap-1">
-                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-                        <span>Score ≥ 70</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                        <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
-                        <span>40–69</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                        <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
-                        <span>{"< 40"}</span>
-                    </span>
-                </div>
-            </div>
-
-            {(loading || !mapRef.current) && (
+            {loading && (
                 <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
                     <div className="text-center">
                         <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />

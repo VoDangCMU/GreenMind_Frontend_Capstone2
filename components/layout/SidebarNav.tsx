@@ -15,15 +15,15 @@ import {
   Wind,
   BookOpen,
   ChevronDown,
-  ChevronRight,
   Flag,
+  Leaf,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 const navItems = [
   { title: "Env. Impact", href: "/dashboard/environmental-impact", icon: Wind },
-  { title: "Household Management", href: "/dashboard/household-management", icon: MapPin },
+  { title: "Household", href: "/dashboard/household-management", icon: MapPin },
   { title: "Users", href: "/dashboard/users-ocean", icon: Brain },
   { title: "Waste Report", href: "/dashboard/waste-report", icon: MapPin },
   { title: "Campaigns", href: "/dashboard/campaign-management", icon: Flag },
@@ -58,83 +58,64 @@ export function SidebarNav({ isMobile = false }: SidebarNavProps) {
 
   return (
     <nav className="flex-1 space-y-1 p-2">
+
       <Collapsible open={isModelSurveyOpen} onOpenChange={setIsModelSurveyOpen}>
         <div className="space-y-1">
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              title="Models / Survey"
               className={cn(
-                "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors duration-200 min-w-0",
+                "flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 min-w-0",
                 isModelSurveyActive
-                  ? "bg-primary/15 text-primary shadow-sm"
+                  ? "bg-gradient-to-r from-emerald-500/15 to-transparent text-emerald-700 dark:text-emerald-400 font-medium"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              <FileText
-                className={cn(
-                  "h-5 w-5 shrink-0",
-                  isModelSurveyActive ? "text-primary" : "text-slate-400"
-                )}
-              />
-
+              <Leaf className={cn("h-5 w-5 shrink-0", isModelSurveyActive ? "text-emerald-600" : "")} />
               <span
                 className={cn(
-                  "flex-1 truncate whitespace-nowrap overflow-hidden text-left",
+                  "flex-1 truncate text-left",
                   "opacity-0 group-hover:opacity-100",
-                  "transition-opacity duration-150 delay-75",
+                  "transition-opacity duration-150",
                   isMobile && "opacity-100"
                 )}
               >
                 Models / Survey
               </span>
-
-              <span
+              <ChevronDown
                 className={cn(
-                  "shrink-0",
+                  "h-4 w-4 shrink-0 transition-transform duration-200",
+                  isModelSurveyOpen ? "rotate-180" : "",
                   "opacity-0 group-hover:opacity-100",
-                  "transition-opacity duration-150 delay-75",
                   isMobile && "opacity-100"
                 )}
-              >
-                {isModelSurveyOpen ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </span>
+              />
             </button>
           </CollapsibleTrigger>
 
           <CollapsibleContent
-            className={cn("space-y-1", !isMobile && "hidden group-hover:block")}
+            className={cn("space-y-1 pl-4", !isMobile && "hidden group-hover:block")}
           >
+            <div className="my-2 h-px bg-gradient-to-r from-emerald-500/20 to-transparent" />
             {modelSurveyItems.map((item) => {
               const isActive = pathname.startsWith(item.href)
-
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  title={item.title}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 pl-10 text-sm font-semibold transition-colors duration-200 min-w-0",
+                    "flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-200",
                     isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium"
+                      : "text-muted-foreground/80 hover:bg-muted/30 hover:text-foreground"
                   )}
                 >
-                  <item.icon
-                    className={cn(
-                      "h-4 w-4 shrink-0",
-                      isActive ? "text-primary" : "text-slate-400"
-                    )}
-                  />
+                  <item.icon className="h-4 w-4 shrink-0" />
                   <span
                     className={cn(
-                      "truncate whitespace-nowrap overflow-hidden",
+                      "truncate",
                       "opacity-0 group-hover:opacity-100",
-                      "transition-opacity duration-150 delay-75",
+                      "transition-opacity duration-150",
                       isMobile && "opacity-100"
                     )}
                   >
@@ -147,32 +128,29 @@ export function SidebarNav({ isMobile = false }: SidebarNavProps) {
         </div>
       </Collapsible>
 
-      {navItems.map(item => {
-        const isActive =
-          item.href === "/dashboard"
-            ? pathname === item.href
-            : pathname.startsWith(item.href)
+      {/* Divider */}
+      <div className="my-3 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
+      {/* Other Nav Items */}
+      {navItems.map((item) => {
+        const isActive = pathname.startsWith(item.href)
         return (
           <Link
             key={item.href}
             href={item.href}
-            title={item.title}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors duration-200 min-w-0",
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 min-w-0",
               isActive
-                ? "bg-primary/15 text-primary shadow-sm"
+                ? "bg-gradient-to-r from-emerald-500/15 to-transparent text-emerald-700 dark:text-emerald-400 font-medium"
                 : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
             )}
           >
-            <item.icon
-              className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : "text-slate-400")}
-            />
+            <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-emerald-600" : "")} />
             <span
               className={cn(
-                "truncate whitespace-nowrap overflow-hidden",
+                "truncate",
                 "opacity-0 group-hover:opacity-100",
-                "transition-opacity duration-150 delay-75",
+                "transition-opacity duration-150",
                 isMobile && "opacity-100"
               )}
             >

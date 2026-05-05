@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { User, Users, TrendingUp, BarChart3 } from "lucide-react";
@@ -26,8 +26,10 @@ type CaptureTrendPoint = {
     pollutionNonBiodegradable: number;
 };
 
+type ScoreTrendPeriod = "day" | "month" | "year";
+
 type GreenScoreTrendPoint = {
-    month: string; // YYYY-MM
+    month: string; // period key
     label: string; // formatted for axis/tooltip
     finalScore: number | null;
     delta?: number;
@@ -59,10 +61,12 @@ function buildGreenScoreTrendFromHistory(greenScoreHistory: NonNullable<Househol
         });
 
     const trend: GreenScoreTrendPoint[] = [];
+    let lastKnownScore: number | null = null;
 
     for (const month of months) {
         const entry = latestEntryByMonth.get(month);
         if (entry) {
+            lastKnownScore = entry.finalScore;
             trend.push({
                 month,
                 label: month.slice(5),
@@ -76,7 +80,7 @@ function buildGreenScoreTrendFromHistory(greenScoreHistory: NonNullable<Househol
             trend.push({
                 month,
                 label: month.slice(5),
-                finalScore: 0,
+                finalScore: lastKnownScore ?? 0,
                 reasons: undefined,
                 items: null,
             });
@@ -86,82 +90,159 @@ function buildGreenScoreTrendFromHistory(greenScoreHistory: NonNullable<Househol
     return trend;
 }
 
-function createSeededRandom(seed: number) {
-    let state = Math.floor(seed) % 2147483647;
-    if (state <= 0) state += 2147483646;
-
-    return () => {
-        state = (state * 16807) % 2147483647;
-        return (state - 1) / 2147483646;
-    };
-}
-
 function formatMonth(date: Date): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     return `${year}-${month}`;
 }
 
-function clamp(value: number, min: number, max: number) {
-    return Math.min(max, Math.max(min, value));
+function formatDay(date: Date): string {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    return `${day}/${month}`;
 }
 
-function generateMockCaptureTrend(householdId: number): CaptureTrendPoint[] {
-    const rand = createSeededRandom((householdId || 1) * 97);
-    const now = new Date();
-
-    const start = 6 + rand() * 10;
-    const end = start + (rand() - 0.5) * 8;
-
-    const points: CaptureTrendPoint[] = [];
-
-    for (let i = 11; i >= 0; i -= 1) {
-        const dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const t = (11 - i) / 11;
-        const base = start + (end - start) * t;
-        const captureCount = clamp(Math.round(base + (rand() - 0.5) * 6), 0, 40);
-
-        points.push({
-            month: formatMonth(dt),
-            captureCount,
-            pollutionCO2: Math.round(captureCount * (8 + rand() * 6) * 10) / 10,
-            pollutionDioxin: Math.round(captureCount * (0.008 + rand() * 0.01) * 1000) / 1000,
-            pollutionMicroplastic: Math.round(captureCount * (0.02 + rand() * 0.02) * 1000) / 1000,
-            pollutionNonBiodegradable: Math.round(captureCount * (0.9 + rand() * 0.6) * 10) / 10,
-        });
-    }
-
-    return points;
+function formatYear(date: Date): string {
+    return String(date.getFullYear());
 }
 
-function buildCaptureTrendFromDates(dates: string[], householdId: number): CaptureTrendPoint[] {
-    const rand = createSeededRandom((householdId || 1) * 53);
+function buildCaptureTrendFromHistory(
+    imageHistory: HouseholdProfile["imageHistory"],
+    reports?: WasteReport[],
+): CaptureTrendPoint[] {
     const now = new Date();
     const months: string[] = [];
+
     for (let i = 11; i >= 0; i -= 1) {
         const dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
         months.push(formatMonth(dt));
     }
 
-    const countsByMonth = new Map<string, number>();
-    dates.forEach((iso) => {
-        const d = new Date(iso);
-        if (Number.isNaN(d.getTime())) return;
-        const key = formatMonth(new Date(d.getFullYear(), d.getMonth(), 1));
-        countsByMonth.set(key, (countsByMonth.get(key) ?? 0) + 1);
+    const captureCounts = new Map<string, number>();
+    const pollutionByMonth = new Map<string, { CO2: number; dioxin: number; microplastic: number; non_biodegradable: number }>();
+
+    const addPollution = (monthKey: string, pollution?: HouseholdProfile["imageHistory"][number]["pollution"] | WasteReport["pollution"]) => {
+        if (!pollution || typeof pollution !== "object") return;
+        const summary = pollutionByMonth.get(monthKey) ?? { CO2: 0, dioxin: 0, microplastic: 0, non_biodegradable: 0 };
+        summary.CO2 += Number(pollution.CO2 ?? 0);
+        summary.dioxin += Number(pollution.dioxin ?? 0);
+        summary.microplastic += Number(pollution.microplastic ?? 0);
+        summary.non_biodegradable += Number(pollution.non_biodegradable ?? 0);
+        pollutionByMonth.set(monthKey, summary);
+    };
+
+    imageHistory?.forEach((image) => {
+        const date = new Date(image.uploadedAt);
+        if (Number.isNaN(date.getTime())) return;
+        const monthKey = formatMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+        captureCounts.set(monthKey, (captureCounts.get(monthKey) ?? 0) + 1);
+        addPollution(monthKey, image.pollution);
     });
 
+    if (!imageHistory?.length && reports?.length) {
+        reports.forEach((report) => {
+            const date = new Date(report.reportedAt);
+            if (Number.isNaN(date.getTime())) return;
+            const monthKey = formatMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+            captureCounts.set(monthKey, (captureCounts.get(monthKey) ?? 0) + 1);
+            addPollution(monthKey, report.pollution);
+        });
+    }
+
     return months.map((month) => {
-        const captureCount = countsByMonth.get(month) ?? 0;
+        const summary = pollutionByMonth.get(month) ?? { CO2: 0, dioxin: 0, microplastic: 0, non_biodegradable: 0 };
         return {
             month,
-            captureCount,
-            pollutionCO2: Math.round(captureCount * (8 + rand() * 6) * 10) / 10,
-            pollutionDioxin: Math.round(captureCount * (0.008 + rand() * 0.01) * 1000) / 1000,
-            pollutionMicroplastic: Math.round(captureCount * (0.02 + rand() * 0.02) * 1000) / 1000,
-            pollutionNonBiodegradable: Math.round(captureCount * (0.9 + rand() * 0.6) * 10) / 10,
+            captureCount: captureCounts.get(month) ?? 0,
+            pollutionCO2: Number(summary.CO2.toFixed(1)),
+            pollutionDioxin: Number(summary.dioxin.toFixed(3)),
+            pollutionMicroplastic: Number(summary.microplastic.toFixed(3)),
+            pollutionNonBiodegradable: Number(summary.non_biodegradable.toFixed(1)),
         };
     });
+}
+
+function buildGreenScoreTrendFromHistoryByPeriod(
+    greenScoreHistory: NonNullable<HouseholdProfile["greenScores"]>,
+    period: ScoreTrendPeriod,
+) {
+    const validEntries = greenScoreHistory
+        .slice()
+        .filter((entry) => !Number.isNaN(new Date(entry.createdAt).getTime()))
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    const groupKey = (date: Date) => {
+        if (period === "day") {
+            return date.toISOString().slice(0, 10);
+        }
+        if (period === "year") {
+            return String(date.getFullYear());
+        }
+        return formatMonth(date);
+    };
+
+    const labelFor = (date: Date) => {
+        if (period === "day") return formatDay(date);
+        if (period === "year") return formatYear(date);
+        return String(date.getMonth() + 1).padStart(2, "0");
+    };
+
+    const latestByPeriod = new Map<string, NonNullable<HouseholdProfile["greenScores"]>[number]>();
+    validEntries.forEach((entry) => {
+        const date = new Date(entry.createdAt);
+        const key = groupKey(date);
+        const existing = latestByPeriod.get(key);
+        if (!existing || date.getTime() > new Date(existing.createdAt).getTime()) {
+            latestByPeriod.set(key, entry);
+        }
+    });
+
+    const range: Date[] = [];
+    const now = new Date();
+    if (period === "day") {
+        for (let i = 29; i >= 0; i -= 1) {
+            range.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i));
+        }
+    } else if (period === "year") {
+        for (let i = 4; i >= 0; i -= 1) {
+            range.push(new Date(now.getFullYear() - i, 0, 1));
+        }
+    } else {
+        for (let i = 11; i >= 0; i -= 1) {
+            range.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
+        }
+    }
+
+    let lastKnownScore: number | null = null;
+    let lastKnownDelta: number | undefined;
+    let lastKnownPreviousScore: number | undefined;
+    let lastKnownReasons: string[] | null = null;
+    let lastKnownItems: { area: number; name: string; quantity: number }[] | null = null;
+
+    return range.map((date) => {
+        const key = groupKey(date);
+        const entry = latestByPeriod.get(key);
+        if (entry) {
+            lastKnownScore = entry.finalScore;
+            lastKnownDelta = entry.delta;
+            lastKnownPreviousScore = entry.previousScore;
+            lastKnownReasons = entry.reasons ?? null;
+            lastKnownItems = entry.items ?? null;
+        }
+        return {
+            month: key,
+            label: labelFor(date),
+            finalScore: entry?.finalScore ?? lastKnownScore ?? 0,
+            delta: entry?.delta ?? lastKnownDelta,
+            previousScore: entry?.previousScore ?? lastKnownPreviousScore,
+            reasons: entry?.reasons ?? lastKnownReasons,
+            items: entry?.items ?? lastKnownItems,
+        };
+    });
+}
+
+function clamp(value: number, min: number, max: number) {
+    return Math.min(max, Math.max(min, value));
 }
 
 function normalizePersonName(name?: string) {
@@ -195,30 +276,6 @@ function buildMemberShotCounts(
     return counts;
 }
 
-function generateMockImageHistory(householdId: number): HouseholdProfile["imageHistory"] {
-    const rand = createSeededRandom((householdId || 1) * 13);
-    const now = new Date();
-
-    return Array.from({ length: 5 }, (_, idx) => {
-        const dt = new Date(now.getTime() - idx * 1000 * 60 * 60 * 24 * 7);
-        const totalObjects = 6 + Math.floor(rand() * 18);
-
-        return {
-            id: (householdId || 1) * 100 + idx,
-            uploadedAt: dt.toISOString(),
-            imageUrl: `https://via.placeholder.com/320x240.png?text=Household+${encodeURIComponent(String(householdId))}+%23${idx + 1}`,
-            label: `Report #${idx + 1}`,
-            caption: "Mock: household waste image",
-            total_objects: totalObjects,
-            items: [
-                { name: "Nhựa", quantity: 1 + Math.floor(rand() * 6), area: Math.round((rand() * 12 + 3) * 10) / 10 },
-                { name: "Hữu cơ", quantity: 1 + Math.floor(rand() * 5), area: Math.round((rand() * 10 + 2) * 10) / 10 },
-                { name: "Hỗn hợp", quantity: 1 + Math.floor(rand() * 4), area: Math.round((rand() * 8 + 2) * 10) / 10 },
-            ],
-        };
-    });
-}
-
 export function HouseholdDetailsPanel({ household, reports, imageHistory: imageHistoryProp, imageHistoryLoading = false, historyError, greenScoreHistory, greenScoreLoading = false, greenScoreError }: HouseholdDetailsPanelProps) {
     const householdReports = useMemo(() => {
         if (!household || !reports) return [];
@@ -228,8 +285,16 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
     const imageHistory = useMemo(() => {
         if (imageHistoryProp?.length) return imageHistoryProp;
         if (household?.imageHistory?.length) return household.imageHistory;
-        return generateMockImageHistory(household?.id ?? 0);
-    }, [household?.id, household?.imageHistory, imageHistoryProp]);
+        return [];
+    }, [household?.imageHistory, imageHistoryProp]);
+
+    const reportImageHistory = useMemo(() => {
+        if (imageHistoryProp !== undefined) return imageHistoryProp;
+        if (household?.imageHistory?.length) return household.imageHistory;
+        return [];
+    }, [household?.imageHistory, imageHistoryProp]);
+
+    const [scoreTrendPeriod, setScoreTrendPeriod] = useState<ScoreTrendPeriod>("month");
 
     const memberShotCounts = useMemo(() => {
         return buildMemberShotCounts(imageHistory, householdReports);
@@ -244,30 +309,34 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
     }
 
     const captureTrend = useMemo(() => {
-        const reportDates = householdReports.map((r) => r.reportedAt);
-        const imageDates = imageHistory.map((i) => i.uploadedAt);
-        const dates = reportDates.length ? reportDates : imageDates;
+        return buildCaptureTrendFromHistory(imageHistory, householdReports);
+    }, [imageHistory, householdReports]);
 
-        const anyValid = dates.some((d) => !Number.isNaN(new Date(d).getTime()));
-        if (!anyValid) return generateMockCaptureTrend(household.id);
-
-        const data = buildCaptureTrendFromDates(dates, household.id);
-        const sum = data.reduce((acc, p) => acc + p.captureCount, 0);
-        return sum > 0 ? data : generateMockCaptureTrend(household.id);
-    }, [household.id, householdReports, imageHistory]);
-
-    const greenScoreTrend = useMemo(() => {
+    const monthlyGreenScoreTrend = useMemo(() => {
         if (!greenScoreHistory?.length) return [];
 
-        const data = buildGreenScoreTrendFromHistory(greenScoreHistory);
+        const data = buildGreenScoreTrendFromHistoryByPeriod(greenScoreHistory, "month");
         const hasScore = data.some((point) => point.finalScore != null);
         return hasScore ? data : [];
     }, [greenScoreHistory]);
 
+    const selectedGreenScoreTrend = useMemo(() => {
+        if (!greenScoreHistory?.length) return [];
+        return buildGreenScoreTrendFromHistoryByPeriod(greenScoreHistory, scoreTrendPeriod);
+    }, [greenScoreHistory, scoreTrendPeriod]);
+
+    const latestGreenScore = useMemo(() => {
+        if (!greenScoreHistory?.length) return null;
+        const validEntries = greenScoreHistory
+            .slice()
+            .filter((entry) => !Number.isNaN(new Date(entry.createdAt).getTime()))
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        return validEntries.length ? validEntries[validEntries.length - 1] : null;
+    }, [greenScoreHistory]);
+
     const latestCaptureMonth = captureTrend.length ? captureTrend[captureTrend.length - 1] : null;
-    const latestGreenScore = greenScoreTrend.length ? greenScoreTrend[greenScoreTrend.length - 1] : null;
-    const trendChartData = greenScoreTrend.length ? greenScoreTrend : captureTrend;
-    const isGreenScoreChart = greenScoreTrend.length > 0;
+    const trendChartData = monthlyGreenScoreTrend.length ? selectedGreenScoreTrend : captureTrend;
+    const isGreenScoreChart = monthlyGreenScoreTrend.length > 0;
 
     const displayGreenScore = household.greenScore != null ? household.greenScore : latestGreenScore?.finalScore;
     const scoreColorClass = displayGreenScore != null
@@ -322,7 +391,7 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                                             <p className="font-semibold text-slate-800 truncate">{member.name || "N/A"}</p>
                                             <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{member.role || "N/A"}</p>
                                         </div>
-                                        <div className="text-right min-w-[56px]">
+                                        <div className="text-right min-w-14">
                                             <p className="text-[10px] text-slate-500">Shots</p>
                                             <p className="font-semibold text-slate-700">
                                                 {memberShotCounts.get(normalizePersonName(member.name)) ?? 0}
@@ -337,16 +406,32 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
             </div>
 
             <Card className="shadow-lg border border-slate-200 bg-white rounded-2xl">
-                <CardHeader className="mb-2 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-emerald-600" />
-                    <CardTitle className="text-base font-semibold">{isGreenScoreChart ? "12-Month Green Score Trend" : "12-Month Capture Trend"}</CardTitle>
+                <CardHeader className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 text-emerald-600" />
+                        <CardTitle className="text-base font-semibold">{isGreenScoreChart ? "Green Score Trend" : "12-Month Capture Trend"}</CardTitle>
+                    </div>
+                    {isGreenScoreChart ? (
+                        <div className="inline-flex rounded-full border border-slate-200 bg-slate-100 p-1">
+                            {(["day", "month", "year"] as ScoreTrendPeriod[]).map((period) => (
+                                <button
+                                    key={period}
+                                    type="button"
+                                    onClick={() => setScoreTrendPeriod(period)}
+                                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${scoreTrendPeriod === period ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                                >
+                                    {period === "day" ? "Ngày" : period === "month" ? "Tháng" : "Năm"}
+                                </button>
+                            ))}
+                        </div>
+                    ) : null}
                 </CardHeader>
                 <CardContent>
                     <div className="w-full h-48 md:h-52 xl:h-56">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart<GreenScoreTrendPoint | CaptureTrendPoint> data={trendChartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                <XAxis dataKey="month" tickFormatter={(value) => String(value).slice(5)} />
+                                <XAxis dataKey="label" tickFormatter={(value) => String(value)} />
                                 <YAxis allowDecimals={false} domain={isGreenScoreChart ? [0, 50] : undefined} />
                                 <Tooltip formatter={(value: any) => {
                                     if (value == null) return "";
@@ -472,11 +557,11 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                             <div className="rounded-2xl border border-dashed border-rose-200 bg-rose-50 px-3 py-4 text-center text-sm text-rose-700">
                                 {historyError}
                             </div>
-                        ) : imageHistory.length === 0 ? (
+                        ) : reportImageHistory.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">
-                                No detection image history available.
+                                Không có bất kì detect nào.
                             </div>
-                        ) : imageHistory.map((image) => {
+                        ) : reportImageHistory.map((image) => {
                             const relatedReport = householdReports.find((report) => {
                                 const reportDate = new Date(report.reportedAt).toDateString();
                                 const imageDate = new Date(image.uploadedAt).toDateString();

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,21 +10,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Plus } from "lucide-react"
 import { createSurveyScenario } from "@/lib/survey"
-import { getUsers } from "@/lib/auth"
-
-interface User {
-  id: string
-  username: string
-  email: string
-  fullName: string
-  gender: string
-  location: string
-  role: string
-  dateOfBirth: string
-  createdAt: string
-  updatedAt: string
-  bigFive: any
-}
 
 interface SurveyFormProps {
   onScenarioCreated?: () => void
@@ -37,40 +22,11 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
   const [maxAge, setMaxAge] = useState("")
   const [percentage, setPercentage] = useState("")
 
-  const [locations, setLocations] = useState<string[]>([])
+  const locations = ["Da Nang", "Quang Ngai", "Quang Nam"]
   const [selectedAddresses, setSelectedAddresses] = useState<string[]>([])
   const [selectedGender, setSelectedGender] = useState("")
   const [searchLocation, setSearchLocation] = useState("")
-  const [loadingLocs, setLoadingLocs] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    const fetchLocations = async () => {
-      try {
-        const response = await getUsers();
-        const users: User[] = Array.isArray(response.data) ? response.data : response.data?.data || []
-
-        const uniqueLocations = Array.from(new Set(
-          users
-            .filter((user) => user.location && user.location.trim() !== "")
-            .map((user) => user.location.trim())
-        )).sort()
-
-        setLocations(uniqueLocations)
-      } catch (e) {
-        console.error("Failed to fetch locations:", e)
-        toast({
-          title: "Error",
-          description: "Failed to fetch locations",
-          variant: "destructive",
-        })
-        setLocations([])
-      } finally {
-        setLoadingLocs(false)
-      }
-    }
-    fetchLocations()
-  }, [toast])
 
   const handleGenerate = async () => {
     const min = Number.parseInt(minAge, 10);
@@ -222,9 +178,7 @@ export function SurveyForm({ onScenarioCreated }: SurveyFormProps) {
               className="h-9 text-sm"
             />
             <div className="border border-gray-200 rounded-lg p-4 bg-white space-y-2 max-h-56 overflow-y-auto hover:border-gray-300 transition">
-              {loadingLocs ? (
-                <div className="text-sm text-muted-foreground py-4 text-center">Loading locations...</div>
-              ) : locations.length === 0 ? (
+              {locations.length === 0 ? (
                 <div className="text-sm text-muted-foreground py-4 text-center">No locations available</div>
               ) : (
                 <div className="space-y-2">

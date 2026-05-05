@@ -11,6 +11,7 @@ export interface Household {
   waste: number; // kg/day (thực tế: 1.5–4.0 bình thường, ≥4.0 cảnh báo, ≥5.0 nguy hiểm)
   status: AreaStatus;
   reportCount: number; // số báo cáo đã gửi
+  greenScore?: number;
 }
 
 export interface HouseholdMember {
