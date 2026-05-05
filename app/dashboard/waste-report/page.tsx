@@ -28,6 +28,7 @@ export default function MonitoringPage() {
   const [reports, setReports] = useState<WasteReport[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const [selectedArea, setSelectedArea] = useState<UrbanArea | null>(null);
   const [highlightAreaName, setHighlightAreaName] = useState<string | null>(null);
@@ -35,8 +36,8 @@ export default function MonitoringPage() {
   const [selectedReportPopup, setSelectedReportPopup] = useState<WasteReport | null>(null);
   const [campaignRegion, setCampaignRegion] = useState<CampaignRegion | null>(null);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchReports = useCallback(async (showLoader: boolean = false) => {
+    if (showLoader) setLoading(true);
     try {
       const token = getAccessToken();
       const reportsRes = await fetch("https://vodang-api.gauas.com/waste-monitoring?limit=100", {
@@ -48,7 +49,6 @@ export default function MonitoringPage() {
 
       if (reportsRes && reportsRes.ok) {
         const apiData = await reportsRes.json();
-        // API trả về { data: [...], total, page, limit }
         const rawList: any[] = Array.isArray(apiData) ? apiData : (apiData?.data ?? []);
 
         const wasteTypeMap: Record<string, WasteType> = {
@@ -67,6 +67,7 @@ export default function MonitoringPage() {
         validReports = rawList.map((r: any) => ({
           id: r.id,
           code: r.code || "",
+          reportedBy: r.reportedBy || null,
           reportedByUserId: r.reportedByUserId || null,
           reportedByName: r.reportedBy?.fullName || r.reportedBy?.username || r.reportedByName || null,
           wardName: r.wardName || "Không rõ",
@@ -91,11 +92,9 @@ export default function MonitoringPage() {
 
       setReports(validReports);
 
-      // Tính summary từ dữ liệu thực
       const uniqueWards = new Set(validReports.map(r => r.wardName)).size;
-      const totalCount = validReports.length || 1; // tránh chia 0
+      const totalCount = validReports.length || 1;
 
-      // Đếm số lượng report theo từng wasteType → tính %
       const countByType = (type: WasteType) =>
         validReports.filter(r => r.wasteType === type).length;
 
@@ -104,14 +103,12 @@ export default function MonitoringPage() {
       const mixedCount = countByType("mixed");
       const hazardousCount = countByType("hazardous");
 
-      // Làm tròn, điều chỉnh bucket lớn nhất để tổng = 100
       const toRaw = (n: number) => Math.round((n / totalCount) * 100);
       let plasticPct = toRaw(plasticCount);
       let organicPct = toRaw(organicCount);
       let mixedPct = toRaw(mixedCount);
       let hazardousPct = toRaw(hazardousCount);
       const diff = 100 - plasticPct - organicPct - mixedPct - hazardousPct;
-      // Cộng phần dư vào bucket lớn nhất
       const maxPct = Math.max(plasticPct, organicPct, mixedPct, hazardousPct);
       if (diff !== 0) {
         if (mixedPct === maxPct) mixedPct += diff;
@@ -121,7 +118,7 @@ export default function MonitoringPage() {
       }
 
       setSummary({
-        totalWaste: 0, // wasteKg không còn trong entity mới
+        totalWaste: 0,
         urbanAreas: uniqueWards,
         pendingReports: validReports.filter(r => r.status === "pending").length,
         wasteDistribution: {
@@ -133,21 +130,29 @@ export default function MonitoringPage() {
       });
     } catch (err) {
       console.error("Failed to fetch monitoring data:", err);
-      setReports([]);
-      setSummary({
-        totalWaste: 0,
-        urbanAreas: 0,
-        pendingReports: 0,
-        wasteDistribution: { plastic: 0, organic: 0, mixed: 0, hazardous: 0 },
-      });
     } finally {
-      setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+        setIsInitialLoad(false);
+      }
     }
   }, []);
 
+  // Initial load
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    fetchReports(true);
+  }, [fetchReports]);
+
+  // Background refresh mỗi 5 giây - không hiển thị loading
+  useEffect(() => {
+    if (isInitialLoad) return; // Chờ initial load xong
+
+    const interval = setInterval(() => {
+      fetchReports(false);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [fetchReports, isInitialLoad]);
 
   const handleAreaSelect = useCallback((area: UrbanArea) => {
     setSelectedArea(area);
@@ -166,9 +171,13 @@ export default function MonitoringPage() {
 
   // Chuyển 1 report thành CampaignRegion rồi mở CampaignModal
   const handleCreateCampaign = useCallback((report: WasteReport) => {
+    const reporterName = typeof report.reportedBy === "string"
+      ? report.reportedBy
+      : report.reportedBy?.fullName || report.reportedByName || "Báo cáo";
+
     const region: CampaignRegion = {
       id: report.id,
-      name: `${report.wardName} — ${report.code || report.id.slice(0, 8)}`,
+      name: `${report.wardName} — ${reporterName}`,
       center: { lat: report.lat, lng: report.lng },
       reports: [report],
     };
@@ -286,7 +295,7 @@ export default function MonitoringPage() {
         onClose={() => setCampaignRegion(null)}
         region={campaignRegion}
         onSuccess={() => {
-          fetchAll();
+          fetchReports(false);
           router.push("/dashboard/campaign-management");
         }}
       />

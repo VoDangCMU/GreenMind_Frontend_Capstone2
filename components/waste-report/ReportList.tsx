@@ -50,14 +50,11 @@ export function ReportDetailModal({
   const reportedTime = (() => {
     try { return new Date(report.createdAt).toLocaleString("vi-VN"); } catch { return "N/A"; }
   })();
-  const resolvedTime = report.resolvedAt ? (() => {
-    try { return new Date(report.resolvedAt!).toLocaleString("vi-VN"); } catch { return "N/A"; }
-  })() : null;
 
   const hasAiImages = !!(report.segmentedImageUrl || report.depthImageUrl || report.heatmapUrl);
   const hasAiData   = report.pollutionScore != null || report.pollutionLevel || report.segmentRatio != null;
 
-  const reporterName = typeof report.reportedBy === "string" ? report.reportedBy : report.reportedBy?.fullName || report.reportedByName || "Lê Quang Huy";
+  const reporterName = typeof report.reportedBy === "string" ? report.reportedBy : report.reportedBy?.fullName || report.reportedByName || "Không xác định";
 
   return (
     <div
@@ -90,7 +87,7 @@ export function ReportDetailModal({
             <h3 className="text-xl font-bold text-gray-900">{report.wardName}</h3>
             {(report.lat !== 0 || report.lng !== 0) && (
               <p className="text-sm text-gray-400 font-mono mt-1">
-                📍 {report.lat.toFixed(6)}, {report.lng.toFixed(6)}
+                {report.lat.toFixed(6)}, {report.lng.toFixed(6)}
               </p>
             )}
           </div>
@@ -150,7 +147,7 @@ export function ReportDetailModal({
               {hasAiImages && (
                 <div>
                   <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <span>✨</span> Ảnh phân tích AI
+                    Ảnh phân tích AI
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     {report.segmentedImageUrl && (
@@ -211,7 +208,7 @@ export function ReportDetailModal({
               {hasAiData && (
                 <div className="bg-indigo-50/60 rounded-xl p-5 border border-indigo-100/60">
                   <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-                    <span>✨</span> Phân tích AI
+                    <span>Phân tích AI</span>
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     {report.pollutionScore != null && (
@@ -257,28 +254,19 @@ export function ReportDetailModal({
               {/* Timeline */}
               <div className="rounded-xl border border-gray-100 p-5 bg-white">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Thời gian</p>
-                <div className="relative pl-6 border-l-2 border-gray-100 space-y-5">
+                <div className="relative pl-6 border-l-2 border-gray-100">
                   <div className="relative">
                     <div className="absolute w-3 h-3 bg-indigo-500 rounded-full -left-[19px] top-1 ring-4 ring-indigo-50" />
                     <p className="text-xs text-gray-400 font-medium mb-0.5">Báo cáo lúc</p>
                     <p className="text-sm font-semibold text-gray-700">{reportedTime}</p>
                   </div>
-                  {resolvedTime && (
-                    <div className="relative">
-                      <div className="absolute w-3 h-3 bg-emerald-500 rounded-full -left-[19px] top-1 ring-4 ring-emerald-50" />
-                      <p className="text-xs text-gray-400 font-medium mb-0.5">Hoàn thành lúc</p>
-                      <p className="text-sm font-semibold text-emerald-700">{resolvedTime}</p>
-                    </div>
-                  )}
                 </div>
               </div>
 
               {/* Campaign */}
               {report.campaignId && (
                 <div className="flex items-center gap-4 bg-amber-50 rounded-xl p-4 border border-amber-100">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-xl">
-                    🏕️
-                  </div>
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-xl" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-amber-500 font-medium mb-0.5">Thuộc chiến dịch</p>
                     <p className="text-sm font-mono text-amber-700 break-all">{report.campaignId}</p>
@@ -308,7 +296,6 @@ export function ReportDetailModal({
                       { label: "Tọa độ", value: `${report.lat.toFixed(6)}, ${report.lng.toFixed(6)}` },
                       { label: "Người báo cáo", value: reporterName },
                       { label: "Ngày tạo", value: reportedTime },
-                      { label: "Ngày xong", value: resolvedTime || "—" },
                       { label: "Pollution Score", value: report.pollutionScore != null ? (report.pollutionScore * 10).toFixed(4) : "—" },
                       { label: "Pollution Level", value: report.pollutionLevel || "—" },
                       { label: "Segment Ratio", value: report.segmentRatio != null ? (report.segmentRatio * 100).toFixed(2) + "%" : "—" },
