@@ -187,9 +187,36 @@ function CampaignManagementContent() {
     return entries;
   }, [campaigns, chartMode]);
 
-  const pendingCount   = campaigns.filter((c) => c.status?.toUpperCase() === "PENDING").length;
-  const ongoingCount   = campaigns.filter((c) => c.status?.toUpperCase() === "ONGOING").length;
-  const completedCount = campaigns.filter((c) => c.status?.toUpperCase() === "COMPLETED").length;
+  // Sort campaigns: future campaigns first (by startDate ascending), then past campaigns (by startDate descending)
+  const sortedCampaigns = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // normalize to start of day
+
+    const sorted = [...campaigns].sort((a, b) => {
+      const dateA = new Date(a.startDate);
+      const dateB = new Date(b.startDate);
+      const isFutureA = dateA >= now;
+      const isFutureB = dateB >= now;
+
+      // Future campaigns come first, sorted by soonest date
+      if (isFutureA && !isFutureB) return -1;
+      if (!isFutureA && isFutureB) return 1;
+
+      // Same category - sort by date
+      if (isFutureA) {
+        // Future: soonest first (ascending)
+        return dateA.getTime() - dateB.getTime();
+      } else {
+        // Past: most recent first (descending)
+        return dateB.getTime() - dateA.getTime();
+      }
+    });
+    return sorted;
+  }, [campaigns]);
+
+  const pendingCount   = sortedCampaigns.filter((c) => c.status?.toUpperCase() === "PENDING").length;
+  const ongoingCount   = sortedCampaigns.filter((c) => c.status?.toUpperCase() === "ONGOING").length;
+  const completedCount = sortedCampaigns.filter((c) => c.status?.toUpperCase() === "COMPLETED").length;
 
   // ─── RENDER ─────────────────────────────────────────────────────────────────
   return (
@@ -391,7 +418,7 @@ function CampaignManagementContent() {
                   </div>
                 ) : (
                   <div className="space-y-2.5 pb-4">
-                    {campaigns.map((campaign) => {
+                    {sortedCampaigns.map((campaign) => {
                       const isSelected = selectedCampaign?.id === campaign.id;
                       return (
                         <div
