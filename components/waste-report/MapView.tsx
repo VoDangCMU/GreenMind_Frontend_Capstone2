@@ -5,6 +5,7 @@ import L from "leaflet";
 import { createRoot } from "react-dom/client";
 import { WardChartPopup } from "./WardChartPopup";
 import type { UrbanArea, WasteReport, EnvAlert } from "@/types/waste-report";
+import { VIETNAM_ISLANDS_GEOJSON, HOANG_SA_ISLANDS, TRUONG_SA_ISLANDS } from "@/data/vietnam-islands";
 
 // Fix Leaflet's default icon path resolving issue in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -173,6 +174,33 @@ const WASTE_TYPE_LABEL: Record<string, string> = {
   plastic: "Nhựa", organic: "Hữu cơ", mixed: "Hỗn hợp", hazardous: "Nguy hại",
 };
 
+// Island styling
+const ISLAND_STYLE: L.PathOptions = {
+  color: "#dc2626",
+  weight: 2.5,
+  fillColor: "#f97316",
+  fillOpacity: 0.25,
+  dashArray: "6, 4",
+};
+
+// Small island point styling
+const ISLAND_POINT_STYLE: L.CircleMarkerOptions = {
+  radius: 4,
+  color: "#dc2626",
+  fillColor: "#fbbf24",
+  fillOpacity: 0.8,
+  weight: 1.5,
+};
+
+// Reef/shoal styling
+const REEF_STYLE: L.CircleMarkerOptions = {
+  radius: 3,
+  color: "#dc2626",
+  fillColor: "#fef3c7",
+  fillOpacity: 0.6,
+  weight: 1,
+};
+
 // ---------------------------------------------------------------------------
 // Build ward-level marker (label pin with ward name)
 // ---------------------------------------------------------------------------
@@ -303,6 +331,8 @@ export function MapView({
   const wardLayerRef = useRef<L.LayerGroup | null>(null);
   // Layer for ward boundary polygons from Nominatim (level 1)
   const boundaryLayerRef = useRef<L.LayerGroup | null>(null);
+  // Layer for Vietnam islands (Hoàng Sa & Trường Sa) - always visible
+  const islandsLayerRef = useRef<L.GeoJSON | null>(null);
   // Layer for env-alert detail markers (level 2)
   const alertLayerRef = useRef<L.LayerGroup | null>(null);
   // Layer for report pins (always on top)
@@ -354,6 +384,47 @@ export function MapView({
 
     wardLayerRef.current = L.layerGroup().addTo(map);
     boundaryLayerRef.current = L.layerGroup().addTo(map); // polygons dưới ward markers
+
+    // Vietnam islands layer (Hoàng Sa & Trường Sa)
+    islandsLayerRef.current = L.geoJSON(VIETNAM_ISLANDS_GEOJSON, {
+      style: (feature) => {
+        // Polygon features (boundaries)
+        if (feature?.geometry?.type === "Polygon" || feature?.geometry?.type === "MultiPolygon") {
+          return { ...ISLAND_STYLE };
+        }
+        // Point features (individual islands) - use circle markers
+        return {};
+      },
+      pointToLayer: (feature, latlng) => {
+        const type = feature.properties?.type as string;
+        if (type === "reef" || type === "shoal") {
+          return L.circleMarker(latlng, REEF_STYLE);
+        }
+        return L.circleMarker(latlng, ISLAND_POINT_STYLE);
+      },
+      onEachFeature: (feature, layer) => {
+        const name = feature.properties?.name as string;
+        const nameEn = feature.properties?.nameEn as string;
+        const type = feature.properties?.type as string;
+
+        if (layer instanceof L.Path) {
+          // Boundary polygons
+          layer.bindTooltip(name ?? "Quần đảo", {
+            permanent: false,
+            direction: "top",
+            className: "monitoring-leaflet-tooltip",
+          });
+        } else if (layer instanceof L.CircleMarker) {
+          // Individual islands
+          layer.bindTooltip(`${name} (${nameEn})`, {
+            permanent: false,
+            direction: "top",
+            className: "monitoring-leaflet-tooltip",
+          });
+        }
+      },
+    }).addTo(map);
+
     alertLayerRef.current = L.layerGroup().addTo(map);
     reportLayerRef.current = L.layerGroup().addTo(map);
 
@@ -721,6 +792,28 @@ export function MapView({
                 </div>
               ))}
             </>
+          )}
+
+          {/* Vietnam Islands indicator */}
+          {!selectedWardName && (
+            <div className="border-t border-gray-100 pt-2 mt-1">
+              <div className="flex items-center gap-2">
+                <span
+                  className="w-4 h-3 rounded-sm flex-shrink-0"
+                  style={{
+                    background: "#f97316",
+                    border: "2px solid #dc2626",
+                    borderStyle: "dashed",
+                  }}
+                />
+                <div>
+                  <p className="text-gray-600 whitespace-nowrap font-medium">
+                    Lãnh thổ Việt Nam
+                  </p>
+                  <p className="text-gray-400 text-[10px]">Hoàng Sa & Trường Sa</p>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Report pins */}
