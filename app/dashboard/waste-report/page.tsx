@@ -143,13 +143,13 @@ export default function MonitoringPage() {
     fetchReports(true);
   }, [fetchReports]);
 
-  // Background refresh mỗi 5 giây - không hiển thị loading
+  // Background refresh mỗi 15 giây - không hiển thị loading
   useEffect(() => {
     if (isInitialLoad) return; // Chờ initial load xong
 
     const interval = setInterval(() => {
       fetchReports(false);
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [fetchReports, isInitialLoad]);
