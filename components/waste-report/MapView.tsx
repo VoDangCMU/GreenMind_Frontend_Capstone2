@@ -201,6 +201,60 @@ const REEF_STYLE: L.CircleMarkerOptions = {
   weight: 1,
 };
 
+// Label cover style - ocean blue, solid opaque to cover labels from OSM
+const LABEL_COVER_STYLE: L.PathOptions = {
+  color: "#6fa8dc",
+  fillColor: "#6fa8dc",
+  fillOpacity: 1,
+  opacity: 1,
+  interactive: false,
+};
+
+// ---------------------------------------------------------------------------
+// Create label cover overlays to hide labels from OSM tiles
+// ---------------------------------------------------------------------------
+function createVietnamLabelCovers(): L.LayerGroup {
+  const group = L.layerGroup();
+
+  // Hoàng Sa cover polygon - hình tròn tâm cách đều, bán kính ~2.5°
+  // Tâm lệch về đất liền: 16°N, 112.5°E
+  const hoangSaCover = L.polygon(
+    [
+      [18.5, 112.5],   // Bắc
+      [17.3, 114.9],   // Đông Bắc
+      [16.0, 115.0],   // Đông
+      [14.7, 114.9],   // Đông Nam
+      [13.5, 112.5],   // Nam
+      [14.7, 110.1],   // Nam Tây
+      [16.0, 110.0],   // Tây
+      [17.3, 110.1],   // Tây Bắc
+      [18.5, 112.5],   // Đóng polygon
+    ],
+    LABEL_COVER_STYLE
+  );
+  group.addLayer(hoangSaCover);
+
+  // Trường Sa cover polygon - hình tròn tâm cách đều, bán kính ~3°
+  // Tâm lệch về đất liền: 10.35°N, 113.5°E
+  const truongSaCover = L.polygon(
+    [
+      [13.35, 113.5],  // Bắc
+      [11.95, 116.3],  // Đông Bắc
+      [10.35, 116.5],  // Đông
+      [8.75, 116.3],   // Đông Nam
+      [7.35, 113.5],   // Nam
+      [8.75, 110.7],   // Nam Tây
+      [10.35, 110.5],  // Tây
+      [11.95, 110.7],  // Tây Bắc
+      [13.35, 113.5],  // Đóng polygon
+    ],
+    LABEL_COVER_STYLE
+  );
+  group.addLayer(truongSaCover);
+
+  return group;
+}
+
 // ---------------------------------------------------------------------------
 // Build ward-level marker (label pin with ward name)
 // ---------------------------------------------------------------------------
@@ -385,7 +439,12 @@ export function MapView({
     wardLayerRef.current = L.layerGroup().addTo(map);
     boundaryLayerRef.current = L.layerGroup().addTo(map); // polygons dưới ward markers
 
-    // Vietnam islands layer (Hoàng Sa & Trường Sa)
+    // Label cover overlays (light green) to hide Chinese labels from OSM tiles
+    // Add before islands layer so islands appear on TOP of the green cover
+    const labelCoverLayer = createVietnamLabelCovers();
+    labelCoverLayer.addTo(map);
+
+    // Vietnam islands layer (Hoàng Sa & Trường Sa) - on top of green cover
     islandsLayerRef.current = L.geoJSON(VIETNAM_ISLANDS_GEOJSON, {
       style: (feature) => {
         // Polygon features (boundaries)
