@@ -174,3 +174,45 @@
     background: oklch(0.15 0 0 / 0.6);
   }
 }
+
+/* Vietnam islands label overlay - hide Chinese labels */
+.vietnam-label-overlay {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+}
+
+.vietnam-label-overlay::before {
+  display: none !important;
+}
+
+.vietnam-label-overlay.leaflet-tooltip {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.vietnam-label-overlay.leaflet-tooltip-top::before,
+.vietnam-label-overlay.leaflet-tooltip-bottom::before,
+.vietnam-label-overlay.leaflet-tooltip-left::before,
+.vietnam-label-overlay.leaflet-tooltip-right::before {
+  display: none !important;
+}
+
+.vietnam-label-overlay .leaflet-tooltip-content {
+  background: transparent;
+  color: #16a34a;
+  font-weight: 700;
+  font-size: 14px;
+  text-shadow:
+    2px 2px 3px white,
+    -2px -2px 3px white,
+    2px -2px 3px white,
+    -2px 2px 3px white,
+    0 0 8px white;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+}
