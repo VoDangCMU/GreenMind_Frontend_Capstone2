@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import L from "leaflet";
+import { useEffect, useRef, useCallback } from "react";
 import type { HouseholdProfile } from "@/types/monitoring";
 
 interface HouseholdManagementMapProps {
@@ -24,7 +23,6 @@ function getGreenScoreColor(score?: number | string | null): string {
         if (numericScore < 70) return "#f59e0b";
         return "#10b981";
     }
-
     return "#6b7280";
 }
 
@@ -33,45 +31,6 @@ function getScoreLabel(score?: number | string | null): string {
         return String(Math.round(Number(score)));
     }
     return "N/A";
-}
-
-function buildScoreMarkerIcon(
-    score?: number | string | null,
-    isSelected: boolean = false
-): L.DivIcon {
-    const color = getGreenScoreColor(score);
-    const label = getScoreLabel(score);
-    const displayScore = label !== "N/A" ? label : "?";
-
-    // Kích thước cố định nhỏ gọn để hiển thị số
-    const size = isSelected ? 30 : 22;
-    const fontSize = isSelected ? 11 : 9;
-
-    return L.divIcon({
-        className: "",
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-        html: `
-            <div style="
-                width: ${size}px;
-                height: ${size}px;
-                background: ${color};
-                border: ${isSelected ? "2.5px" : "1.5px"} solid white;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 2px 6px ${color}50, 0 1px 2px rgba(0,0,0,0.15);
-                font-family: 'Segoe UI', system-ui, sans-serif;
-                font-size: ${fontSize}px;
-                font-weight: ${isSelected ? "700" : "600"};
-                color: white;
-                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-                cursor: pointer;
-                user-select: none;
-            ">${displayScore}</div>
-        `,
-    });
 }
 
 function isValidLatLng(lat: number, lng: number): boolean {
@@ -85,7 +44,6 @@ function isValidLatLng(lat: number, lng: number): boolean {
 }
 
 function jitterAroundCenter(seed: number): { lat: number; lng: number } {
-
     const baseLat = DEFAULT_MAP_CENTER[0];
     const baseLng = DEFAULT_MAP_CENTER[1];
 
@@ -101,10 +59,9 @@ function jitterAroundCenter(seed: number): { lat: number; lng: number } {
 function spreadOffset(index: number): { dLat: number; dLng: number } {
     if (index <= 0) return { dLat: 0, dLng: 0 };
 
-    // Golden-angle spiral to avoid overlap. Step ~35–200m depending on index.
     const goldenAngle = 137.5 * (Math.PI / 180);
     const angle = index * goldenAngle;
-    const radius = 0.0005 * Math.sqrt(index); // degrees - increased spacing
+    const radius = 0.0005 * Math.sqrt(index);
 
     return {
         dLat: Math.sin(angle) * radius,
@@ -114,53 +71,33 @@ function spreadOffset(index: number): { dLat: number; dLng: number } {
 
 export function HouseholdManagementMap({ households, selectedHouseholdId, onHouseholdSelect, loading }: HouseholdManagementMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<L.Map | null>(null);
-    const markerLayerRef = useRef<L.LayerGroup | null>(null);
-    const hasFitBoundsRef = useRef(false);
-    const lastFittedCountRef = useRef(0);
+    const mapRef = useRef<any>(null);
+    const onHouseholdSelectRef = useRef(onHouseholdSelect);
+    const householdsRef = useRef(households);
+    const selectedHouseholdIdRef = useRef(selectedHouseholdId);
+    const hasInitializedRef = useRef(false);
 
     useEffect(() => {
-        if (mapRef.current || !mapContainerRef.current) return;
-
-        const map = L.map(mapContainerRef.current, {
-            center: [16.065, 108.225],
-            zoom: 13,
-            zoomControl: false,
-            attributionControl: false,
-        });
-
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        }).addTo(map);
-
-        L.control.zoom({ position: "topleft" }).addTo(map);
-        L.control.attribution({ position: "bottomleft", prefix: false }).addTo(map);
-
-        markerLayerRef.current = L.layerGroup().addTo(map);
-        mapRef.current = map;
-
-        // Fix map size after dynamic load
-        setTimeout(() => {
-            map.invalidateSize({ pan: false });
-        }, 100);
-
-        return () => {
-            map.remove();
-            mapRef.current = null;
-        };
-    }, []);
+        onHouseholdSelectRef.current = onHouseholdSelect;
+    }, [onHouseholdSelect]);
 
     useEffect(() => {
-        if (!mapRef.current || !markerLayerRef.current) return;
+        householdsRef.current = households;
+    }, [households]);
 
-        markerLayerRef.current.clearLayers();
+    useEffect(() => {
+        selectedHouseholdIdRef.current = selectedHouseholdId;
+    }, [selectedHouseholdId]);
 
-        const boundsAll = L.latLngBounds([]);
-        let hasAnyMarker = false;
+    const updateMarkers = useCallback((map: any) => {
+        if (!map || !map.getSource("households")) return;
 
         const indexByKey = new Map<string, number>();
+        const features: any[] = [];
+        const currentHouseholds = householdsRef.current;
+        const currentSelectedId = selectedHouseholdIdRef.current;
 
-        households.forEach((household) => {
+        currentHouseholds.forEach((household) => {
             const lat = parseNumber(household.lat);
             const lng = parseNumber(household.lng);
             const isReal = isValidLatLng(lat, lng);
@@ -171,49 +108,154 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
             const offset = spreadOffset(idx);
             const point = { lat: basePoint.lat + offset.dLat, lng: basePoint.lng + offset.dLng };
 
-            hasAnyMarker = true;
-            boundsAll.extend([point.lat, point.lng]);
+            const isSelected = currentSelectedId != null && String(household.id) === String(currentSelectedId);
+            const color = getGreenScoreColor(household.greenScore);
+            const label = getScoreLabel(household.greenScore);
 
-            const isSelected = selectedHouseholdId != null && String(household.id) === String(selectedHouseholdId);
-
-            const icon = buildScoreMarkerIcon(household.greenScore, isSelected);
-            const marker = L.marker([point.lat, point.lng], {
-                icon,
-                zIndexOffset: isSelected ? 1000 : 100,
-            }).addTo(markerLayerRef.current!);
-
-            marker.bindTooltip(`
-                <div style="font-family: system-ui; font-size: 12px; min-width: 170px; line-height: 1.4;">
-                    <strong>${household.name}</strong><br/>
-                    ${household.address}<br/>
-                    ${isReal ? "" : "<em style=\"color:#64748b\">Thiếu tọa độ — hiển thị tạm gần trung tâm</em><br/>"}
-                    <strong>Green Score:</strong> ${household.greenScore ?? "Không có điểm"}<br/>
-                    <strong>Detect:</strong> ${household.reportCount} lần<br/>
-                    <strong>Ảnh up:</strong> ${household.imageHistory?.length ?? 0} lần
-                </div>
-            `, { direction: "top", offset: [0, -8], className: "monitoring-leaflet-tooltip" });
-
-            marker.on("click", () => onHouseholdSelect(household));
+            features.push({
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [point.lng, point.lat],
+                },
+                properties: {
+                    id: String(household.id),
+                    name: household.name,
+                    address: household.address,
+                    color,
+                    label: label !== "N/A" ? label : "?",
+                    selected: isSelected,
+                    isReal,
+                    greenScore: household.greenScore ?? "Không có điểm",
+                    reportCount: household.reportCount,
+                    imageCount: household.imageHistory?.length ?? 0,
+                },
+            });
 
             if (isSelected) {
-                marker.openTooltip();
-                mapRef.current!.flyTo([point.lat, point.lng], 15, { duration: 0.8 });
+                map.flyTo({ center: [point.lng, point.lat], zoom: 15, duration: 800 });
             }
         });
 
-        if (hasAnyMarker && selectedHouseholdId == null) {
-            if (!hasFitBoundsRef.current || households.length > lastFittedCountRef.current) {
-                mapRef.current.fitBounds(boundsAll, { padding: [28, 28], maxZoom: 15 });
-                hasFitBoundsRef.current = true;
-                lastFittedCountRef.current = households.length;
+        map.getSource("households").setData({
+            type: "FeatureCollection",
+            features,
+        });
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        if (!mapContainerRef.current) return;
+        if (mapRef.current) return;
+        if (hasInitializedRef.current) return;
+
+        const initMap = () => {
+            if (!(window as any).trackasiagl) {
+                setTimeout(initMap, 100);
+                return;
+            }
+
+            hasInitializedRef.current = true;
+
+            const map = new (window as any).trackasiagl.Map({
+                container: mapContainerRef.current!,
+                style: "https://maps.track-asia.com/styles/v2/simple.json?key=public_key",
+                center: { lat: 16.065, lng: 108.225 },
+                zoom: 13,
+            });
+
+            mapRef.current = map;
+
+            map.on("load", () => {
+                map.addSource("households", {
+                    type: "geojson",
+                    data: { type: "FeatureCollection", features: [] },
+                });
+
+                map.addLayer({
+                    id: "households-circle",
+                    type: "circle",
+                    source: "households",
+                    paint: {
+                        "circle-radius": ["case", ["boolean", ["get", "selected"], false], 14, 10],
+                        "circle-color": ["get", "color"],
+                        "circle-stroke-width": ["case", ["boolean", ["get", "selected"], false], 3, 2],
+                        "circle-stroke-color": "#ffffff",
+                        "circle-opacity": 0.95,
+                    },
+                });
+
+                map.addLayer({
+                    id: "households-label",
+                    type: "symbol",
+                    source: "households",
+                    layout: {
+                        "text-field": ["get", "label"],
+                        "text-size": 10,
+                        "text-font": ["Noto Sans Regular"],
+                    },
+                    paint: {
+                        "text-color": "#ffffff",
+                        "text-halo-color": "rgba(0,0,0,0.3)",
+                        "text-halo-width": 1,
+                    },
+                });
+
+                map.on("click", "households-circle", (e: any) => {
+                    if (e.features && e.features.length > 0) {
+                        const props = e.features[0].properties;
+                        const currentHouseholds = householdsRef.current;
+                        const household = currentHouseholds.find(h => String(h.id) === props.id);
+                        if (household) {
+                            onHouseholdSelectRef.current(household);
+                        }
+                    }
+                });
+
+                map.on("mouseenter", "households-circle", () => {
+                    map.getCanvas().style.cursor = "pointer";
+                });
+
+                map.on("mouseleave", "households-circle", () => {
+                    map.getCanvas().style.cursor = "";
+                });
+
+                updateMarkers(map);
+            });
+        };
+
+        if (document.getElementById("trackasia-gl-script")) {
+            initMap();
+        } else {
+            const script = document.createElement("script");
+            script.id = "trackasia-gl-script";
+            script.src = "https://unpkg.com/trackasia-gl@2.0.1/dist/trackasia-gl.js";
+            script.onload = initMap;
+            document.head.appendChild(script);
+
+            if (!document.getElementById("trackasia-gl-css")) {
+                const link = document.createElement("link");
+                link.id = "trackasia-gl-css";
+                link.rel = "stylesheet";
+                link.href = "https://unpkg.com/trackasia-gl@2.0.1/dist/trackasia-gl.css";
+                document.head.appendChild(link);
             }
         }
 
-        // Fix map size after markers are added
-        setTimeout(() => {
-            mapRef.current?.invalidateSize({ pan: false });
-        }, 200);
-    }, [households, selectedHouseholdId, onHouseholdSelect]);
+        return () => {
+            if (mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
+                hasInitializedRef.current = false;
+            }
+        };
+    }, [updateMarkers]);
+
+    useEffect(() => {
+        if (mapRef.current) {
+            updateMarkers(mapRef.current);
+        }
+    }, [households, selectedHouseholdId, updateMarkers]);
 
     return (
         <div className="relative w-full h-full rounded-2xl overflow-hidden border border-gray-100 shadow-lg">
@@ -228,20 +270,15 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
                 </div>
             )}
 
-            <style>{`
-                .monitoring-leaflet-tooltip {
-                    background: white !important;
-                    border: 1px solid #e5e7eb !important;
-                    border-radius: 10px !important;
-                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15) !important;
-                    padding: 6px 9px !important;
-                    font-weight: 500 !important;
-                    color: #1f2937;
-                }
-                .monitoring-leaflet-tooltip::before {
-                    display: none !important;
-                }
-            `}</style>
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-md text-xs text-gray-600">
+                Click on that point to view household information.
+            </div>
         </div>
     );
+}
+
+declare global {
+    interface Window {
+        trackasiagl: any;
+    }
 }

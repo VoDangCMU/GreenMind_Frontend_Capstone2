@@ -18,7 +18,7 @@ interface HouseholdDetailsPanelProps {
 }
 
 type CaptureTrendPoint = {
-    month: string; // YYYY-MM
+    month: string;
     captureCount: number;
     pollutionCO2: number;
     pollutionDioxin: number;
@@ -29,8 +29,8 @@ type CaptureTrendPoint = {
 type ScoreTrendPeriod = "day" | "month" | "year";
 
 type GreenScoreTrendPoint = {
-    month: string; // period key
-    label: string; // formatted for axis/tooltip
+    month: string;
+    label: string;
     finalScore: number | null;
     delta?: number;
     previousScore?: number;
@@ -60,34 +60,22 @@ function buildGreenScoreTrendFromHistory(greenScoreHistory: NonNullable<Househol
             latestEntryByMonth.set(monthKey, entry);
         });
 
-    const trend: GreenScoreTrendPoint[] = [];
-    let lastKnownScore: number | null = null;
-
-    for (const month of months) {
+    let lastScore = 0;
+    return months.map((month) => {
         const entry = latestEntryByMonth.get(month);
-        if (entry) {
-            lastKnownScore = entry.finalScore;
-            trend.push({
-                month,
-                label: month.slice(5),
-                finalScore: entry.finalScore,
-                delta: entry.delta,
-                previousScore: entry.previousScore,
-                reasons: entry.reasons,
-                items: entry.items,
-            });
-        } else {
-            trend.push({
-                month,
-                label: month.slice(5),
-                finalScore: lastKnownScore ?? 0,
-                reasons: undefined,
-                items: null,
-            });
+        if (entry?.finalScore != null) {
+            lastScore = entry.finalScore;
         }
-    }
-
-    return trend;
+        return {
+            month,
+            label: month.slice(5),
+            finalScore: entry?.finalScore ?? lastScore,
+            delta: entry?.delta,
+            previousScore: entry?.previousScore,
+            reasons: entry?.reasons ?? null,
+            items: entry?.items ?? null,
+        };
+    });
 }
 
 function formatMonth(date: Date): string {
@@ -187,13 +175,13 @@ function buildGreenScoreTrendFromHistoryByPeriod(
         return String(date.getMonth() + 1).padStart(2, "0");
     };
 
-    const latestByPeriod = new Map<string, NonNullable<HouseholdProfile["greenScores"]>[number]>();
+    const entriesByPeriod = new Map<string, NonNullable<HouseholdProfile["greenScores"]>[number]>();
     validEntries.forEach((entry) => {
         const date = new Date(entry.createdAt);
         const key = groupKey(date);
-        const existing = latestByPeriod.get(key);
+        const existing = entriesByPeriod.get(key);
         if (!existing || date.getTime() > new Date(existing.createdAt).getTime()) {
-            latestByPeriod.set(key, entry);
+            entriesByPeriod.set(key, entry);
         }
     });
 
@@ -213,30 +201,22 @@ function buildGreenScoreTrendFromHistoryByPeriod(
         }
     }
 
-    let lastKnownScore: number | null = null;
-    let lastKnownDelta: number | undefined;
-    let lastKnownPreviousScore: number | undefined;
-    let lastKnownReasons: string[] | null = null;
-    let lastKnownItems: { area: number; name: string; quantity: number }[] | null = null;
-
+    let lastScore = 0;
     return range.map((date) => {
         const key = groupKey(date);
-        const entry = latestByPeriod.get(key);
-        if (entry) {
-            lastKnownScore = entry.finalScore;
-            lastKnownDelta = entry.delta;
-            lastKnownPreviousScore = entry.previousScore;
-            lastKnownReasons = entry.reasons ?? null;
-            lastKnownItems = entry.items ?? null;
+        const entry = entriesByPeriod.get(key);
+        if (entry?.finalScore != null) {
+            lastScore = entry.finalScore;
         }
+
         return {
             month: key,
             label: labelFor(date),
-            finalScore: entry?.finalScore ?? lastKnownScore ?? 0,
-            delta: entry?.delta ?? lastKnownDelta,
-            previousScore: entry?.previousScore ?? lastKnownPreviousScore,
-            reasons: entry?.reasons ?? lastKnownReasons,
-            items: entry?.items ?? lastKnownItems,
+            finalScore: entry?.finalScore ?? lastScore,
+            delta: entry?.delta,
+            previousScore: entry?.previousScore,
+            reasons: entry?.reasons ?? null,
+            items: entry?.items ?? null,
         };
     });
 }
@@ -362,7 +342,7 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-2 text-sm">
-                            <p><strong>Household head:</strong> {household.members.length ? household.members[0].name : household.name}</p>
+                            <p><strong>Household head:</strong> {household.members?.length ? household.members[0].name : household.name}</p>
                             <p>Address: {household.address}</p>
                             <p>Total image uploads: {imageHistory.length}</p>
                             <p>Latest month captures: {latestCaptureMonth ? `${latestCaptureMonth.captureCount} captures` : "No data available"}</p>
