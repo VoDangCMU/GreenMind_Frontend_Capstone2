@@ -433,37 +433,11 @@ export const TRUONG_SA_ISLANDS: IslandFeature[] = [
   },
 ];
 
-// Combined islands GeoJSON FeatureCollection
+// Combined islands GeoJSON FeatureCollection (only point features, no boundary polygons)
 export const VIETNAM_ISLANDS_GEOJSON: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
   features: [
-    // Hoàng Sa polygon (boundary)
-    {
-      type: "Feature",
-      properties: { name: "Hoàng Sa", nameEn: "Paracel Islands", type: "atoll" as const },
-      geometry: {
-        type: "Polygon",
-        coordinates: [[
-          [111.0, 17.0], [111.5, 17.5], [112.5, 17.3], [113.5, 16.5],
-          [114.0, 15.8], [113.8, 15.2], [112.5, 15.0], [111.5, 15.5],
-          [111.0, 16.2], [111.0, 17.0]
-        ]],
-      },
-    },
-    // Trường Sa polygon (boundary)
-    {
-      type: "Feature",
-      properties: { name: "Trường Sa", nameEn: "Spratly Islands", type: "atoll" as const },
-      geometry: {
-        type: "Polygon",
-        coordinates: [[
-          [111.5, 11.5], [112.0, 11.8], [113.0, 11.5], [114.5, 11.0],
-          [115.0, 10.3], [114.8, 9.5], [113.5, 9.0], [112.0, 9.2],
-          [111.0, 9.8], [111.0, 10.5], [111.5, 11.0], [111.5, 11.5]
-        ]],
-      },
-    },
-    // Add point features for individual islands
+    // Point features for individual islands only
     ...HOANG_SA_ISLANDS.map(island => island as GeoJSON.Feature),
     ...TRUONG_SA_ISLANDS.map(island => island as GeoJSON.Feature),
   ],
