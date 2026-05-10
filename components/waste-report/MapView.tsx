@@ -201,10 +201,60 @@ const REEF_STYLE: L.CircleMarkerOptions = {
   weight: 1,
 };
 
+// Island group label style - rounded badge with shadow
+const ISLAND_GROUP_STYLE: L.DivIconOptions = {
+  className: "island-group-label",
+  iconSize: [180, 36],
+  iconAnchor: [90, 18],
+};
+
+// ---------------------------------------------------------------------------
+// Create island group labels (Quần đảo Hoàng Sa, Quần đảo Trường Sa)
+// ---------------------------------------------------------------------------
+function createIslandGroupLabels(): L.LayerGroup {
+  const group = L.layerGroup();
+
+  // Trường Sa label - tâm quần đảo
+  const truongSaLabel = L.marker([10.35, 113.5], {
+    icon: L.divIcon({
+      className: "island-group-label",
+      iconSize: [200, 30],
+      iconAnchor: [100, 15],
+      html: `<div style="
+        font-size: 13px;
+        font-weight: 700;
+        color: #b91c1c;
+        text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+        white-space: nowrap;
+      ">QUẦN ĐẢO TRƯỜNG SA</div>`,
+    }),
+  });
+  group.addLayer(truongSaLabel);
+
+  // Hoàng Sa label - tâm quần đảo
+  const hoangSaLabel = L.marker([16.5, 112.5], {
+    icon: L.divIcon({
+      className: "island-group-label",
+      iconSize: [200, 30],
+      iconAnchor: [100, 15],
+      html: `<div style="
+        font-size: 13px;
+        font-weight: 700;
+        color: #b91c1c;
+        text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+        white-space: nowrap;
+      ">QUẦN ĐẢO HOÀNG SA</div>`,
+    }),
+  });
+  group.addLayer(hoangSaLabel);
+
+  return group;
+}
+
 // Label cover style - ocean blue, solid opaque to cover labels from OSM
 const LABEL_COVER_STYLE: L.PathOptions = {
-  color: "#6fa8dc",
-  fillColor: "#6fa8dc",
+  color: "#AAD3DF",
+  fillColor: "#AAD3DF",
   fillOpacity: 1,
   opacity: 1,
   interactive: false,
@@ -234,19 +284,19 @@ function createVietnamLabelCovers(): L.LayerGroup {
   );
   group.addLayer(hoangSaCover);
 
-  // Trường Sa cover polygon - hình tròn tâm cách đều, bán kính ~3°
+  // Trường Sa cover polygon - hình tròn tâm cách đều, bán kính ~3.5° (giảm 0.5°)
   // Tâm lệch về đất liền: 10.35°N, 113.5°E
   const truongSaCover = L.polygon(
     [
-      [13.35, 113.5],  // Bắc
-      [11.95, 116.3],  // Đông Bắc
-      [10.35, 116.5],  // Đông
-      [8.75, 116.3],   // Đông Nam
-      [7.35, 113.5],   // Nam
-      [8.75, 110.7],   // Nam Tây
-      [10.35, 110.5],  // Tây
-      [11.95, 110.7],  // Tây Bắc
-      [13.35, 113.5],  // Đóng polygon
+      [13.85, 113.5],  // Bắc
+      [12.82, 115.97], // Đông Bắc
+      [10.35, 117],    // Đông
+      [7.88, 115.97],   // Đông Nam
+      [6.85, 113.5],   // Nam
+      [7.88, 111.03],   // Nam Tây
+      [10.35, 110],    // Tây
+      [12.82, 111.03],  // Tây Bắc
+      [13.85, 113.5],  // Đóng polygon
     ],
     LABEL_COVER_STYLE
   );
@@ -387,6 +437,8 @@ export function MapView({
   const boundaryLayerRef = useRef<L.LayerGroup | null>(null);
   // Layer for Vietnam islands (Hoàng Sa & Trường Sa) - always visible
   const islandsLayerRef = useRef<L.GeoJSON | null>(null);
+  // Layer for island name labels (separate layer for z-index control)
+  const islandLabelsLayerRef = useRef<L.LayerGroup | null>(null);
   // Layer for env-alert detail markers (level 2)
   const alertLayerRef = useRef<L.LayerGroup | null>(null);
   // Layer for report pins (always on top)
@@ -439,50 +491,67 @@ export function MapView({
     wardLayerRef.current = L.layerGroup().addTo(map);
     boundaryLayerRef.current = L.layerGroup().addTo(map); // polygons dưới ward markers
 
-    // Label cover overlays (light green) to hide Chinese labels from OSM tiles
-    // Add before islands layer so islands appear on TOP of the green cover
+    // Label cover overlays (add first - bottom layer)
     const labelCoverLayer = createVietnamLabelCovers();
     labelCoverLayer.addTo(map);
 
-    // Vietnam islands layer (Hoàng Sa & Trường Sa) - on top of green cover
+    // Vietnam islands layer (on top of cover)
     islandsLayerRef.current = L.geoJSON(VIETNAM_ISLANDS_GEOJSON, {
-      style: (feature) => {
-        // Polygon features (boundaries)
-        if (feature?.geometry?.type === "Polygon" || feature?.geometry?.type === "MultiPolygon") {
-          return { ...ISLAND_STYLE };
-        }
-        // Point features (individual islands) - use circle markers
-        return {};
-      },
       pointToLayer: (feature, latlng) => {
         const type = feature.properties?.type as string;
-        if (type === "reef" || type === "shoal") {
-          return L.circleMarker(latlng, REEF_STYLE);
-        }
-        return L.circleMarker(latlng, ISLAND_POINT_STYLE);
+        const style = type === "reef" || type === "shoal" ? REEF_STYLE : ISLAND_POINT_STYLE;
+        return L.circleMarker(latlng, style);
       },
       onEachFeature: (feature, layer) => {
         const name = feature.properties?.name as string;
         const nameEn = feature.properties?.nameEn as string;
-        const type = feature.properties?.type as string;
 
-        if (layer instanceof L.Path) {
-          // Boundary polygons
-          layer.bindTooltip(name ?? "Quần đảo", {
-            permanent: false,
-            direction: "top",
-            className: "monitoring-leaflet-tooltip",
-          });
-        } else if (layer instanceof L.CircleMarker) {
-          // Individual islands
-          layer.bindTooltip(`${name} (${nameEn})`, {
-            permanent: false,
-            direction: "top",
-            className: "monitoring-leaflet-tooltip",
-          });
+        if (layer instanceof L.CircleMarker) {
+          // Store island names in options for later use
+          (layer.options as any)._islandName = name;
+          (layer.options as any)._islandNameEn = nameEn;
         }
       },
     }).addTo(map);
+
+    // Show island labels when zoomed in enough (zoom >= 10)
+    const updateIslandLabels = () => {
+      if (!islandsLayerRef.current) return;
+      const zoom = map.getZoom();
+
+      islandsLayerRef.current.eachLayer((layer) => {
+        if (!(layer instanceof L.CircleMarker)) return;
+
+        const name = (layer.options as any)._islandName;
+        const nameEn = (layer.options as any)._islandNameEn;
+        if (!name) return;
+
+        const label = `${name} (${nameEn})`;
+
+        if (zoom >= 10) {
+          layer.bindTooltip(label, {
+            permanent: true,
+            direction: "top",
+            className: "island-name-label",
+            offset: [0, -10],
+          });
+        } else {
+          layer.bindTooltip(label, {
+            permanent: false,
+            direction: "top",
+            className: "monitoring-leaflet-tooltip",
+            offset: [0, -8],
+          });
+        }
+      });
+    };
+
+    map.on("zoomend", updateIslandLabels);
+    updateIslandLabels(); // Initial check
+
+    // Island group labels (on top of islands) - e.g. "QUẦN ĐẢO HOÀNG SA"
+    const islandGroupLabelLayer = createIslandGroupLabels();
+    islandGroupLabelLayer.addTo(map);
 
     alertLayerRef.current = L.layerGroup().addTo(map);
     reportLayerRef.current = L.layerGroup().addTo(map);
