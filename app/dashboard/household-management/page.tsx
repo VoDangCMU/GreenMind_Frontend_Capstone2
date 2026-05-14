@@ -2,12 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useEffect, useState } from "react";
-import { getAllHouseholdProfiles, getHouseholdDetectionHistoryByHousehold, getHouseholdGreenScoreHistory, mapHouseholdDetectionRecordsToImageHistory } from "@/lib/household";
+import { getAllHouseholdProfiles, getHouseholdDetectionHistoryByHousehold, getHouseholdGreenScoreHistory, mapHouseholdDetectionRecordsToImageHistory, ApiHouseholdMember } from "@/lib/household";
 import { HouseholdDetailsPanel } from "@/components/household/HouseholdDetailsPanel";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Leaderboard } from "@/components/blog/Leaderboard";
 import type { HouseholdProfile } from "@/types/monitoring";
-import { Users, TrendingUp, Award, MapPin, RefreshCw } from "lucide-react";
+import { Users, TrendingUp, Award, MapPin, RefreshCw, Search, X } from "lucide-react";
 import type { LeaderboardUser } from "@/services/blog.service";
 
 const HouseholdManagementMap = dynamic(
@@ -54,6 +54,7 @@ export default function HouseholdManagementPage() {
     const [greenScoreError, setGreenScoreError] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const fetchHouseholds = async () => {
         setIsLoading(true);
@@ -70,7 +71,11 @@ export default function HouseholdManagementPage() {
     };
 
     useEffect(() => {
-        fetchHouseholds();
+        // Auto refresh on mount after 3 seconds
+        const timer = setTimeout(() => {
+            fetchHouseholds();
+        }, 3000);
+        return () => clearTimeout(timer);
     }, []);
 
     useEffect(() => {
@@ -199,14 +204,57 @@ export default function HouseholdManagementPage() {
             .slice()
             .sort((a, b) => (b.greenScore ?? 0) - (a.greenScore ?? 0));
 
-        return sorted.map((household, idx) => ({
-            rank: idx + 1,
-            userId: `household-${household.id}`,
-            fullName: household.name.split(",")[0].trim(),
-            username: household.name.split(",")[0].trim(),
-            reportCount: household.greenScore ?? 0,
-        }));
+        return sorted.map((household, idx) => {
+            // First try raw API members with createdAt for sorting
+            const rawMembers = (household as any)._members as ApiHouseholdMember[] | undefined;
+            let headName = "";
+
+            if (rawMembers && rawMembers.length > 0) {
+                const sortedRaw = [...rawMembers].sort((a, b) =>
+                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                );
+                const head = sortedRaw[0];
+                headName = head?.fullName || head?.username || "";
+            }
+
+            // Fallback: use mapped members name
+            if (!headName && household.members && household.members.length > 0) {
+                headName = household.members[0]?.name || "";
+            }
+
+            // Final fallback: use household name/address
+            if (!headName) {
+                headName = household.name?.split(",")[0]?.trim() || "Hộ gia đình";
+            }
+
+            const address = household.address || household.name || "";
+
+            return {
+                rank: idx + 1,
+                userId: `household-${household.id}`,
+                fullName: headName,
+                username: headName,
+                location: address,
+                reportCount: household.greenScore ?? 0,
+            };
+        });
     }, [allHouseholds]);
+
+    // Filter households by search query
+    const filteredHouseholds = useMemo(() => {
+        if (!searchQuery.trim()) return allHouseholds;
+        const query = searchQuery.toLowerCase();
+        return allHouseholds.filter(h =>
+            h.address?.toLowerCase().includes(query) ||
+            h.name?.toLowerCase().includes(query)
+        );
+    }, [allHouseholds, searchQuery]);
+
+    // Search result for dropdown
+    const searchResults = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        return filteredHouseholds.slice(0, 5);
+    }, [filteredHouseholds, searchQuery]);
 
     return (
         <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/20">
@@ -236,15 +284,56 @@ export default function HouseholdManagementPage() {
                             </div>
                         </div>
 
-                        {/* Refresh Button */}
-                        <button
-                            onClick={handleRefresh}
-                            disabled={refreshing || isLoading}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium text-xs transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
-                        >
-                            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-                            Refresh
-                        </button>
+                        {/* Buttons Group - Right side */}
+                        <div className="flex items-center gap-2">
+                            {/* Always visible Search Input */}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search address..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-48 pl-9 pr-8 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery("")}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2"
+                                    >
+                                        <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                                    </button>
+                                )}
+                                {/* Search Results Dropdown */}
+                                {searchResults.length > 0 && (
+                                    <div className="absolute top-full mt-1 left-0 w-64 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 max-h-60 overflow-y-auto z-50">
+                                        {searchResults.map((hh) => (
+                                            <button
+                                                key={hh.id}
+                                                onClick={() => {
+                                                    setSelectedHousehold(hh);
+                                                    setIsDialogOpen(true);
+                                                }}
+                                                className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700 last:border-0"
+                                            >
+                                                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{hh.address}</p>
+                                                <p className="text-xs text-slate-500">Score: {hh.greenScore ?? "N/A"}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Refresh Button */}
+                            <button
+                                onClick={handleRefresh}
+                                disabled={refreshing || isLoading}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium text-xs transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                            >
+                                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+                                Refresh
+                            </button>
+                        </div>
                     </div>
 
                     {/* Stats Cards */}
@@ -321,9 +410,9 @@ export default function HouseholdManagementPage() {
 
             {/* Main Content */}
             <div className="relative flex-1 min-h-0 p-2 lg:p-3 overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-6 gap-2 lg:gap-3 h-full">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-3 h-full">
                     {/* Map Section */}
-                    <div className="lg:col-span-4 xl:col-span-5 h-full">
+                    <div className="lg:col-span-3 h-full">
                         <div className="relative h-full rounded-2xl overflow-hidden shadow-xl border border-white/20 dark:border-slate-700/50">
 
                             {apiError && (
@@ -347,7 +436,7 @@ export default function HouseholdManagementPage() {
                     </div>
 
                     {/* Leaderboard Panel */}
-                    <div className="lg:col-span-2 xl:col-span-1 h-full overflow-hidden">
+                    <div className="lg:col-span-1 h-full overflow-hidden">
                         <div className="h-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-slate-700/50 shadow-xl overflow-hidden">
                             <Leaderboard
                                 leaderboard={leaderboard}

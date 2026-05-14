@@ -173,15 +173,26 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
                 });
 
                 map.addLayer({
+                    id: "households-circle-glow",
+                    type: "circle",
+                    source: "households",
+                    paint: {
+                        "circle-radius": ["case", ["boolean", ["get", "selected"], false], 22, 18],
+                        "circle-color": ["get", "color"],
+                        "circle-opacity": 0.25,
+                    },
+                });
+
+                map.addLayer({
                     id: "households-circle",
                     type: "circle",
                     source: "households",
                     paint: {
-                        "circle-radius": ["case", ["boolean", ["get", "selected"], false], 14, 10],
+                        "circle-radius": ["case", ["boolean", ["get", "selected"], false], 16, 12],
                         "circle-color": ["get", "color"],
-                        "circle-stroke-width": ["case", ["boolean", ["get", "selected"], false], 3, 2],
+                        "circle-stroke-width": ["case", ["boolean", ["get", "selected"], false], 4, 3],
                         "circle-stroke-color": "#ffffff",
-                        "circle-opacity": 0.95,
+                        "circle-opacity": 1,
                     },
                 });
 
@@ -191,13 +202,13 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
                     source: "households",
                     layout: {
                         "text-field": ["get", "label"],
-                        "text-size": 10,
+                        "text-size": 12,
                         "text-font": ["Noto Sans Regular"],
                     },
                     paint: {
                         "text-color": "#ffffff",
-                        "text-halo-color": "rgba(0,0,0,0.3)",
-                        "text-halo-width": 1,
+                        "text-halo-color": "rgba(0,0,0,0.5)",
+                        "text-halo-width": 2,
                     },
                 });
 
@@ -216,8 +227,23 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
                     map.getCanvas().style.cursor = "pointer";
                 });
 
+                map.on("mouseenter", "households-circle", () => {
+                    map.setPaintProperty("households-circle", "circle-radius", [
+                        "case",
+                        ["boolean", ["feature-state", "selected"], false],
+                        18,
+                        14,
+                    ]);
+                });
+
                 map.on("mouseleave", "households-circle", () => {
                     map.getCanvas().style.cursor = "";
+                    map.setPaintProperty("households-circle", "circle-radius", [
+                        "case",
+                        ["boolean", ["feature-state", "selected"], false],
+                        16,
+                        12,
+                    ]);
                 });
 
                 updateMarkers(map);
@@ -270,8 +296,8 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
                 </div>
             )}
 
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-md text-xs text-gray-600">
-                Click on that point to view household information.
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-md text-xs font-medium text-gray-600">
+                Click on any marker to view household details
             </div>
         </div>
     );

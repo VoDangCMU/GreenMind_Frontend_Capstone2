@@ -155,13 +155,18 @@ function mapApiHouseholdToProfile(apiHousehold: ApiHousehold): HouseholdProfile 
         greenScore: apiHousehold.greenScore,
     };
 
-    return {
+    const profile: HouseholdProfile = {
         ...mappedHousehold,
         familySize,
         members,
         wasteHistory: [],
         imageHistory: [],
     };
+
+    // Store raw API members for leaderboard access (includes createdAt)
+    (profile as any)._members = apiHousehold.members ?? [];
+
+    return profile;
 }
 
 export function getHouseholdProfilesFromApi(apiHouseholds: ApiHousehold[]): HouseholdProfile[] {
