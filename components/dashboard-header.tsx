@@ -22,6 +22,7 @@ const navItems = [
   { title: "Surveys", href: "/dashboard/survey" },
   { title: "Results", href: "/dashboard/survey-results" },
   { title: "Verify", href: "/dashboard/models-verify" },
+  { title: "Payment Analysis", href: "/dashboard/payment-analysis" },
 ]
 
 export function DashboardHeader() {
