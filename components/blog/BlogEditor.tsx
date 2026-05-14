@@ -2,6 +2,7 @@
 
 import { useRef, useCallback } from "react"
 import { uploadImageToR2 } from "@/services/blog.service"
+import { ImageIcon, FolderOpen, Upload } from "lucide-react"
 
 interface Props {
   value: string
@@ -17,6 +18,8 @@ interface Props {
 export function BlogEditor({ value, onChange, placeholder = "Write your blog content here..." }: Props) {
   const editorRef = useRef<HTMLDivElement>(null)
   const uploadingRef = useRef(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
 
   const handleInput = useCallback(() => {
     if (editorRef.current) {
@@ -100,6 +103,49 @@ export function BlogEditor({ value, onChange, placeholder = "Write your blog con
     handleInput()
   }, [handleInput])
 
+  const handleFileUpload = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return
+      const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"))
+      if (imageFiles.length === 0) return
+
+      for (const file of imageFiles) {
+        if (uploadingRef.current) {
+          // wait for previous upload to finish
+          await new Promise<void>((resolve) => {
+            const check = setInterval(() => {
+              if (!uploadingRef.current) { clearInterval(check); resolve() }
+            }, 100)
+          })
+        }
+        uploadingRef.current = true
+        const placeholder = document.createElement("span")
+        placeholder.textContent = `Uploading ${file.name}...`
+        placeholder.style.color = "#888"
+        editorRef.current?.appendChild(placeholder)
+
+        try {
+          const url = await uploadImageToR2(file)
+          const imgEl = document.createElement("img")
+          imgEl.src = url
+          imgEl.alt = file.name
+          imgEl.loading = "lazy"
+          imgEl.style.maxWidth = "100%"
+          imgEl.style.borderRadius = "8px"
+          imgEl.style.margin = "8px 0"
+          imgEl.style.display = "block"
+          placeholder.replaceWith(imgEl)
+        } catch {
+          placeholder.textContent = `Failed to upload ${file.name}`
+        } finally {
+          uploadingRef.current = false
+          handleInput()
+        }
+      }
+    },
+    [handleInput]
+  )
+
   const exec = (cmd: string, value?: string) => {
     editorRef.current?.focus()
     document.execCommand(cmd, false, value)
@@ -108,6 +154,26 @@ export function BlogEditor({ value, onChange, placeholder = "Write your blog con
 
   return (
     <div className="flex flex-col rounded-xl border border-border overflow-hidden focus-within:ring-2 focus-within:ring-primary/30">
+      {/* Hidden file inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => handleFileUpload(e.target.files)}
+      />
+      <input
+        ref={folderInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        // @ts-expect-error webkitdirectory is non-standard but widely supported
+        webkitdirectory=""
+        className="hidden"
+        onChange={(e) => handleFileUpload(e.target.files)}
+      />
+
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted/40 px-3 py-2">
         {[
@@ -150,6 +216,28 @@ export function BlogEditor({ value, onChange, placeholder = "Write your blog con
           className="h-7 px-2 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
           Insert Image
+        </button>
+
+        <div className="w-px h-5 bg-border mx-1" />
+
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); fileInputRef.current?.click() }}
+          className="h-7 px-2 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors inline-flex items-center gap-1"
+          title="Select image files to upload"
+        >
+          <Upload className="h-3 w-3" />
+          Upload Files
+        </button>
+
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); folderInputRef.current?.click() }}
+          className="h-7 px-2 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors inline-flex items-center gap-1"
+          title="Select a folder to upload all images from it"
+        >
+          <FolderOpen className="h-3 w-3" />
+          Select Folder
         </button>
       </div>
 

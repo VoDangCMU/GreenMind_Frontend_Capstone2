@@ -1,6 +1,6 @@
 "use client"
 
-import type { PollutionData } from "@/types/environmental"
+import type { ImpactPoint } from "@/types/environmental"
 import {
   BarChart,
   Bar,
@@ -8,72 +8,52 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
-  Cell,
 } from "recharts"
 
 interface Props {
-  pollutionData: PollutionData
-  selectedPollutants: string[]
+  timeSeries: ImpactPoint[]
 }
 
-const LABEL_MAP: Record<string, string> = {
-  CO2:               "CO₂",
-  dioxin:            "Dioxin",
-  microplastic:      "Microplastic",
-  toxic_chemicals:   "Toxic Chem.",
-  non_biodegradable: "Non-Biodeg.",
-  NOx:               "NOₓ",
-  SO2:               "SO₂",
-  CH4:               "CH₄",
-  "PM2.5":           "PM2.5",
-  Pb:                "Pb",
-  Hg:                "Hg",
-  Cd:                "Cd",
-  nitrate:           "Nitrate",
-  chemical_residue:  "Chem. Residue",
-  styrene:           "Styrene",
-  total_pollution:   "Total",
-}
+const BARS = [
+  { key: "air",   label: "Air",   color: "#6366f1" },
+  { key: "water", label: "Water", color: "#f97316" },
+  { key: "soil",  label: "Soil",  color: "#ef4444" },
+] as const
 
-const BAR_COLORS: Record<string, string> = {
-  total_pollution: "#10b981",
-}
-
-const DEFAULT_COLOR = "#6366f1"
-
-function buildChartData(pollutionData: PollutionData, selectedPollutants: string[]) {
-  const entries = Object.entries(pollutionData)
-  const filtered = selectedPollutants.length > 0
-    ? entries.filter(([key]) => selectedPollutants.includes(key))
-    : entries
-
-  const total = filtered.reduce((acc, [, val]) => acc + val, 0)
-
-  const bars = filtered.map(([key, value]) => ({
-    key,
-    label: LABEL_MAP[key] ?? key,
-    value,
+export function PollutionBarChart({ timeSeries }: Props) {
+  const hasDate = timeSeries.length > 0 && !!timeSeries[0].date
+  const data = timeSeries.map((p) => ({
+    label: hasDate ? p.date! : `Day ${p.day}`,
+    air:   p.air,
+    water: p.water,
+    soil:  p.soil,
   }))
 
-  bars.push({ key: "total_pollution", label: "Total", value: parseFloat(total.toFixed(4)) })
-  return bars
-}
-
-export function PollutionBarChart({ pollutionData, selectedPollutants }: Props) {
-  const data = buildChartData(pollutionData, selectedPollutants)
+  if (data.length === 0) {
+    return (
+      <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
+        No data available for this period
+      </div>
+    )
+  }
 
   return (
     <div className="w-full h-72">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 40 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+        <BarChart
+          data={data}
+          margin={{ top: 8, right: 16, left: 0, bottom: timeSeries.length > 14 ? 30 : 12 }}
+          barCategoryGap="20%"
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fill: "#9ca3af", fontSize: 11 }}
-            angle={-40}
-            textAnchor="end"
-            interval={0}
+            tick={{ fill: "#9ca3af", fontSize: 10 }}
+            angle={timeSeries.length > 10 ? -40 : 0}
+            textAnchor={timeSeries.length > 10 ? "end" : "middle"}
+            interval={timeSeries.length > 14 ? Math.floor(timeSeries.length / 10) : 0}
           />
           <YAxis
             tick={{ fill: "#9ca3af", fontSize: 11 }}
@@ -83,16 +63,21 @@ export function PollutionBarChart({ pollutionData, selectedPollutants }: Props) 
             contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
             labelStyle={{ color: "var(--foreground)" }}
             itemStyle={{ color: "var(--muted-foreground)" }}
-            formatter={(val) => [val, "Value"]}
           />
-          <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-            {data.map((entry) => (
-              <Cell
-                key={entry.key}
-                fill={BAR_COLORS[entry.key] ?? DEFAULT_COLOR}
-              />
-            ))}
-          </Bar>
+          <Legend
+            wrapperStyle={{ paddingTop: 8, fontSize: 12, color: "#9ca3af" }}
+            formatter={(value) => <span style={{ color: "#9ca3af" }}>{value}</span>}
+          />
+          {BARS.map((b) => (
+            <Bar
+              key={b.key}
+              dataKey={b.key}
+              name={b.label}
+              fill={b.color}
+              radius={[3, 3, 0, 0]}
+              fillOpacity={0.85}
+            />
+          ))}
         </BarChart>
       </ResponsiveContainer>
     </div>

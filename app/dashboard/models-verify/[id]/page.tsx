@@ -315,7 +315,8 @@ export default function ModelVerifyDetailPage() {
   // Transform grouped feedbacks to chart data - only show latest state per segment
   const chartData: ChartDataPoint[] = groupedFeedbacks.map((group, index) => {
     const latestFeedback = group.latestFeedback
-    const engagementScore = latestFeedback.engagement > 1 ? latestFeedback.engagement : latestFeedback.engagement * 10
+    const eng = Number(latestFeedback.engagement)
+    const engagementScore = eng > 1 ? eng : eng * 10
     return {
       id: latestFeedback.id,
       segmentId: group.segmentId,
@@ -323,9 +324,9 @@ export default function ModelVerifyDetailPage() {
       age: latestFeedback.segment?.ageRange || "",
       location: latestFeedback.segment?.location || "",
       gender: latestFeedback.segment?.gender || "",
-      engagement: index, // Y position (categorical index)
-      engagementDisplay: 10 - engagementScore, // Reverse: 10 becomes 0, 0 becomes 10
-      engagementOriginal: engagementScore, // Keep original for display (0-10 scale)
+      engagement: index,
+      engagementDisplay: 10 - engagementScore,
+      engagementOriginal: engagementScore,
       level: latestFeedback.level,
       recommendation: getRecommendation(engagementScore),
       feedback: latestFeedback.feedback,
@@ -601,7 +602,8 @@ export default function ModelVerifyDetailPage() {
                 ) : (
                   groupedFeedbacks.map((group) => {
                     const latestFeedback = group.latestFeedback
-                    const score = latestFeedback.engagement > 1 ? latestFeedback.engagement : latestFeedback.engagement * 10
+                    const eng = Number(latestFeedback.engagement)
+                    const score = eng > 1 ? eng : eng * 10
                     const status = getRecommendationStatus(score)
 
                     return (

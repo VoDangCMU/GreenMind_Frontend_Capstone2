@@ -26,6 +26,7 @@ export interface ImpactData {
 
 export interface ImpactPoint {
   day: number
+  date?: string   // actual date label e.g. "12/5"
   air: number
   water: number
   soil: number

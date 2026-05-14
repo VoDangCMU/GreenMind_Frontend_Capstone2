@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Flag,
   Leaf,
+  CreditCard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -28,6 +29,7 @@ const navItems = [
   { title: "Waste Report", href: "/dashboard/waste-report", icon: MapPin },
   { title: "Campaigns", href: "/dashboard/campaign-management", icon: Flag },
   { title: "Community", href: "/dashboard/blogs", icon: BookOpen },
+  { title: "Payments", href: "/dashboard/payment-analysis", icon: CreditCard },
 ]
 
 const modelSurveyItems = [

@@ -23,6 +23,8 @@ const SERIES = [
 ] as const
 
 export function ImpactAreaChart({ timeSeries }: Props) {
+  const hasDate = timeSeries.length > 0 && !!timeSeries[0].date
+
   return (
     <div className="w-full h-72">
       <ResponsiveContainer width="100%" height="100%">
@@ -37,9 +39,14 @@ export function ImpactAreaChart({ timeSeries }: Props) {
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis
-            dataKey="day"
+            dataKey={hasDate ? "date" : "day"}
             tick={{ fontSize: 11 }}
-            label={{ value: "Day", position: "insideBottomRight", offset: -8, fontSize: 12 }}
+            label={
+              hasDate
+                ? undefined
+                : { value: "Day", position: "insideBottomRight", offset: -8, fontSize: 12 }
+            }
+            interval={timeSeries.length > 14 ? Math.floor(timeSeries.length / 10) : 0}
           />
           <YAxis
             tick={{ fontSize: 11 }}
@@ -49,7 +56,7 @@ export function ImpactAreaChart({ timeSeries }: Props) {
             contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
             labelStyle={{ color: "var(--foreground)" }}
             itemStyle={{ color: "var(--muted-foreground)" }}
-            labelFormatter={(v) => `Day ${v}`}
+            labelFormatter={(v) => hasDate ? `${v}` : `Day ${v}`}
           />
           <Legend
             wrapperStyle={{ paddingTop: 12, fontSize: 12, color: "#9ca3af" }}

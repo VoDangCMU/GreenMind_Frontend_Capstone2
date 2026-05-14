@@ -1,32 +1,19 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   fetchBlogs,
-  fetchLeaderboard,
   createBlog,
   updateBlog,
   deleteBlog,
   Blog,
   LeaderboardUser,
 } from "@/services/blog.service"
+import { getAllHouseholdProfiles } from "@/lib/household"
 import { getAccessToken } from "@/lib/auth"
 import { Leaderboard } from "@/components/blog/Leaderboard"
 import { BlogFeedPost } from "@/components/blog/BlogFeedPost"
 import { BlogEditor } from "@/components/blog/BlogEditor"
-
-const MOCK_LEADERBOARD: LeaderboardUser[] = [
-  { rank: 1, userId: "mock-1", fullName: "Nguyễn Bá Khoa", username: "nguyenkhoa", reportCount: 47 },
-  { rank: 2, userId: "mock-2", fullName: "Võ Thị Đăng", username: "vodang", reportCount: 35 },
-  { rank: 3, userId: "mock-3", fullName: "Trần Minh Đức", username: "tranmduc", reportCount: 28 },
-  { rank: 4, userId: "mock-4", fullName: "Lê Thị Thu Hằng", username: "lethuhang", reportCount: 21 },
-  { rank: 5, userId: "mock-5", fullName: "Phạm Quốc Bảo", username: "phamqbao", reportCount: 17 },
-  { rank: 6, userId: "mock-6", fullName: "Hoàng Thị Lan", username: "hoanglan", reportCount: 14 },
-  { rank: 7, userId: "mock-7", fullName: "Nguyen Van Thanh", username: "nvthanh", reportCount: 11 },
-  { rank: 8, userId: "mock-8", fullName: "Bùi Thị Mai", username: "buimai", reportCount: 9 },
-  { rank: 9, userId: "mock-9", fullName: "Do Xuan Truong", username: "dxtruong", reportCount: 7 },
-  { rank: 10, userId: "mock-10", fullName: "Trần Thị Kim Chi", username: "kimchi", reportCount: 5 },
-]
 
 const PAGE_SIZE = 10
 
@@ -35,7 +22,7 @@ type View = "feed" | "compose"
 export default function BlogsPage() {
   const [view, setView] = useState<View>("feed")
   const [blogs, setBlogs] = useState<Blog[]>([])
-  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>(MOCK_LEADERBOARD)
+  const [allHouseholds, setAllHouseholds] = useState<Awaited<ReturnType<typeof getAllHouseholdProfiles>>>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [search, setSearch] = useState("")
@@ -84,10 +71,24 @@ export default function BlogsPage() {
   }
 
   useEffect(() => {
-    fetchLeaderboard()
-      .then((data) => { if (data && data.length > 0) setLeaderboard(data) })
-      .catch(() => { })
+    getAllHouseholdProfiles()
+      .then((profiles) => setAllHouseholds(profiles))
+      .catch(() => {})
   }, [])
+
+  // Build leaderboard from households exactly like Household Management page
+  const leaderboard = useMemo((): LeaderboardUser[] => {
+    return allHouseholds
+      .slice()
+      .sort((a, b) => (b.greenScore ?? 0) - (a.greenScore ?? 0))
+      .map((household, idx) => ({
+        rank: idx + 1,
+        userId: `household-${household.id}`,
+        fullName: household.name.split(",")[0].trim(),
+        username: household.name.split(",")[0].trim(),
+        reportCount: household.greenScore ?? 0,
+      }))
+  }, [allHouseholds])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -178,8 +179,10 @@ export default function BlogsPage() {
           <div className="flex gap-6 items-start">
 
             {/* ── LEFT: Leaderboard (sticky) ── */}
-            <div className="w-1/4 shrink-0 sticky top-6">
-              <Leaderboard leaderboard={leaderboard} />
+            <div className="w-72 shrink-0 sticky top-6">
+              <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-slate-700/50 shadow-xl overflow-hidden">
+                <Leaderboard leaderboard={leaderboard} />
+              </div>
             </div>
 
             {/* ── RIGHT: Search + Feed ── */}
