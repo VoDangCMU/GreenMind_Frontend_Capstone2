@@ -24,7 +24,7 @@ export interface Campaign {
   status?: "PENDING" | "ONGOING" | "COMPLETED" | "CANCELLED";
 }
 
-export type ParticipantStatus = "REGISTERED" | "CHECKED_IN" | "COMPLETED";
+export type ParticipantStatus = "PENDING" | "APPROVED" | "REJECTED" | "CHECKED_IN" | "COMPLETED";
 
 export interface CampaignParticipant {
   id: string;

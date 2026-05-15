@@ -23,133 +23,6 @@ interface AreaDrawerProps {
   onClose: () => void;
 }
 
-const AREA_DETAILS: Record<
-  number,
-  {
-    households: number;
-    plasticRatio: number;
-    wasteTrend: { date: string; waste: number }[];
-    plasticByMonth: { month: string; plastic: number }[];
-    electricityByMonth: { month: string; kwh: number }[];
-    emissionTrend: { date: string; emission: number }[];
-  }
-> = {
-  1: {
-    households: 1250,
-    plasticRatio: 45,
-    wasteTrend: [
-      { date: "03-13", waste: 2800 },
-      { date: "03-14", waste: 2900 },
-      { date: "03-15", waste: 3000 },
-      { date: "03-16", waste: 3100 },
-      { date: "03-17", waste: 3300 },
-      { date: "03-18", waste: 3400 },
-      { date: "03-19", waste: 3200 },
-    ],
-    plasticByMonth: [
-      { month: "Oct", plastic: 820 },
-      { month: "Nov", plastic: 940 },
-      { month: "Dec", plastic: 1050 },
-      { month: "Jan", plastic: 980 },
-      { month: "Feb", plastic: 1100 },
-      { month: "Mar", plastic: 1240 },
-    ],
-    electricityByMonth: [
-      { month: "Oct", kwh: 32000 },
-      { month: "Nov", kwh: 34500 },
-      { month: "Dec", kwh: 38000 },
-      { month: "Jan", kwh: 36000 },
-      { month: "Feb", kwh: 33000 },
-      { month: "Mar", kwh: 35500 },
-    ],
-    emissionTrend: [
-      { date: "03-13", emission: 1.4 },
-      { date: "03-14", emission: 1.45 },
-      { date: "03-15", emission: 1.5 },
-      { date: "03-16", emission: 1.55 },
-      { date: "03-17", emission: 1.65 },
-      { date: "03-18", emission: 1.7 },
-      { date: "03-19", emission: 1.6 },
-    ],
-  },
-  2: {
-    households: 870,
-    plasticRatio: 38,
-    wasteTrend: [
-      { date: "03-13", waste: 1500 },
-      { date: "03-14", waste: 1600 },
-      { date: "03-15", waste: 1700 },
-      { date: "03-16", waste: 1800 },
-      { date: "03-17", waste: 1750 },
-      { date: "03-18", waste: 1820 },
-      { date: "03-19", waste: 1800 },
-    ],
-    plasticByMonth: [
-      { month: "Oct", plastic: 420 },
-      { month: "Nov", plastic: 480 },
-      { month: "Dec", plastic: 510 },
-      { month: "Jan", plastic: 490 },
-      { month: "Feb", plastic: 530 },
-      { month: "Mar", plastic: 560 },
-    ],
-    electricityByMonth: [
-      { month: "Oct", kwh: 18000 },
-      { month: "Nov", kwh: 19500 },
-      { month: "Dec", kwh: 21000 },
-      { month: "Jan", kwh: 20000 },
-      { month: "Feb", kwh: 18500 },
-      { month: "Mar", kwh: 19000 },
-    ],
-    emissionTrend: [
-      { date: "03-13", emission: 0.75 },
-      { date: "03-14", emission: 0.8 },
-      { date: "03-15", emission: 0.85 },
-      { date: "03-16", emission: 0.9 },
-      { date: "03-17", emission: 0.87 },
-      { date: "03-18", emission: 0.91 },
-      { date: "03-19", emission: 0.9 },
-    ],
-  },
-  3: {
-    households: 540,
-    plasticRatio: 28,
-    wasteTrend: [
-      { date: "03-13", waste: 780 },
-      { date: "03-14", waste: 820 },
-      { date: "03-15", waste: 860 },
-      { date: "03-16", waste: 910 },
-      { date: "03-17", waste: 900 },
-      { date: "03-18", waste: 940 },
-      { date: "03-19", waste: 900 },
-    ],
-    plasticByMonth: [
-      { month: "Oct", plastic: 180 },
-      { month: "Nov", plastic: 200 },
-      { month: "Dec", plastic: 220 },
-      { month: "Jan", plastic: 210 },
-      { month: "Feb", plastic: 230 },
-      { month: "Mar", plastic: 250 },
-    ],
-    electricityByMonth: [
-      { month: "Oct", kwh: 9500 },
-      { month: "Nov", kwh: 10200 },
-      { month: "Dec", kwh: 11000 },
-      { month: "Jan", kwh: 10500 },
-      { month: "Feb", kwh: 9800 },
-      { month: "Mar", kwh: 10000 },
-    ],
-    emissionTrend: [
-      { date: "03-13", emission: 0.39 },
-      { date: "03-14", emission: 0.41 },
-      { date: "03-15", emission: 0.43 },
-      { date: "03-16", emission: 0.45 },
-      { date: "03-17", emission: 0.44 },
-      { date: "03-18", emission: 0.47 },
-      { date: "03-19", emission: 0.45 },
-    ],
-  },
-};
-
 // Fallback detail for dynamically added areas
 const defaultDetail = (area: UrbanArea) => ({
   households: Math.round(area.totalWaste / 2.5),
@@ -214,8 +87,8 @@ function ChartCard({
 }
 
 const REPORT_STATUS_CFG = {
-  pending:  { label: "Chờ xử lý",    bg: "bg-red-50",     text: "text-red-700",     dot: "bg-red-400 animate-pulse"   },
-  done:     { label: "Hoàn thành",   bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
+  pending:  { label: "Pending",     bg: "bg-red-50",     text: "text-red-700",     dot: "bg-red-400 animate-pulse"   },
+  done:     { label: "Completed",  bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
 };
 
 export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
@@ -238,9 +111,7 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose, selectedReportId]);
 
-  const detail = area
-    ? AREA_DETAILS[area.id] ?? defaultDetail(area)
-    : null;
+  const detail = area ? defaultDetail(area) : null;
 
   const statusCfg = area ? STATUS_LABEL[area.status] : null;
 
@@ -264,7 +135,7 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400">Dữ liệu môi trường & rác thải thời gian thực</p>
+            <p className="text-xs text-gray-400">Real-time environmental & waste data</p>
           </div>
           <button
             onClick={onClose}
@@ -296,11 +167,11 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Báo cáo rác thải ({wardReports.length} báo cáo)
+                        Waste Reports ({wardReports.length} reports)
                       </p>
                       {pendingCount > 0 && (
                         <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
-                          {pendingCount} chờ xử lý
+                          {pendingCount} pending
                         </span>
                       )}
                     </div>
@@ -324,7 +195,7 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
                                 <span className="text-[10px] text-gray-300">›</span>
                               </div>
                             </div>
-                            <p className="text-xs font-semibold text-gray-800 mb-0.5">{r.reportedByName || "Công dân"}</p>
+                            <p className="text-xs font-semibold text-gray-800 mb-0.5">{r.reportedByName || "Citizen"}</p>
                             <p className="text-[10px] text-gray-500 line-clamp-1 mb-2">{r.description}</p>
                           </div>
                         );
@@ -341,7 +212,7 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
                 return (
                   <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                      Danh sách hộ dân ({wardHouseholds.length} hộ)
+                      Household List ({wardHouseholds.length} households)
                     </p>
                     <div className="rounded-xl border border-gray-100 overflow-hidden">
                       <div className="max-h-48 overflow-y-auto">
@@ -532,7 +403,7 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
             </>
           ) : (
             <div className="flex items-center justify-center h-48 text-sm text-gray-400">
-              Chọn một phường trên bản đồ
+              Select a ward on the map
             </div>
           )}
         </div>
@@ -549,9 +420,6 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
             const resolvedT = selectedReport.resolvedAt
               ? new Date(selectedReport.resolvedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
               : null;
-            const WASTE_TYPE_LABEL: Record<string, string> = {
-              mixed: "Hỗn hợp", plastic: "Nhựa", organic: "Hữu cơ", hazardous: "Nguy hại",
-            };
             return (
               <>
                 {/* Detail header */}
@@ -581,20 +449,16 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
                 <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
                   {/* Household info */}
                   <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Thông tin báo cáo</p>
-                    <p className="text-sm font-bold text-gray-800">{selectedReport.reportedByName || "Công dân ẩn danh"}</p>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Report Information</p>
+                    <p className="text-sm font-bold text-gray-800">{selectedReport.reportedByName || "Anonymous"}</p>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <p className="text-gray-400">Loại rác</p>
-                        <p className="font-semibold text-gray-700">{WASTE_TYPE_LABEL[selectedReport.wasteType] ?? selectedReport.wasteType}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-400">Báo cáo lúc</p>
+                        <p className="text-gray-400">Reported at</p>
                         <p className="font-semibold text-gray-700">{t}</p>
                       </div>
                       {resolvedT && (
                         <div>
-                          <p className="text-gray-400">Hoàn thành lúc</p>
+                          <p className="text-gray-400">Completed at</p>
                           <p className="font-semibold text-emerald-600">{resolvedT}</p>
                         </div>
                       )}
@@ -603,8 +467,8 @@ export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {
 
                   {/* Description */}
                   <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Mô tả</p>
-                    <p className="text-xs text-gray-700 leading-relaxed">{selectedReport.description || "Không có mô tả"}</p>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Description</p>
+                    <p className="text-xs text-gray-700 leading-relaxed">{selectedReport.description || "No description"}</p>
                   </div>
                 </div>
               </>
