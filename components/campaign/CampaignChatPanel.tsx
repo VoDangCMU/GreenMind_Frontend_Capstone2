@@ -191,15 +191,15 @@ export function CampaignChatPanel({ campaignId }: CampaignChatPanelProps) {
             <MessageCircle className="w-4 h-4 text-blue-500" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-800 leading-tight">Chat Chiến dịch</p>
+            <p className="text-sm font-bold text-slate-800 leading-tight">Campaign Chat</p>
             {typingUsers.length > 0 ? (
               <p className="text-[10px] text-blue-500 leading-tight italic">
                 {typingUsers[0]}
-                {typingUsers.length > 1 ? ` và ${typingUsers.length - 1} người khác` : ""} đang nhập...
+                {typingUsers.length > 1 ? ` and ${typingUsers.length - 1} other(s)` : ""} is typing...
               </p>
             ) : (
               <p className="text-[10px] text-slate-400 leading-tight">
-                {messages.length} tin nhắn
+                {messages.length} messages
               </p>
             )}
           </div>

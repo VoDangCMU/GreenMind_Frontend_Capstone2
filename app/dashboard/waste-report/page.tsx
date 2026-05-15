@@ -3,17 +3,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import type { Summary, UrbanArea, WasteReport, WasteType, ReportStatus, CampaignRegion } from "@/types/waste-report";
-import { SummaryCards } from "@/components/waste-report/SummaryCards";
+import type { UrbanArea, WasteReport, ReportStatus, CampaignRegion } from "@/types/waste-report";
 import { ReportList, ReportDetailModal } from "@/components/waste-report/ReportList";
+import type { FilterMode } from "@/components/waste-report/ReportList";
 import { AreaDrawer } from "@/components/waste-report/AreaDrawer";
 import { CampaignModal } from "@/components/campaign/CampaignModal";
 import { WARDS } from "@/data/wardData";
 import { ENV_ALERTS } from "@/data/envAlertData";
 import { getAccessToken } from "@/lib/auth";
 
-const MapView = dynamic(
-  () => import("@/components/waste-report/MapView").then((m) => m.MapView),
+const MapContainer = dynamic(
+  () => import("@/components/waste-report/MapContainer").then((m) => m.default),
   { ssr: false }
 );
 
@@ -26,133 +26,35 @@ export default function MonitoringPage() {
   const router = useRouter();
   const [areas] = useState<UrbanArea[]>(WARDS);
   const [reports, setReports] = useState<WasteReport[]>([]);
-  const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const [selectedArea, setSelectedArea] = useState<UrbanArea | null>(null);
   const [highlightAreaName, setHighlightAreaName] = useState<string | null>(null);
   const [selectedWardName, setSelectedWardName] = useState<string | null>(null);
   const [selectedReportPopup, setSelectedReportPopup] = useState<WasteReport | null>(null);
+  const [focusedReport, setFocusedReport] = useState<WasteReport | null>(null);
   const [campaignRegion, setCampaignRegion] = useState<CampaignRegion | null>(null);
+  const [reportFilter, setReportFilter] = useState<FilterMode>("no-campaign");
 
-  const fetchReports = useCallback(async (showLoader: boolean = false) => {
-    if (showLoader) setLoading(true);
-    try {
-      const token = getAccessToken();
-      const reportsRes = await fetch("https://vodang-api.gauas.com/waste-monitoring?limit=100", {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        cache: "no-store",
-      }).catch(() => null);
-
-      let validReports: WasteReport[] = [];
-
-      if (reportsRes && reportsRes.ok) {
-        const apiData = await reportsRes.json();
-        const rawList: any[] = Array.isArray(apiData) ? apiData : (apiData?.data ?? []);
-
-        const wasteTypeMap: Record<string, WasteType> = {
-          plastic: "plastic",
-          organic: "organic",
-          hazardous: "hazardous",
-          mixed: "mixed",
-        };
-        const statusMap: Record<string, ReportStatus> = {
-          pending: "pending",
-          approved: "approved",
-          done: "done",
-          resolved: "done",
-        };
-
-        validReports = rawList.map((r: any) => ({
-          id: r.id,
-          code: r.code || "",
-          reportedBy: r.reportedBy || null,
-          reportedByUserId: r.reportedByUserId || null,
-          reportedByName: r.reportedBy?.fullName || r.reportedBy?.username || r.reportedByName || null,
-          wardName: r.wardName || "Không rõ",
-          lat: r.lat ?? 0,
-          lng: r.lng ?? 0,
-          wasteType: wasteTypeMap[r.wasteType] ?? "mixed",
-          description: r.description || null,
-          status: statusMap[r.status] ?? "pending",
-          createdAt: r.createdAt || new Date().toISOString(),
-          resolvedAt: r.resolvedAt || null,
-          imageUrl: r.imageUrl || null,
-          imageEvidenceUrl: r.imageEvidenceUrl || null,
-          segmentedImageUrl: r.segmentedImageUrl || null,
-          depthImageUrl: r.depthImageUrl || null,
-          heatmapUrl: r.heatmapUrl || null,
-          segmentRatio: r.segmentRatio != null ? Number(r.segmentRatio) : null,
-          pollutionScore: r.pollutionScore != null ? Number(r.pollutionScore) : null,
-          pollutionLevel: r.pollutionLevel || null,
-          campaignId: r.campaignId || null,
-        } as WasteReport));
-      }
-
-      setReports(validReports);
-
-      const uniqueWards = new Set(validReports.map(r => r.wardName)).size;
-      const totalCount = validReports.length || 1;
-
-      const countByType = (type: WasteType) =>
-        validReports.filter(r => r.wasteType === type).length;
-
-      const plasticCount = countByType("plastic");
-      const organicCount = countByType("organic");
-      const mixedCount = countByType("mixed");
-      const hazardousCount = countByType("hazardous");
-
-      const toRaw = (n: number) => Math.round((n / totalCount) * 100);
-      let plasticPct = toRaw(plasticCount);
-      let organicPct = toRaw(organicCount);
-      let mixedPct = toRaw(mixedCount);
-      let hazardousPct = toRaw(hazardousCount);
-      const diff = 100 - plasticPct - organicPct - mixedPct - hazardousPct;
-      const maxPct = Math.max(plasticPct, organicPct, mixedPct, hazardousPct);
-      if (diff !== 0) {
-        if (mixedPct === maxPct) mixedPct += diff;
-        else if (plasticPct === maxPct) plasticPct += diff;
-        else if (organicPct === maxPct) organicPct += diff;
-        else hazardousPct += diff;
-      }
-
-      setSummary({
-        totalWaste: 0,
-        urbanAreas: uniqueWards,
-        pendingReports: validReports.filter(r => r.status === "pending").length,
-        wasteDistribution: {
-          plastic: plasticPct,
-          organic: organicPct,
-          mixed: mixedPct,
-          hazardous: hazardousPct,
-        },
-      });
-    } catch (err) {
-      console.error("Failed to fetch monitoring data:", err);
-    } finally {
-      if (showLoader) {
-        setLoading(false);
-        setIsInitialLoad(false);
-      }
-    }
+  // Handle reports update from MapContainer (when MapContainer fetches new data)
+  const handleReportsUpdate = useCallback((newReports: WasteReport[]) => {
+    setReports(newReports);
   }, []);
 
-  // Initial load
+  // Listen for viewReportDetail event from map popup
   useEffect(() => {
-    fetchReports(true);
-  }, [fetchReports]);
+    const handleEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      const reportId = customEvent.detail;
+      const report = reports.find((r) => r.id === reportId);
+      if (report) {
+        setSelectedReportPopup(report);
+      }
+    };
 
-  // Background refresh mỗi 15 giây - không hiển thị loading
-  useEffect(() => {
-    if (isInitialLoad) return; // Chờ initial load xong
-
-    const interval = setInterval(() => {
-      fetchReports(false);
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, [fetchReports, isInitialLoad]);
+    window.addEventListener("viewReportDetail", handleEvent);
+    return () => window.removeEventListener("viewReportDetail", handleEvent);
+  }, [reports]);
 
   const handleAreaSelect = useCallback((area: UrbanArea) => {
     setSelectedArea(area);
@@ -166,7 +68,16 @@ export default function MonitoringPage() {
   }, []);
 
   const handleReportClick = useCallback((report: WasteReport) => {
+    setFocusedReport(report);
+  }, []);
+
+  const handleViewReportDetail = useCallback((report: WasteReport) => {
     setSelectedReportPopup(report);
+  }, []);
+
+  const handleClearFocusedReport = useCallback(() => {
+    setFocusedReport(null);
+    setSelectedReportPopup(null);
   }, []);
 
   // Chuyển 1 report thành CampaignRegion rồi mở CampaignModal
@@ -200,13 +111,15 @@ export default function MonitoringPage() {
       {/* Header — fixed */}
       <div className="shrink-0 px-6 pt-4 pb-3 bg-white border-b border-gray-100">
         <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">
-              Waste Report
-            </h1>
-            <p className="text-sm text-gray-400 mt-0.5">
-              Da Nang City — Real-time Dashboard
-            </p>
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">
+                {focusedReport ? focusedReport.wardName : "Waste Report"}
+              </h1>
+              <p className="text-sm text-gray-400 mt-0.5">
+                {focusedReport ? "Focused view" : "Da Nang City — Real-time Dashboard"}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold bg-emerald-50 px-3 py-1.5 rounded-full">
@@ -223,27 +136,13 @@ export default function MonitoringPage() {
         </div>
       </div>
 
-      {/* Summary cards — fixed */}
-      <div className="shrink-0 px-6 pt-4 pb-3">
-        <SummaryCards
-          summary={
-            summary ?? {
-              totalWaste: 0, urbanAreas: 0, pendingReports: 0,
-              wasteDistribution: { plastic: 0, organic: 0, mixed: 0, hazardous: 0 },
-            }
-          }
-          loading={loading}
-        />
-      </div>
-
       {/* Map + Right panel — fills all remaining space */}
       <div className="flex-1 min-h-0 px-6 pb-6">
-        <div className="grid grid-cols-10 gap-5 h-full">
-          {/* Map 70% */}
-          <div className="col-span-7 h-full">
-            <MapView
+        <div className="grid grid-cols-12 gap-5 h-full">
+          {/* Map 80% */}
+          <div className="col-span-8 h-full">
+            <MapContainer
               areas={areas}
-              reports={reports}
               envAlerts={ENV_ALERTS}
               selectedWardName={selectedWardName}
               selectedAreaId={selectedArea?.id ?? null}
@@ -252,14 +151,18 @@ export default function MonitoringPage() {
               onReportSelect={handleReportClick}
               onClearSelection={handleClearSelection}
               loading={loading}
+              focusedReport={focusedReport}
+              onViewReportDetail={handleViewReportDetail}
+              onClearFocusedReport={handleClearFocusedReport}
+              onReportsUpdate={handleReportsUpdate}
             />
           </div>
 
-          {/* Right panel 30%:
+          {/* Right panel 20%:
               Level 1 (không chọn phường) → ReportList
               Level 2 (đã chọn phường)    → AreaDrawer
           */}
-          <div className="col-span-3 h-full overflow-hidden">
+          <div className="col-span-4 h-full overflow-hidden">
             {selectedArea ? (
               <AreaDrawer
                 area={selectedArea}
@@ -273,7 +176,12 @@ export default function MonitoringPage() {
                 onReportClick={handleReportClick}
                 onCreateCampaign={handleCreateCampaign}
                 onNavigateToCampaign={handleNavigateToCampaign}
+                onViewReportDetail={handleViewReportDetail}
                 selectedArea={null}
+                filter={reportFilter}
+                onFilterChange={setReportFilter}
+                focusedReportId={focusedReport?.id ?? null}
+                onClearFocusedReport={handleClearFocusedReport}
               />
             )}
           </div>
@@ -294,10 +202,6 @@ export default function MonitoringPage() {
         isOpen={!!campaignRegion}
         onClose={() => setCampaignRegion(null)}
         region={campaignRegion}
-        onSuccess={() => {
-          fetchReports(false);
-          router.push("/dashboard/campaign-management");
-        }}
       />
     </div>
   );

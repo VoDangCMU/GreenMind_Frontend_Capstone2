@@ -412,6 +412,19 @@ export const combineQuestion = async (questionData: any) => {
 };
 
 
+// Campaign participant management
+export const getPendingParticipants = async (campaignId: string) => {
+  return apiGet(`/campaigns/${campaignId}/participants/pending`);
+};
+
+export const approveCampaignParticipant = async (campaignId: string, participantId: string) => {
+  return apiPost(`/campaigns/${campaignId}/participants/${participantId}/approve`);
+};
+
+export const rejectCampaignParticipant = async (campaignId: string, participantId: string) => {
+  return apiPost(`/campaigns/${campaignId}/participants/${participantId}/reject`);
+};
+
 export const getUsers = async () => {
   return apiGet('/auth/get-alls');
 }
