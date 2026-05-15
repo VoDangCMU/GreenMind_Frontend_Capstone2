@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Campaign, CampaignParticipant } from "@/types/campaign";
 import { getAccessToken } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle2, MapPin, UserCircle, Users, AlertCircle, Loader2, MessageCircle, Info } from "lucide-react";
+import { Calendar, CheckCircle2, MapPin, UserCircle, Users, AlertCircle, Loader2, Activity, Clock, X, MessageCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { CampaignChatPanel } from "@/components/campaign/CampaignChatPanel";
+import { PendingParticipantsCard } from "./PendingParticipantsCard";
 
 interface CampaignDetailModalProps {
   isOpen: boolean;
@@ -16,49 +18,50 @@ interface CampaignDetailModalProps {
   campaignId: string | null;
 }
 
-type ActiveTab = "info" | "chat";
-
 export function CampaignDetailModal({ isOpen, onClose, campaignId }: CampaignDetailModalProps) {
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>("info");
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  const fetchDetail = useCallback(async (isSilent: boolean = false) => {
+    if (!campaignId) return;
+    if (!isSilent) {
+      setLoading(true);
+    }
+    setError(null);
+    try {
+      const token = getAccessToken();
+      const res = await fetch(`https://vodang-api.gauas.com/campaigns/${campaignId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("Lỗi khi tải dữ liệu chiến dịch");
+      }
+
+      const data = await res.json();
+      setDetail(data);
+      if (!initialLoadDone) {
+        setInitialLoadDone(true);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      if (!isSilent) {
+        setLoading(false);
+      }
+    }
+  }, [campaignId, initialLoadDone]);
 
   useEffect(() => {
     if (!isOpen || !campaignId) return;
-    // Reset tab về info khi mở modal mới
-    setActiveTab("info");
-
-    let isMounted = true;
-    async function fetchDetail() {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = getAccessToken();
-        const res = await fetch(`https://vodang-api.gauas.com/campaigns/${campaignId}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          cache: "no-store",
-        });
-
-        if (!res.ok) {
-          throw new Error("Lỗi khi tải dữ liệu chiến dịch");
-        }
-        
-        const data = await res.json();
-        if (isMounted) {
-          setDetail(data);
-        }
-      } catch (err: any) {
-        if (isMounted) setError(err.message);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
     fetchDetail();
+  }, [isOpen, campaignId, fetchDetail]);
 
-    return () => { isMounted = false; };
-  }, [isOpen, campaignId]);
+  const approvedParticipants = detail?.participants?.filter(p => p.status === "APPROVED" || p.status === "CHECKED_IN" || p.status === "COMPLETED") || [];
 
   const renderStatus = (status?: string) => {
     switch (status?.toUpperCase()) {
@@ -75,18 +78,25 @@ export function CampaignDetailModal({ isOpen, onClose, campaignId }: CampaignDet
     }
   };
 
-  const renderParticipantStatus = (status: "REGISTERED" | "CHECKED_IN" | "COMPLETED") => {
+  const renderParticipantStatus = (status: "PENDING" | "APPROVED" | "REJECTED" | "CHECKED_IN" | "COMPLETED") => {
     switch (status) {
       case "COMPLETED":
         return <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full"><CheckCircle2 className="w-3.5 h-3.5" /> Hoàn thành</span>;
       case "CHECKED_IN":
         return <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full"><MapPin className="w-3.5 h-3.5" /> Đã điểm danh</span>;
+      case "APPROVED":
+        return <span className="inline-flex items-center gap-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 px-2.5 py-1 rounded-full"><CheckCircle2 className="w-3.5 h-3.5" /> Đã duyệt</span>;
+      case "REJECTED":
+        return <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full"><X className="w-3.5 h-3.5" /> Từ chối</span>;
       default:
-        return <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full"> Đăng ký</span>;
+        return <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full"><Clock className="w-3.5 h-3.5" /> Chờ duyệt</span>;
     }
   };
 
   const finalParticipants: CampaignParticipant[] = detail?.participants || [];
+
+  // Show loading overlay only on first load
+  const showInitialLoading = loading && !initialLoadDone;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -94,10 +104,16 @@ export function CampaignDetailModal({ isOpen, onClose, campaignId }: CampaignDet
         <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-white shrink-0">
           <DialogTitle className="text-xl font-bold flex items-center justify-between mt-1">
             <span>Thông tin Chiến dịch</span>
+            {loading && initialLoadDone && (
+              <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Đang cập nhật...
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
-        {loading ? (
+        {showInitialLoading ? (
            <div className="flex-1 flex flex-col items-center justify-center py-20 bg-white">
               <Loader2 className="w-8 h-8 animate-spin text-slate-400 mb-4" />
               <p className="text-sm text-slate-500">Đang tải chi tiết...</p>
@@ -114,6 +130,7 @@ export function CampaignDetailModal({ isOpen, onClose, campaignId }: CampaignDet
               </button>
            </div>
         ) : detail ? (
+           <>
            <div className="flex-1 min-h-0 flex overflow-hidden">
 
              {/* ── LEFT: Info + Participants ──────────────────── */}
@@ -176,10 +193,21 @@ export function CampaignDetailModal({ isOpen, onClose, campaignId }: CampaignDet
                  </div>
                </div>
 
+               {/* Pending Participants Card */}
+               <div className="px-6 py-4 border-b border-slate-100 shrink-0">
+                 <PendingParticipantsCard
+                   campaignId={campaignId || ""}
+                   onUpdate={fetchDetail}
+                   onUpdateSilent={() => fetchDetail(true)}
+                 />
+               </div>
+
                {/* Participants Table */}
                <div className="flex-1 min-h-0 flex flex-col bg-white">
                  <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50 shrink-0">
-                   <h3 className="font-semibold text-slate-800 text-sm">Danh sách Người tham gia</h3>
+                   <h3 className="font-semibold text-slate-800 text-sm">
+                     Tất cả Người tham gia ({approvedParticipants.length})
+                   </h3>
                  </div>
                  <ScrollArea className="flex-1">
                    <Table>
@@ -191,94 +219,167 @@ export function CampaignDetailModal({ isOpen, onClose, campaignId }: CampaignDet
                        </TableRow>
                      </TableHeader>
                      <TableBody>
-                       {finalParticipants.map((p) => (
-                         <TableRow key={p.id}>
-                           <TableCell className="pl-6">
-                             <div className="flex items-center gap-3 py-1">
-                               <UserCircle className="w-8 h-8 text-slate-300" />
-                               <div>
-                                 <p className="font-semibold text-slate-900 text-sm">{p.user?.fullName || "Người dùng ẩn danh"}</p>
-                                 <p className="text-xs text-slate-500">{p.user?.email || p.user?.phoneNumber || p.user?.username || "Chưa cập nhật"}</p>
-                               </div>
-                             </div>
-                           </TableCell>
-                           <TableCell>{renderParticipantStatus(p.status)}</TableCell>
-                           <TableCell className="text-xs text-slate-500">
-                             {(() => {
-                               const dateObj = p.checkOutTime || p.checkInTime || p.updatedAt || p.createdAt;
-                               if (!dateObj) return "N/A";
-                               try {
-                                 return new Date(dateObj).toLocaleString("vi-VN", {
-                                   hour: "2-digit", minute: "2-digit",
-                                   day: "2-digit", month: "2-digit", year: "numeric"
-                                 });
-                               } catch { return "N/A"; }
-                             })()}
+                       {approvedParticipants.length === 0 ? (
+                         <TableRow>
+                           <TableCell colSpan={3} className="text-center py-12 text-slate-400">
+                             <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                             <p>Chưa có người tham gia được duyệt</p>
                            </TableCell>
                          </TableRow>
-                       ))}
+                       ) : (
+                         approvedParticipants.map((p) => (
+                           <TableRow key={p.id}>
+                             <TableCell className="pl-6">
+                               <div className="flex items-center gap-3 py-1">
+                                 <UserCircle className="w-8 h-8 text-slate-300" />
+                                 <div>
+                                   <p className="font-semibold text-slate-900 text-sm">{p.user?.fullName || "Người dùng ẩn danh"}</p>
+                                   <p className="text-xs text-slate-500">{p.user?.email || p.user?.phoneNumber || p.user?.username || "Chưa cập nhật"}</p>
+                                 </div>
+                               </div>
+                             </TableCell>
+                             <TableCell>{renderParticipantStatus(p.status)}</TableCell>
+                             <TableCell className="text-xs text-slate-500">
+                               {(() => {
+                                 const dateObj = p.checkOutTime || p.checkInTime || p.updatedAt || p.createdAt;
+                                 if (!dateObj) return "N/A";
+                                 try {
+                                   return new Date(dateObj).toLocaleString("vi-VN", {
+                                     hour: "2-digit", minute: "2-digit",
+                                     day: "2-digit", month: "2-digit", year: "numeric"
+                                   });
+                                 } catch { return "N/A"; }
+                               })()}
+                             </TableCell>
+                           </TableRow>
+                         ))
+                       )}
                      </TableBody>
                    </Table>
                  </ScrollArea>
                </div>
              </div>
 
-             {/* ── RIGHT: Chat Panel ────────────────────────────── */}
-             <div className="flex flex-col min-h-0" style={{ width: "42%" }}>
-               {/* Tab header */}
-               <div className="flex items-center gap-0 px-4 pt-3 pb-0 bg-white border-b border-slate-100 shrink-0">
-                 <button
-                   onClick={() => setActiveTab("info")}
-                   className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 transition-colors ${
-                     activeTab === "info"
-                       ? "border-blue-500 text-blue-600 bg-blue-50"
-                       : "border-transparent text-slate-500 hover:text-slate-700"
-                   }`}
-                 >
-                   <Info className="w-3.5 h-3.5" />
-                   Tổng quan
-                 </button>
-                 <button
-                   onClick={() => setActiveTab("chat")}
-                   className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 transition-colors ${
-                     activeTab === "chat"
-                       ? "border-blue-500 text-blue-600 bg-blue-50"
-                       : "border-transparent text-slate-500 hover:text-slate-700"
-                   }`}
-                 >
-                   <MessageCircle className="w-3.5 h-3.5" />
-                   Chat nhóm
-                 </button>
+             {/* ── RIGHT: Campaign Stats Overview ───────────────────── */}
+             <div className="flex flex-col min-h-0 bg-slate-50" style={{ width: "42%" }}>
+               <div className="px-5 pt-4 pb-2 bg-white border-b border-slate-100 shrink-0">
+                 <h3 className="font-semibold text-slate-800 text-sm">Tổng quan Chiến dịch</h3>
                </div>
-
-               {/* Tab content */}
-               <div className="flex-1 min-h-0 overflow-hidden">
-                 {activeTab === "info" ? (
-                   <div className="h-full flex flex-col items-center justify-center gap-4 p-8 text-center bg-slate-50">
-                     <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center">
-                       <Info className="w-8 h-8 text-blue-500" />
+               <ScrollArea className="flex-1 px-5 py-4">
+                 <div className="space-y-4">
+                   {/* Stats Grid */}
+                   <div className="grid grid-cols-2 gap-3">
+                     <div className="bg-white rounded-xl p-4 border border-slate-100">
+                       <div className="flex items-center gap-2 mb-2">
+                         <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                           <Users className="w-4 h-4 text-blue-600" />
+                         </div>
+                         <span className="text-xs text-slate-500 font-medium">Tổng cộng</span>
+                       </div>
+                       <p className="text-2xl font-bold text-slate-800">{detail.participantsCount ?? detail.participants?.length ?? 0}</p>
                      </div>
-                     <div>
-                       <p className="font-semibold text-slate-700 text-base">Thông tin chiến dịch</p>
-                       <p className="text-sm text-slate-400 mt-1">Xem thông tin chi tiết bên cột trái.</p>
+                     <div className="bg-white rounded-xl p-4 border border-slate-100">
+                       <div className="flex items-center gap-2 mb-2">
+                         <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                           <Clock className="w-4 h-4 text-amber-600" />
+                         </div>
+                         <span className="text-xs text-slate-500 font-medium">Chờ duyệt</span>
+                       </div>
+                       <p className="text-2xl font-bold text-amber-600">{detail.participants?.filter(p => p.status === "PENDING").length ?? 0}</p>
                      </div>
-                     <button
-                       onClick={() => setActiveTab("chat")}
-                       className="mt-2 flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-xl transition-all active:scale-95"
-                     >
-                       <MessageCircle className="w-4 h-4" />
-                       Mở Chat nhóm
-                     </button>
                    </div>
-                 ) : (
-                   <CampaignChatPanel campaignId={campaignId!} />
-                 )}
-               </div>
+
+                   {/* Participant Status Breakdown */}
+                   <div className="bg-white rounded-xl p-4 border border-slate-100">
+                     <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Trạng thái tham gia</h4>
+                     <div className="space-y-2.5">
+                       {[
+                         { status: "Đã duyệt", count: approvedParticipants.filter(p => p.status === "APPROVED").length, color: "bg-cyan-500", textColor: "text-cyan-700" },
+                         { status: "Đã điểm danh", count: approvedParticipants.filter(p => p.status === "CHECKED_IN").length, color: "bg-blue-500", textColor: "text-blue-700" },
+                         { status: "Hoàn thành", count: approvedParticipants.filter(p => p.status === "COMPLETED").length, color: "bg-emerald-500", textColor: "text-emerald-700" },
+                         { status: "Từ chối", count: detail.participants?.filter(p => p.status === "REJECTED").length ?? 0, color: "bg-red-500", textColor: "text-red-700" },
+                       ].map((item) => (
+                         <div key={item.status} className="flex items-center justify-between">
+                           <div className="flex items-center gap-2">
+                             <div className={`w-2 h-2 rounded-full ${item.color}`} />
+                             <span className={`text-sm ${item.textColor}`}>{item.status}</span>
+                           </div>
+                           <span className={`text-sm font-semibold ${item.textColor}`}>{item.count}</span>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+
+                   {/* Campaign Info */}
+                   <div className="bg-white rounded-xl p-4 border border-slate-100">
+                     <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Thông tin</h4>
+                     <div className="space-y-3">
+                       <div className="flex items-start gap-3">
+                         <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                           <MapPin className="w-4 h-4 text-slate-500" />
+                         </div>
+                         <div>
+                           <p className="text-xs text-slate-400">Vị trí</p>
+                           <p className="text-sm font-medium text-slate-700">{detail.lat.toFixed(4)}, {detail.lng.toFixed(4)}</p>
+                         </div>
+                       </div>
+                       <div className="flex items-start gap-3">
+                         <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                           <Activity className="w-4 h-4 text-slate-500" />
+                         </div>
+                         <div>
+                           <p className="text-xs text-slate-400">Bán kính</p>
+                           <p className="text-sm font-medium text-slate-700">{detail.radius} mét</p>
+                         </div>
+                       </div>
+                       <div className="flex items-start gap-3">
+                         <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                           <Calendar className="w-4 h-4 text-slate-500" />
+                         </div>
+                         <div>
+                           <p className="text-xs text-slate-400">Thời gian</p>
+                           <p className="text-sm font-medium text-slate-700">
+                             {new Date(detail.startDate).toLocaleDateString("vi-VN")} – {new Date(detail.endDate).toLocaleDateString("vi-VN")}
+                           </p>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+
+                   {/* Quick Action - Chat Button */}
+                   <button
+                     onClick={() => setIsChatOpen(true)}
+                     className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-emerald-500 hover:bg-emerald-600 text-white text-base font-semibold rounded-xl transition-all active:scale-[0.98] shadow-lg hover:shadow-xl"
+                   >
+                     <MessageCircle className="w-6 h-6" />
+                     Chat Nhóm
+                   </button>
+                 </div>
+               </ScrollArea>
              </div>
 
            </div>
+          </>
         ) : null}
       </DialogContent>
+
+      {/* Chat Sheet */}
+      <Sheet open={isChatOpen} onOpenChange={setIsChatOpen}>
+        <SheetContent className="p-0 w-full sm:w-[400px] md:w-[450px] flex flex-col h-full max-h-screen">
+          <SheetTitle className="sr-only">Chat Nhóm</SheetTitle>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-white shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+              </div>
+              <span className="font-semibold text-slate-800">Chat Nhóm</span>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0">
+            {campaignId && <CampaignChatPanel campaignId={campaignId} />}
+          </div>
+        </SheetContent>
+      </Sheet>
     </Dialog>
   );
 }

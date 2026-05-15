@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import type { MutableRefObject } from "react";
 import L from "leaflet";
 import { createRoot } from "react-dom/client";
 import { WardChartPopup } from "./WardChartPopup";
+import { reverseGeocode } from "@/lib/geocode";
 import type { UrbanArea, WasteReport, EnvAlert } from "@/types/waste-report";
 import { VIETNAM_ISLANDS_GEOJSON, HOANG_SA_ISLANDS, TRUONG_SA_ISLANDS } from "@/data/vietnam-islands";
 
@@ -135,7 +137,9 @@ const BOUNDARY_HOVER: L.PathOptions = {
 interface MapViewProps {
   areas: UrbanArea[];
   reports: WasteReport[];
+  reportsRef?: MutableRefObject<WasteReport[]>;
   envAlerts: EnvAlert[];
+  envAlertsRef?: MutableRefObject<EnvAlert[]>;
   selectedWardName: string | null;
   selectedAreaId: number | null;
   highlightAreaName: string | null;
@@ -143,6 +147,9 @@ interface MapViewProps {
   onReportSelect?: (report: WasteReport) => void;
   onClearSelection?: () => void;
   loading: boolean;
+  focusedReport?: WasteReport | null;
+  onViewReportDetail?: (report: WasteReport) => void;
+  onClearFocusedReport?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,10 +175,6 @@ const REPORT_COLORS: Record<string, { bg: string; border: string; pulse: boolean
   pending: { bg: "#ef4444", border: "#b91c1c", pulse: true },
   assigned: { bg: "#3b82f6", border: "#1d4ed8", pulse: false },
   done: { bg: "#10b981", border: "#059669", pulse: false },
-};
-
-const WASTE_TYPE_LABEL: Record<string, string> = {
-  plastic: "Nhựa", organic: "Hữu cơ", mixed: "Hỗn hợp", hazardous: "Nguy hại",
 };
 
 // Island styling
@@ -421,13 +424,18 @@ function buildReportIcon(status: string): L.DivIcon {
 export function MapView({
   areas,
   reports,
+  reportsRef: externalReportsRef,
   envAlerts,
+  envAlertsRef: externalEnvAlertsRef,
   selectedWardName,
   highlightAreaName,
   onAreaSelect,
   onReportSelect,
   onClearSelection,
   loading,
+  focusedReport,
+  onViewReportDetail,
+  onClearFocusedReport,
 }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -443,6 +451,8 @@ export function MapView({
   const alertLayerRef = useRef<L.LayerGroup | null>(null);
   // Layer for report pins (always on top)
   const reportLayerRef = useRef<L.LayerGroup | null>(null);
+  // Layer for focused report marker (single point with detail button)
+  const focusedReportLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [boundaryLoading, setBoundaryLoading] = useState(false);
@@ -450,9 +460,38 @@ export function MapView({
 
   const [popupWardData, setPopupWardData] = useState<{ wardName: string; reports: WasteReport[], allReports?: WasteReport[] } | null>(null);
 
-  // Ref luôn trỏ vào reports mới nhất — dùng trong popup click handler
-  const reportsRef = useRef<typeof reports>(reports);
-  useEffect(() => { reportsRef.current = reports; }, [reports]);
+  // State for reverse geocoded address in focused report popup
+  const [focusedAddress, setFocusedAddress] = useState<string | null>(null);
+
+  // Internal ref to track reports
+  const internalReportsRef = useRef<WasteReport[]>(reports);
+
+  // Use external reportsRef if provided, otherwise use internal ref
+  const reportsRef = externalReportsRef ?? internalReportsRef;
+
+  // If using external ref, sync internal ref on first load
+  if (externalReportsRef) {
+    internalReportsRef.current = reports;
+  }
+
+  // Sync reports prop to internal ref - no re-render when data refreshes
+  useEffect(() => {
+    internalReportsRef.current = reports;
+  }, [reports]);
+
+  // Internal ref for envAlerts
+  const internalEnvAlertsRef = useRef<EnvAlert[]>(envAlerts);
+
+  // Use external envAlertsRef if provided, otherwise use internal ref
+  const envAlertsRef = externalEnvAlertsRef ?? internalEnvAlertsRef;
+
+  // Sync envAlerts prop to internal ref
+  useEffect(() => {
+    internalEnvAlertsRef.current = envAlerts;
+  }, [envAlerts]);
+
+  // Track if initial map render is complete (to avoid re-rendering map on data refresh)
+  const mapInitialRenderRef = useRef(false);
 
   // ── Inject keyframe once ────────────────────────────────────────────────
   useEffect(() => {
@@ -469,6 +508,30 @@ export function MapView({
       document.head.appendChild(s);
     }
   }, []);
+
+  // ── Reverse geocode address when focused report changes ──────────────────
+  useEffect(() => {
+    if (!focusedReport) {
+      setFocusedAddress(null);
+      return;
+    }
+
+    const cachedKey = `addr_${focusedReport.lat.toFixed(6)}_${focusedReport.lng.toFixed(6)}`;
+    const cached = sessionStorage.getItem(cachedKey);
+    if (cached) {
+      setFocusedAddress(cached);
+      return;
+    }
+
+    reverseGeocode(focusedReport.lat, focusedReport.lng).then((address) => {
+      if (address) {
+        sessionStorage.setItem(cachedKey, address);
+        setFocusedAddress(address);
+      } else {
+        setFocusedAddress("Không xác định được địa chỉ");
+      }
+    });
+  }, [focusedReport]);
 
   // ── Init map once ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -555,15 +618,22 @@ export function MapView({
 
     alertLayerRef.current = L.layerGroup().addTo(map);
     reportLayerRef.current = L.layerGroup().addTo(map);
+    focusedReportLayerRef.current = L.layerGroup().addTo(map);
 
     mapRef.current = map;
     setMapLoaded(true);
+    mapInitialRenderRef.current = true;
+
+    // Listen for clear focused report event from popup
+    const handleClearFocused = () => onClearFocusedReport?.();
+    window.addEventListener("_clearFocusedReport", handleClearFocused);
 
     return () => {
       map.remove();
       mapRef.current = null;
+      window.removeEventListener("_clearFocusedReport", handleClearFocused);
     };
-  }, []);
+  }, [onClearFocusedReport]);
 
   // ── LEVEL 1: Draw one marker per ward ───────────────────────────────────
   const drawWardOverview = useCallback(() => {
@@ -571,7 +641,8 @@ export function MapView({
     wardLayerRef.current.clearLayers();
 
     areas.forEach((ward) => {
-      const pendingCount = reports.filter(
+      // Use reportsRef for dynamic pending count
+      const pendingCount = reportsRef.current.filter(
         (r) => r.wardName === ward.name && r.status === "pending"
       ).length;
       const icon = buildWardMarkerIcon(ward, pendingCount);
@@ -580,7 +651,7 @@ export function MapView({
         .addTo(wardLayerRef.current!)
         .on("click", () => onAreaSelect(ward));
     });
-  }, [areas, reports, onAreaSelect]);
+  }, [areas, reportsRef, onAreaSelect]);
 
   // ── LEVEL 2: Draw env-alert detail markers for one ward ─────────────────
   const drawAlertDetail = useCallback(
@@ -588,7 +659,8 @@ export function MapView({
       if (!alertLayerRef.current) return;
       alertLayerRef.current.clearLayers();
 
-      const filtered = envAlerts.filter((a) => a.wardName === wardName);
+      // Use envAlertsRef to avoid dependency changes
+      const filtered = envAlertsRef.current.filter((a) => a.wardName === wardName);
 
       filtered.forEach((alert) => {
         const cfg = ALERT_CFG[alert.level] ?? ALERT_CFG.normal;
@@ -618,7 +690,7 @@ export function MapView({
         );
       });
     },
-    [envAlerts]
+    [envAlertsRef]
   );
 
   // ── BOUNDARY: fetch + draw 1 lần khi map sẵn sàng ─────────────────────────
@@ -722,8 +794,8 @@ export function MapView({
       if (!reportLayerRef.current) return;
       reportLayerRef.current.clearLayers();
 
-      // Level 1 và 2 đều hiển thị toàn bộ báo cáo
-      const filtered = reports;
+      // Use reportsRef to avoid re-render when reports refresh
+      const filtered = reportsRef.current;
 
       filtered.forEach((report) => {
         // Bỏ qua report có tọa độ (0,0) — dữ liệu không hợp lệ
@@ -740,29 +812,155 @@ export function MapView({
         });
       });
     },
-    [reports, onReportSelect]
+    [reportsRef, onReportSelect]
   );
+
+  // ── Draw focused report marker (single point with view detail button) ────
+  const drawFocusedReport = useCallback(
+    (report: WasteReport | null) => {
+      if (!focusedReportLayerRef.current) return;
+      focusedReportLayerRef.current.clearLayers();
+
+      if (!report) return;
+
+      const icon = buildReportIcon(report.status);
+      const marker = L.marker([report.lat, report.lng], {
+        icon,
+        zIndexOffset: 600,
+      }).addTo(focusedReportLayerRef.current!);
+
+      // Format date
+      const formatDate = (dateStr: string) => {
+        try {
+          const date = new Date(dateStr);
+          return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+        } catch { return dateStr; }
+      };
+
+      // Reporter name
+      const reporterName = report.reportedBy || "Anonymous";
+
+      // Build popup content with dynamic address - use cached immediately if available
+      const cachedKey = `addr_${report.lat.toFixed(6)}_${report.lng.toFixed(6)}`;
+      const cached = sessionStorage.getItem(cachedKey);
+      // Priority: cached > focusedAddress > "Đang tải..."
+      const displayAddress = cached || (focusedAddress && focusedAddress !== "Không xác định được địa chỉ" ? focusedAddress : null);
+
+      const buildPopupContent = (address: string) => `
+        <div style="font-family:system-ui;min-width:220px;padding:0;">
+          <div style="padding:8px 10px 4px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #e5e7eb;">
+            <button
+              onclick="window.dispatchEvent(new CustomEvent('_clearFocusedReport'))"
+              style="
+                background:#10b981;color:white;font-weight:600;font-size:12px;
+                padding:5px 12px;border-radius:6px;border:none;cursor:pointer;
+                transition:background 0.15s;white-space:nowrap;
+              "
+              onmouseover="this.style.background='#059669'"
+              onmouseout="this.style.background='#10b981'"
+            >
+              ← Back
+            </button>
+          </div>
+          <div style="padding:10px 12px 4px;">
+            <p style="font-size:14px;font-weight:700;color:#1f2937;margin:0;">${report.wardName}</p>
+          </div>
+          <div style="padding:4px 12px;font-size:12px;color:#374151;line-height:1.6;">
+            <div style="margin-bottom:4px;"><span style="font-weight:600;">Người báo cáo:</span> ${reporterName}</div>
+            <div style="margin-bottom:4px;"><span style="font-weight:600;">Địa chỉ:</span> ${displayAddress || "Đang tải..."}</div>
+            <div style="margin-bottom:6px;"><span style="font-weight:600;">Ngày tạo:</span> ${formatDate(report.createdAt)}</div>
+          </div>
+          <div style="padding:6px 12px 10px;">
+            <button
+              onclick="window.dispatchEvent(new CustomEvent('viewReportDetail', {detail: '${report.id}'}))"
+              style="
+                display:block;width:100%;background:#4f46e5;color:white;font-weight:600;font-size:13px;
+                padding:8px 16px;border-radius:8px;border:none;cursor:pointer;
+                transition:background 0.15s;
+              "
+              onmouseover="this.style.background='#4338ca'"
+              onmouseout="this.style.background='#4f46e5'"
+            >
+              View Detail
+            </button>
+          </div>
+        </div>
+      `;
+
+      const popupContent = buildPopupContent(focusedAddress);
+
+      marker.bindPopup(popupContent, {
+        maxWidth: 260,
+        className: "focused-report-popup",
+        offset: [0, -10],
+        closeButton: false,
+        autoPan: false,
+      });
+
+      // Open popup immediately with cached address if available
+      marker.openPopup();
+    },
+    [onViewReportDetail, focusedAddress]
+  );
+
+  // Refs to hold callback functions - prevents dependency changes
+  const drawAlertDetailRef = useRef<(wardName: string) => void>();
+  const drawReportPinsRef = useRef<(wardName: string | null) => void>();
+  const drawFocusedReportRef = useRef<(report: WasteReport | null) => void>();
+
+  // Keep refs in sync with callbacks
+  drawAlertDetailRef.current = drawAlertDetail;
+  drawReportPinsRef.current = drawReportPins;
+  drawFocusedReportRef.current = drawFocusedReport;
 
   // ── Main render logic: switch between level 1 and level 2 ───────────────
   useEffect(() => {
-    if (!mapLoaded) return;
+    if (!mapLoaded || !mapRef.current) return;
+
+    // Clear all layers first
+    wardLayerRef.current?.clearLayers();
+    alertLayerRef.current?.clearLayers();
 
     if (!selectedWardName) {
       // ── Level 1: boundary polygons + report pins ──
-      wardLayerRef.current?.clearLayers();
-      alertLayerRef.current?.clearLayers();
-      drawReportPins(null);
-      // Boundary layer luôn được hiện ở level 1
-      if (boundaryLayerRef.current && !mapRef.current?.hasLayer(boundaryLayerRef.current)) {
-        mapRef.current?.addLayer(boundaryLayerRef.current);
+
+      // Clear focused report layer when back
+      if (!focusedReport) {
+        focusedReportLayerRef.current?.clearLayers();
       }
 
-      const validReports = reports.filter(r => r.lat !== 0 && r.lng !== 0);
-      if (validReports.length > 0) {
-        const bounds = L.latLngBounds(validReports.map(r => L.latLng(r.lat, r.lng)));
-        mapRef.current?.flyToBounds(bounds.pad(0.15), { duration: 0.8, maxZoom: 13 });
+      // Nếu có focused report → chỉ hiện 1 marker đó, zoom vào tọa độ
+      if (focusedReport) {
+        reportLayerRef.current?.clearLayers();
+
+        // Ẩn boundary layer để tránh click nhầm
+        if (boundaryLayerRef.current && mapRef.current.hasLayer(boundaryLayerRef.current)) {
+          mapRef.current.removeLayer(boundaryLayerRef.current);
+        }
+
+        // Di chuyển map ngay lập tức đến tọa độ
+        const map = mapRef.current;
+        map.flyTo([focusedReport.lat, focusedReport.lng], 17, { duration: 0.3 });
+
+        // Vẽ marker ngay lập tức sau khi set view
+        drawFocusedReportRef.current?.(focusedReport);
       } else {
-        mapRef.current?.flyTo([16.065, 108.220], 10, { duration: 0.6 });
+        // Boundary layer luôn được hiện ở level 1
+        if (boundaryLayerRef.current && !mapRef.current.hasLayer(boundaryLayerRef.current)) {
+          mapRef.current.addLayer(boundaryLayerRef.current);
+        }
+
+        // Clear focused report layer
+        focusedReportLayerRef.current?.clearLayers();
+
+        drawReportPinsRef.current?.(null);
+
+        // Zoom to reports area for smooth transition (same as on page load)
+        const validReports = reportsRef.current.filter(r => r.lat !== 0 && r.lng !== 0);
+        if (validReports.length > 0) {
+          const bounds = L.latLngBounds(validReports.map(r => L.latLng(r.lat, r.lng)));
+          mapRef.current.flyToBounds(bounds.pad(0.1), { duration: 0.5, maxZoom: 15 });
+        }
       }
     } else {
       // ── Level 2: ward detail — ẩn boundary để gọn bản đồ ──
@@ -770,8 +968,8 @@ export function MapView({
       if (boundaryLayerRef.current) {
         mapRef.current?.removeLayer(boundaryLayerRef.current);
       }
-      drawAlertDetail(selectedWardName);
-      drawReportPins(selectedWardName);
+      drawAlertDetailRef.current?.(selectedWardName);
+      drawReportPinsRef.current?.(selectedWardName);
 
       const ward = areas.find((a) => a.name === selectedWardName);
       if (ward) {
@@ -787,10 +985,8 @@ export function MapView({
     mapLoaded,
     selectedWardName,
     areas,
+    focusedReport,
     reports,
-    envAlerts,
-    drawAlertDetail,
-    drawReportPins,
   ]);
 
   // ── Fetch boundaries 1 lần ngay khi map sẵn sàng ────────────────────────────
@@ -811,6 +1007,31 @@ export function MapView({
       mapRef.current?.flyTo([ward.lat, ward.lng], 15, { duration: 0.8 });
     }
   }, [highlightAreaName, areas, mapLoaded]);
+
+  // ── Background refresh: only update pin icons, don't re-render map ────────
+  useEffect(() => {
+    if (!mapLoaded) return;
+    if (!mapInitialRenderRef.current) return; // Wait for initial render
+
+    // Update pin icons without clearing/redrawing the map
+    // This uses the latest reports from reportsRef (external or internal)
+    const updatePins = () => {
+      if (!reportLayerRef.current) return;
+      reportLayerRef.current.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+          const latlng = layer.getLatLng();
+          const report = reportsRef.current.find(
+            (r) => r.lat === latlng.lat && r.lng === latlng.lng
+          );
+          if (report) {
+            const icon = buildReportIcon(report.status);
+            layer.setIcon(icon);
+          }
+        }
+      });
+    };
+    updatePins();
+  }, [mapLoaded]); // Only depend on mapLoaded, not reports
 
   // ── Legend counts ───────────────────────────────────────────────────────
   const visibleAlerts = selectedWardName

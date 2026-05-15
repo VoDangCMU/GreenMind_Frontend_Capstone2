@@ -124,7 +124,7 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
     if (sorted.length === 1) {
       const centerD = parseISO(
         String(sorted[0].sortKey) +
-          (timeView === "month" ? "-01" : timeView === "year" ? "-01-01" : "")
+        (timeView === "month" ? "-01" : timeView === "year" ? "-01-01" : "")
       );
       const preD = new Date(centerD);
       const postD = new Date(centerD);
@@ -245,8 +245,8 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
 
       <div className="flex items-center justify-between gap-4 mb-4 mt-2">
         <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-semibold text-slate-800">Top 10 Wards Trend</h3>
-          <p className="text-xs text-slate-500">
+          <h3 className="text-base font-bold text-slate-800">Top 10 Wards Trend</h3>
+          <p className="text-sm text-slate-500">
             Biểu đồ top 10 phường có lượng báo cáo cao nhất trong toàn hệ thống.
           </p>
         </div>
@@ -256,11 +256,10 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
             <button
               key={t}
               onClick={() => setTimeView(t)}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                timeView === t
-                  ? "bg-white text-blue-600 shadow-sm border border-gray-200/60"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50 border border-transparent"
-              }`}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-all ${timeView === t
+                ? "bg-white text-blue-600 shadow-sm border border-gray-200/60"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50 border border-transparent"
+                }`}
             >
               {t === "day" ? "Ngày" : t === "month" ? "Tháng" : "Năm"}
             </button>
@@ -280,14 +279,14 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
             <XAxis
               dataKey="displayDate"
               stroke="#64748b"
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 12 }}
               axisLine={{ stroke: "#e5e7eb" }}
               tickLine={false}
               dy={10}
             />
             <YAxis
               stroke="#64748b"
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 12 }}
               axisLine={false}
               tickLine={false}
               dx={-10}
@@ -299,7 +298,7 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
             />
             <Legend
               wrapperStyle={{
-                fontSize: 10,
+                fontSize: 15,
                 paddingTop: "15px",
                 paddingLeft: "10px",
                 maxHeight: "60px",
