@@ -52,7 +52,7 @@ export async function fetchUrbanAreas(): Promise<UrbanArea[]> {
 /**
  * Fetch environmental impact data from the real API.
  * - Uses /environmental-impact/all to get an aggregate of ALL users (admin dashboard view)
- * - Passes startDate/endDate computed from the selected time range
+ * - Optionally filter by urbanAreaId
  * - Returns null if not authenticated or if the API fails (no mock fallback)
  */
 export async function fetchEnvironmentalData(
@@ -74,4 +74,21 @@ export async function fetchEnvironmentalData(
   const payload = response.data?.data
   if (!isValidPayload(payload)) return null
   return { ...payload, isMock: false }
+}
+
+/** Fetch list of all urban areas for the filter dropdown */
+export async function fetchUrbanAreas(): Promise<UrbanArea[]> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://green-api.khoav4.com"
+  const token = getAccessToken()
+  if (!token) return []
+
+  try {
+    const response = await axios.get(`${apiUrl}/environmental-impact/urban-areas`, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 5000,
+    })
+    return (response.data?.data ?? []) as UrbanArea[]
+  } catch {
+    return []
+  }
 }
