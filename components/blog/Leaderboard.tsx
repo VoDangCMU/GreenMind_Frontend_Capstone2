@@ -50,7 +50,7 @@ export function Leaderboard({
     [0]                             // only rank1 center
 
   const formatLocation = (location?: string) => location?.split(",")[0]?.trim() || ""
-  const getLabel = (user: LeaderboardUser) => formatLocation(user.location) || user.fullName || user.username
+  const getLabel = (user: LeaderboardUser) => user.fullName || user.username
 
   return (
     <aside className="flex flex-col gap-4">
@@ -68,17 +68,17 @@ export function Leaderboard({
                 const user = top3[idx]
                 if (!user) return null
                 return (
-                  <div key={user.userId} className="flex flex-col items-center gap-1.5 flex-1">
-                    {/* Name / Address */}
-                    <p className="text-sm font-semibold text-foreground text-center whitespace-normal break-words w-full">
+                  <div key={user.userId} className="flex flex-col items-center gap-1 flex-1">
+                    {/* Name */}
+                    <p className="text-xs font-semibold text-foreground text-center w-full">
                       {getLabel(user)}
                     </p>
-                    {user.location && user.fullName && user.location !== user.fullName ? (
-                      <p className="text-[11px] text-muted-foreground whitespace-normal break-words w-full">
-                        {user.fullName}
+                    {user.location && (
+                      <p className="text-[10px] text-muted-foreground text-center w-full">
+                        {formatLocation(user.location)}
                       </p>
-                    ) : null}
-                    <p className="text-sm text-muted-foreground">{user.reportCount}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">{user.reportCount}</p>
                     {user.rank === 1 && (
                       <span className="text-2xl leading-none">🏆</span>
                     )}
@@ -118,14 +118,14 @@ export function Leaderboard({
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground text-sm whitespace-normal break-words">
+                    <p className="font-medium text-foreground text-xs whitespace-nowrap truncate">
                       {getLabel(user)}
                     </p>
-                    {user.location && user.fullName && user.location !== user.fullName ? (
-                      <p className="text-[11px] text-muted-foreground whitespace-normal break-words mt-0.5">
-                        {user.fullName}
+                    {user.location && (
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {formatLocation(user.location)}
                       </p>
-                    ) : null}
+                    )}
                   </div>
                   <span className="text-xs font-semibold text-emerald-600 shrink-0">
                     {user.reportCount}

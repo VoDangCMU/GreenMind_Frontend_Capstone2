@@ -3,7 +3,13 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { User, Users, TrendingUp, BarChart3 } from "lucide-react";
+import { User, Users, TrendingUp, BarChart3, Eye } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import type { HouseholdProfile, WasteReport } from "@/types/monitoring";
 
 interface HouseholdDetailsPanelProps {
@@ -275,6 +281,7 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
     }, [household?.imageHistory, imageHistoryProp]);
 
     const [scoreTrendPeriod, setScoreTrendPeriod] = useState<ScoreTrendPeriod>("month");
+    const [selectedImageForDetail, setSelectedImageForDetail] = useState<HouseholdProfile["imageHistory"][number] | null>(null);
 
     const memberShotCounts = useMemo(() => {
         return buildMemberShotCounts(imageHistory, householdReports);
@@ -528,7 +535,7 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                     <CardTitle>Report Image History</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-2 max-h-[24vh] overflow-y-auto">
+                    <div className="space-y-2 max-h-[40vh] overflow-y-auto">
                         {imageHistoryLoading ? (
                             <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">
                                 Loading image history...
@@ -548,11 +555,14 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                                 return reportDate === imageDate;
                             });
 
+                            const hasItems = image.items?.length;
+                            const hasPollution = image.pollution && Object.keys(image.pollution).length > 0;
+
                             return (
                                 <div key={image.id} className="border rounded-xl p-3 bg-white shadow-sm transition hover:shadow-md">
                                     <div className="flex gap-3 items-start">
-                                        <img src={image.imageUrl} alt={image.label} className="h-20 w-28 object-cover rounded-lg border" />
-                                        <div className="text-xs flex-1 space-y-1">
+                                        <img src={image.imageUrl} alt={image.label} className="h-64 w-80 object-cover rounded-lg border flex-shrink-0" />
+                                        <div className="text-sm flex-1 space-y-1">
                                             <div className="flex items-center justify-between">
                                                 <p className="font-semibold text-slate-700">Waste image {new Date(image.uploadedAt).toLocaleDateString("en-US")}</p>
                                                 <span className="text-[11px] text-slate-500">{new Date(image.uploadedAt).toLocaleTimeString("en-US")}</span>
@@ -574,26 +584,15 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                                                 <p className="text-xs text-slate-500">Total objects: {image.total_objects}</p>
                                             )}
 
-                                            {image.items?.length ? (
-                                                <div className="text-xs">
-                                                    <p className="font-medium">Items:</p>
-                                                    <ul className="ml-4 list-disc space-y-1">
-                                                        {image.items.map((item) => (
-                                                            <li key={item.name} className="leading-tight">{item.name} - {item.quantity} (area {item.area})</li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            ) : null}
-
-                                            {image.pollution && (
-                                                <div className="mt-2 text-xs">
-                                                    <p className="font-medium">Pollution data:</p>
-                                                    <div className="grid grid-cols-2 gap-1 text-slate-600">
-                                                        {Object.entries(image.pollution).map(([key, value]) => (
-                                                            <div key={key} className="bg-slate-50 rounded px-2 py-1">{key}: {Number(value).toFixed(3)}</div>
-                                                        ))}
-                                                    </div>
-                                                </div>
+                                            {(hasItems || hasPollution) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedImageForDetail(image)}
+                                                    className="flex items-center gap-1 px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-medium transition"
+                                                >
+                                                    <Eye className="w-3 h-3" />
+                                                    View Details
+                                                </button>
                                             )}
                                         </div>
                                     </div>
@@ -603,6 +602,52 @@ export function HouseholdDetailsPanel({ household, reports, imageHistory: imageH
                     </div>
                 </CardContent>
             </Card>
+
+            <Dialog open={!!selectedImageForDetail} onOpenChange={(open) => !open && setSelectedImageForDetail(null)}>
+                <DialogContent className="max-w-2xl max-h-max">
+                    <DialogHeader>
+                        <DialogTitle>Image Details</DialogTitle>
+                    </DialogHeader>
+                    {selectedImageForDetail && (
+                        <div className="space-y-4">
+                            <div className="flex gap-2">
+                                {selectedImageForDetail.items?.length ? (
+                                    <div className="flex-1 border rounded-lg p-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="font-semibold text-sm text-slate-700">Items Detected</h3>
+                                            <span className="text-xs text-slate-500">{selectedImageForDetail.items.length} items</span>
+                                        </div>
+                                        <ul className="space-y-1">
+                                            {selectedImageForDetail.items.map((item) => (
+                                                <li key={item.name} className="flex justify-between text-sm bg-slate-50 rounded px-2 py-1">
+                                                    <span className="font-medium">{item.name}</span>
+                                                    <span className="text-slate-600">x{item.quantity} (area: {item.area})</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : null}
+                                {selectedImageForDetail.pollution && Object.keys(selectedImageForDetail.pollution).length > 0 ? (
+                                    <div className="flex-1 border rounded-lg p-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="font-semibold text-sm text-slate-700">Pollution Data</h3>
+                                            <span className="text-xs text-slate-500">{Object.keys(selectedImageForDetail.pollution).length} metrics</span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            {Object.entries(selectedImageForDetail.pollution).map(([key, value]) => (
+                                                <div key={key} className="flex justify-between text-sm bg-slate-50 rounded px-2 py-1">
+                                                    <span className="font-medium capitalize">{key}</span>
+                                                    <span className="text-slate-600">{Number(value).toFixed(3)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
