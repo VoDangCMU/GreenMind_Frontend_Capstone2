@@ -2,16 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react"
 import axios from "axios"
-import type { TimeRange, EnvironmentalPayload } from "@/types/environmental"
-import { fetchEnvironmentalData } from "@/services/environmental.service"
+import type { TimeRange, EnvironmentalPayload, UrbanArea } from "@/types/environmental"
+import { fetchEnvironmentalData, fetchUrbanAreas } from "@/services/environmental.service"
 import { getAccessToken } from "@/lib/auth"
-import { StatsPanel } from "@/components/environmental-impact/StatsPanel"
 import { DashboardFilters } from "@/components/environmental-impact/DashboardFilters"
 import { PollutionBarChart } from "@/components/environmental-impact/PollutionBarChart"
 import { ImpactAreaChart } from "@/components/environmental-impact/ImpactAreaChart"
 
 export default function EnvironmentalImpactPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("month")
+  const [urbanAreaId, setUrbanAreaId] = useState("")
+  const [urbanAreas, setUrbanAreas] = useState<UrbanArea[]>([])
   const [payload, setPayload] = useState<EnvironmentalPayload | null>(null)
   const [recordCount, setRecordCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -19,11 +20,16 @@ export default function EnvironmentalImpactPage() {
   const [computing, setComputing] = useState(false)
   const [computeMsg, setComputeMsg] = useState<string | null>(null)
 
-  const loadData = useCallback(async (range: TimeRange) => {
+  // Load urban areas once on mount
+  useEffect(() => {
+    fetchUrbanAreas().then(setUrbanAreas)
+  }, [])
+
+  const loadData = useCallback(async (range: TimeRange, areaId: string) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchEnvironmentalData(range)
+      const result = await fetchEnvironmentalData(range, areaId || undefined)
       if (!result) {
         setPayload(null)
         setError("Không có dữ liệu cho khoảng thời gian này. Hãy nhấn \"Compute All Users\" để tính toán.")
@@ -42,9 +48,7 @@ export default function EnvironmentalImpactPage() {
     }
   }, [])
 
-  useEffect(() => { loadData(timeRange) }, [timeRange, loadData])
-
-  const handleTimeRangeChange = (range: TimeRange) => setTimeRange(range)
+  useEffect(() => { loadData(timeRange, urbanAreaId) }, [timeRange, urbanAreaId, loadData])
 
   const handleCompute = async () => {
     const token = getAccessToken()
@@ -60,7 +64,7 @@ export default function EnvironmentalImpactPage() {
       )
       const { success, skipped, failed } = res.data?.data ?? {}
       setComputeMsg(`Done — ${success ?? 0} computed, ${skipped ?? 0} skipped, ${failed ?? 0} failed`)
-      await loadData(timeRange)
+      await loadData(timeRange, urbanAreaId)
     } catch (err) {
       setComputeMsg(axios.isAxiosError(err) ? err.response?.data?.message ?? "Compute failed" : "Compute failed")
     } finally {
@@ -106,32 +110,34 @@ export default function EnvironmentalImpactPage() {
 
       {/* Compute result toast */}
       {computeMsg && (
-        <div className={`rounded-lg border px-4 py-2.5 text-sm font-medium ${
-          computeMsg.includes("failed") || computeMsg.toLowerCase().includes("fail")
-            ? "border-red-200 bg-red-50 text-red-700"
-            : "border-emerald-200 bg-emerald-50 text-emerald-700"
-        }`}>
+        <div className={`rounded-lg border px-4 py-2.5 text-sm font-medium ${computeMsg.includes("failed") || computeMsg.toLowerCase().includes("fail")
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}>
           {computeMsg}
         </div>
       )}
 
-      {/* Stats */}
-      {payload && <StatsPanel pollution={payload.pollution} impact={payload.impact} />}
-
       {/* Filters */}
       <section className="rounded-xl border bg-card p-5 shadow-sm">
-        <DashboardFilters timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} />
+        <DashboardFilters
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+          urbanAreas={urbanAreas}
+          urbanAreaId={urbanAreaId}
+          onUrbanAreaChange={setUrbanAreaId}
+        />
       </section>
 
       {/* Error state */}
       {!loading && error && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-          <p className="font-semibold mb-1">⚠️ Không có dữ liệu</p>
+          <p className="font-semibold mb-1"> Không có dữ liệu</p>
           <p>{error}</p>
         </div>
       )}
 
-      {/* Charts */}
+      {/* Charts — 3 loại pollution theo thời gian */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">
