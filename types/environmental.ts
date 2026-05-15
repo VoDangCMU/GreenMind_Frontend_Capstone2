@@ -1,5 +1,13 @@
 export type TimeRange = "day" | "week" | "month"
 
+/** Geographic bounding box for a ward — matches WARDS[].bounds in wardData.ts */
+export interface WardBounds {
+  latMin: number
+  latMax: number
+  lngMin: number
+  lngMax: number
+}
+
 export interface UrbanArea {
   id: string
   name: string

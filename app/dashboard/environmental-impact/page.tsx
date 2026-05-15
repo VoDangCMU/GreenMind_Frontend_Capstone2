@@ -2,35 +2,32 @@
 
 import { useState, useEffect, useCallback } from "react"
 import axios from "axios"
-import type { TimeRange, EnvironmentalPayload, UrbanArea } from "@/types/environmental"
-import { fetchEnvironmentalData, fetchUrbanAreas } from "@/services/environmental.service"
+import type { TimeRange, EnvironmentalPayload, WardBounds } from "@/types/environmental"
+import { fetchEnvironmentalData } from "@/services/environmental.service"
 import { getAccessToken } from "@/lib/auth"
 import { DashboardFilters } from "@/components/environmental-impact/DashboardFilters"
 import { PollutionBarChart } from "@/components/environmental-impact/PollutionBarChart"
 import { ImpactAreaChart } from "@/components/environmental-impact/ImpactAreaChart"
 
 export default function EnvironmentalImpactPage() {
-  const [timeRange, setTimeRange]     = useState<TimeRange>("month")
-  const [urbanAreaId, setUrbanAreaId] = useState("")
-  const [urbanAreas, setUrbanAreas]   = useState<UrbanArea[]>([])
-  const [payload, setPayload]         = useState<EnvironmentalPayload | null>(null)
+  const [timeRange, setTimeRange] = useState<TimeRange>("month")
+  const [selectedWardId, setSelectedWardId] = useState<number | null>(null)
+  const [wardBounds, setWardBounds] = useState<WardBounds | null>(null)
+  const [payload, setPayload] = useState<EnvironmentalPayload | null>(null)
   const [recordCount, setRecordCount] = useState<number | null>(null)
-  const [loading, setLoading]         = useState(true)
-  const [error, setError]             = useState<string | null>(null)
-  const [computing, setComputing]     = useState(false)
-  const [computeMsg, setComputeMsg]   = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [computing, setComputing] = useState(false)
+  const [computeMsg, setComputeMsg] = useState<string | null>(null)
 
-  // Load urban areas once on mount
-  useEffect(() => { fetchUrbanAreas().then(setUrbanAreas) }, [])
-
-  const loadData = useCallback(async (range: TimeRange, areaId: string) => {
+  const loadData = useCallback(async (range: TimeRange, bounds: WardBounds | null) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchEnvironmentalData(range, areaId || undefined)
+      const result = await fetchEnvironmentalData(range, bounds ?? undefined)
       if (!result) {
         setPayload(null)
-        setError("No data available for this period. Click \"Compute All Users\" to generate records.")
+        setError("No data available for this period.")
       } else {
         setPayload(result)
         setRecordCount((result as { recordCount?: number }).recordCount ?? null)
@@ -46,7 +43,12 @@ export default function EnvironmentalImpactPage() {
     }
   }, [])
 
-  useEffect(() => { loadData(timeRange, urbanAreaId) }, [timeRange, urbanAreaId, loadData])
+  useEffect(() => { loadData(timeRange, wardBounds) }, [timeRange, wardBounds, loadData])
+
+  const handleWardChange = (wardId: number | null, bounds: WardBounds | null) => {
+    setSelectedWardId(wardId)
+    setWardBounds(bounds)
+  }
 
   const handleCompute = async () => {
     const token = getAccessToken()
@@ -62,7 +64,7 @@ export default function EnvironmentalImpactPage() {
       )
       const { success, skipped, failed } = res.data?.data ?? {}
       setComputeMsg(`Done — ${success ?? 0} computed, ${skipped ?? 0} skipped, ${failed ?? 0} failed`)
-      await loadData(timeRange, urbanAreaId)
+      await loadData(timeRange, wardBounds)
     } catch (err) {
       setComputeMsg(axios.isAxiosError(err) ? err.response?.data?.message ?? "Compute failed" : "Compute failed")
     } finally {
@@ -78,10 +80,13 @@ export default function EnvironmentalImpactPage() {
         <div>
           <h1 className="text-3xl font-semibold text-foreground mb-1">Environmental Impact</h1>
           <p className="text-muted-foreground text-sm">
-            Aggregated environmental impact across all users
+            AI-predicted pollution levels from waste scans
+            {selectedWardId !== null && (
+              <span className="ml-2 text-xs font-medium text-blue-600">— filtered by ward</span>
+            )}
             {recordCount !== null && (
               <span className="ml-2 text-xs font-medium text-emerald-600">
-                ({recordCount} records)
+                ({recordCount} scans)
               </span>
             )}
           </p>
@@ -109,8 +114,8 @@ export default function EnvironmentalImpactPage() {
       {/* Compute result toast */}
       {computeMsg && (
         <div className={`rounded-lg border px-4 py-2.5 text-sm font-medium ${computeMsg.includes("failed") || computeMsg.toLowerCase().includes("fail")
-          ? "border-red-200 bg-red-50 text-red-700"
-          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+            ? "border-red-200 bg-red-50 text-red-700"
+            : "border-emerald-200 bg-emerald-50 text-emerald-700"
           }`}>
           {computeMsg}
         </div>
@@ -121,9 +126,8 @@ export default function EnvironmentalImpactPage() {
         <DashboardFilters
           timeRange={timeRange}
           onTimeRangeChange={setTimeRange}
-          urbanAreas={urbanAreas}
-          urbanAreaId={urbanAreaId}
-          onUrbanAreaChange={setUrbanAreaId}
+          selectedWardId={selectedWardId}
+          onWardChange={handleWardChange}
         />
       </section>
 
@@ -135,7 +139,7 @@ export default function EnvironmentalImpactPage() {
         </div>
       )}
 
-      {/* Charts — 3 loại pollution theo thời gian */}
+      {/* Charts */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">

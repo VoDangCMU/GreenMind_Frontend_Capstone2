@@ -1,11 +1,12 @@
 "use client"
 
-import type { TimeRange, UrbanArea } from "@/types/environmental"
+import type { TimeRange, WardBounds } from "@/types/environmental"
 import { getDateRange } from "@/services/environmental.service"
+import { WARDS } from "@/data/wardData"
 
 const TIME_OPTIONS: { label: string; value: TimeRange }[] = [
-  { label: "Day",   value: "day"   },
-  { label: "Week",  value: "week"  },
+  { label: "Day", value: "day" },
+  { label: "Week", value: "week" },
   { label: "Month", value: "month" },
 ]
 
@@ -15,20 +16,38 @@ function fmtShort(iso: string): string {
   return `${parseInt(d)}/${parseInt(m)}`
 }
 
+/** Extract bounding box from a ward's bounds polygon */
+function wardBounds(bounds: [number, number][]): WardBounds {
+  const lats = bounds.map((b) => b[0])
+  const lngs = bounds.map((b) => b[1])
+  return {
+    latMin: Math.min(...lats),
+    latMax: Math.max(...lats),
+    lngMin: Math.min(...lngs),
+    lngMax: Math.max(...lngs),
+  }
+}
+
+// Group WARDS by district
+const WARDS_BY_DISTRICT = WARDS.reduce<Record<string, typeof WARDS>>((acc, w) => {
+  const d = w.district
+  if (!acc[d]) acc[d] = []
+  acc[d].push(w)
+  return acc
+}, {})
+
 interface Props {
   timeRange: TimeRange
   onTimeRangeChange: (range: TimeRange) => void
-  urbanAreas?: UrbanArea[]
-  urbanAreaId?: string
-  onUrbanAreaChange?: (id: string) => void
+  selectedWardId: number | null
+  onWardChange: (wardId: number | null, bounds: WardBounds | null) => void
 }
 
 export function DashboardFilters({
   timeRange,
   onTimeRangeChange,
-  urbanAreas = [],
-  urbanAreaId = "",
-  onUrbanAreaChange,
+  selectedWardId,
+  onWardChange,
 }: Props) {
   const { startDate, endDate } = getDateRange(timeRange)
   const rangeLabel =
@@ -36,9 +55,21 @@ export function DashboardFilters({
       ? fmtShort(endDate)
       : `${fmtShort(startDate)} – ${fmtShort(endDate)}`
 
+  const handleWardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value
+    if (!val) {
+      onWardChange(null, null)
+      return
+    }
+    const ward = WARDS.find((w) => w.id === Number(val))
+    if (ward) {
+      onWardChange(ward.id, wardBounds(ward.bounds as [number, number][]))
+    }
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-4">
-      {/* Time range label */}
+      {/* Period label */}
       <span className="text-xs font-medium tracking-widest text-gray-500 uppercase">Period</span>
 
       {/* Time range buttons */}
@@ -65,20 +96,24 @@ export function DashboardFilters({
         {rangeLabel}
       </span>
 
-      {/* Urban area select — always visible */}
+      {/* Ward/Area select — grouped by district, same style as waste-report */}
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium tracking-widest text-gray-500 uppercase">Area</span>
         <select
-          id="filter-urban-area"
-          value={urbanAreaId}
-          onChange={(e) => onUrbanAreaChange?.(e.target.value)}
+          id="filter-ward-area"
+          value={selectedWardId ?? ""}
+          onChange={handleWardChange}
           className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
         >
           <option value="">All areas</option>
-          {urbanAreas.map((area) => (
-            <option key={area.id} value={area.id}>
-              {area.name} — {area.city}
-            </option>
+          {Object.entries(WARDS_BY_DISTRICT).map(([district, wards]) => (
+            <optgroup key={district} label={district}>
+              {wards.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>
