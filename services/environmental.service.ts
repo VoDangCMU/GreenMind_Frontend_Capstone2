@@ -34,6 +34,21 @@ function isValidPayload(payload: unknown): payload is EnvironmentalPayload {
   )
 }
 
+export async function fetchUrbanAreas(): Promise<UrbanArea[]> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://green-api.khoav4.com"
+  const token = getAccessToken()
+  if (!token) return []
+  try {
+    const res = await axios.get(`${apiUrl}/environmental-impact/urban-areas`, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 8000,
+    })
+    return Array.isArray(res.data?.data) ? res.data.data : []
+  } catch {
+    return []
+  }
+}
+
 /**
  * Fetch environmental impact data from the real API.
  * - Uses /environmental-impact/all to get an aggregate of ALL users (admin dashboard view)
@@ -51,12 +66,7 @@ export async function fetchEnvironmentalData(
   const { startDate, endDate } = getDateRange(timeRange)
 
   const response = await axios.get(`${apiUrl}/environmental-impact/all`, {
-    params: {
-      range: timeRange,
-      startDate,
-      endDate,
-      ...(urbanAreaId ? { urbanAreaId } : {}),
-    },
+    params: { range: timeRange, startDate, endDate, ...(urbanAreaId ? { urbanAreaId } : {}) },
     headers: { Authorization: `Bearer ${token}` },
     timeout: 10000,
   })

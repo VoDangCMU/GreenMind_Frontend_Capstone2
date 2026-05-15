@@ -10,20 +10,18 @@ import { PollutionBarChart } from "@/components/environmental-impact/PollutionBa
 import { ImpactAreaChart } from "@/components/environmental-impact/ImpactAreaChart"
 
 export default function EnvironmentalImpactPage() {
-  const [timeRange, setTimeRange] = useState<TimeRange>("month")
+  const [timeRange, setTimeRange]     = useState<TimeRange>("month")
   const [urbanAreaId, setUrbanAreaId] = useState("")
-  const [urbanAreas, setUrbanAreas] = useState<UrbanArea[]>([])
-  const [payload, setPayload] = useState<EnvironmentalPayload | null>(null)
+  const [urbanAreas, setUrbanAreas]   = useState<UrbanArea[]>([])
+  const [payload, setPayload]         = useState<EnvironmentalPayload | null>(null)
   const [recordCount, setRecordCount] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [computing, setComputing] = useState(false)
-  const [computeMsg, setComputeMsg] = useState<string | null>(null)
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState<string | null>(null)
+  const [computing, setComputing]     = useState(false)
+  const [computeMsg, setComputeMsg]   = useState<string | null>(null)
 
   // Load urban areas once on mount
-  useEffect(() => {
-    fetchUrbanAreas().then(setUrbanAreas)
-  }, [])
+  useEffect(() => { fetchUrbanAreas().then(setUrbanAreas) }, [])
 
   const loadData = useCallback(async (range: TimeRange, areaId: string) => {
     setLoading(true)
@@ -32,7 +30,7 @@ export default function EnvironmentalImpactPage() {
       const result = await fetchEnvironmentalData(range, areaId || undefined)
       if (!result) {
         setPayload(null)
-        setError("No data available for this period. Click \"Compute All Users\" to generate impact records.")
+        setError("No data available for this period. Click \"Compute All Users\" to generate records.")
       } else {
         setPayload(result)
         setRecordCount((result as { recordCount?: number }).recordCount ?? null)
@@ -166,7 +164,7 @@ export default function EnvironmentalImpactPage() {
             </div>
           ) : !payload ? (
             <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
-              Không có dữ liệu
+              No data available
             </div>
           ) : (
             <ImpactAreaChart timeSeries={payload.timeSeries} />

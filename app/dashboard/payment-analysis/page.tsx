@@ -28,9 +28,9 @@ import {
 //  Constants / helpers
 // ──────────────────────────────────────────────
 const DAY_OPTIONS = [
-  { label: "7 ngày", value: 7 },
-  { label: "30 ngày", value: 30 },
-  { label: "90 ngày", value: 90 },
+  { label: "7 days", value: 7 },
+  { label: "30 days", value: 30 },
+  { label: "90 days", value: 90 },
 ]
 
 const STATUS_META: Record<PaymentStatus, { label: string; color: string; bg: string; text: string }> = {
@@ -41,6 +41,7 @@ const STATUS_META: Record<PaymentStatus, { label: string; color: string; bg: str
 }
 
 function StatusBadge({ status }: { status: PaymentStatus }) {
+  if (status === "refunded") return null  // waste collection has no refunds
   const m = STATUS_META[status]
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${m.bg} ${m.text}`}>
@@ -67,7 +68,7 @@ function MetricCard({ id, label, value, sub, icon, accent, accentBg }: MetricCar
   return (
     <div id={id} className="relative overflow-hidden rounded-2xl border bg-card p-5 shadow-sm">
       <div className={`absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 ${accentBg} -translate-y-6 translate-x-6`} />
-      <div className={`mb-3 inline-flex items-center justify-center w-10 h-10 rounded-xl text-xl ${accentBg} border`}>
+      <div className={`mb-3 inline-flex items-center justify-center w-10 h-10 rounded-xl text-lg font-bold ${accentBg} border ${accent}`}>
         {icon}
       </div>
       <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-1">{label}</p>
@@ -97,13 +98,10 @@ function RevenueChart({ data }: { data: RevenuePoint[] }) {
           tick={{ fontSize: 10, fill: "#9ca3af" }}
           interval={chartData.length > 14 ? Math.floor(chartData.length / 10) : 0}
         />
-        <YAxis
-          tick={{ fontSize: 11, fill: "#9ca3af" }}
-          tickFormatter={v => `$${v}`}
-        />
+        <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={v => `$${v}`} />
         <Tooltip
           contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
-          formatter={(v: number) => [`$${v}`, "Doanh thu"]}
+          formatter={(v: number) => [`$${v}`, "Revenue"]}
         />
         <Area
           type="monotone"
@@ -135,7 +133,7 @@ function TransactionCountChart({ data }: { data: RevenuePoint[] }) {
         <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} allowDecimals={false} />
         <Tooltip
           contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
-          formatter={(v: number) => [v, "Giao dịch"]}
+          formatter={(v: number) => [v, "Transactions"]}
         />
         <Bar dataKey="count" fill="#6366f1" radius={[3, 3, 0, 0]} fillOpacity={0.85} />
       </BarChart>
@@ -147,11 +145,14 @@ function TransactionCountChart({ data }: { data: RevenuePoint[] }) {
 //  Status donut chart
 // ──────────────────────────────────────────────
 function StatusDonut({ data }: { data: { status: PaymentStatus; count: number }[] }) {
-  const chartData = data.filter(d => d.count > 0).map(d => ({
-    name: STATUS_META[d.status].label,
-    value: d.count,
-    color: STATUS_META[d.status].color,
-  }))
+  // Waste collection has no refunds — filter it out
+  const chartData = data
+    .filter(d => d.count > 0 && d.status !== "refunded")
+    .map(d => ({
+      name: STATUS_META[d.status].label,
+      value: d.count,
+      color: STATUS_META[d.status].color,
+    }))
 
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -237,10 +238,10 @@ export default function PaymentAnalysisPage() {
         </div>
       </div>
 
-      {/* Metric cards */}
+      {/* Metric cards — 5 cards, no refund */}
       {loading ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="h-32 rounded-2xl bg-muted animate-pulse" />
           ))}
         </div>
@@ -291,7 +292,6 @@ export default function PaymentAnalysisPage() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-
         {/* Revenue area chart */}
         <section className="xl:col-span-2 rounded-2xl border bg-card p-5 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Revenue by Day</h2>
@@ -370,8 +370,9 @@ export default function PaymentAnalysisPage() {
                       <StatusBadge status={txn.status} />
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(txn.createdAt).toLocaleDateString("vi-VN", {
-                        day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+                      {new Date(txn.createdAt).toLocaleDateString("en-GB", {
+                        day: "2-digit", month: "2-digit", year: "numeric",
+                        hour: "2-digit", minute: "2-digit",
                       })}
                     </td>
                   </tr>
@@ -381,7 +382,6 @@ export default function PaymentAnalysisPage() {
           </div>
         )}
       </section>
-
     </div>
   )
 }
