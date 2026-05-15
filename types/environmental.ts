@@ -1,5 +1,11 @@
 export type TimeRange = "day" | "week" | "month"
 
+export interface UrbanArea {
+  id: string
+  name: string
+  city: string
+}
+
 export interface PollutionData {
   CO2: number
   dioxin: number
