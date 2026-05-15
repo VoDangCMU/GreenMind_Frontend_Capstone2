@@ -5,7 +5,6 @@ import axios from "axios"
 import type { TimeRange, EnvironmentalPayload, UrbanArea } from "@/types/environmental"
 import { fetchEnvironmentalData, fetchUrbanAreas } from "@/services/environmental.service"
 import { getAccessToken } from "@/lib/auth"
-import { StatsPanel } from "@/components/environmental-impact/StatsPanel"
 import { DashboardFilters } from "@/components/environmental-impact/DashboardFilters"
 import { PollutionBarChart } from "@/components/environmental-impact/PollutionBarChart"
 import { ImpactAreaChart } from "@/components/environmental-impact/ImpactAreaChart"
@@ -109,17 +108,13 @@ export default function EnvironmentalImpactPage() {
 
       {/* Compute result toast */}
       {computeMsg && (
-        <div className={`rounded-lg border px-4 py-2.5 text-sm font-medium ${
-          computeMsg.includes("failed") || computeMsg.toLowerCase().includes("fail")
-            ? "border-red-200 bg-red-50 text-red-700"
-            : "border-emerald-200 bg-emerald-50 text-emerald-700"
-        }`}>
+        <div className={`rounded-lg border px-4 py-2.5 text-sm font-medium ${computeMsg.includes("failed") || computeMsg.toLowerCase().includes("fail")
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}>
           {computeMsg}
         </div>
       )}
-
-      {/* Stats */}
-      {payload && <StatsPanel pollution={payload.pollution} impact={payload.impact} />}
 
       {/* Filters */}
       <section className="rounded-xl border bg-card p-5 shadow-sm">
@@ -140,7 +135,7 @@ export default function EnvironmentalImpactPage() {
         </div>
       )}
 
-      {/* Charts */}
+      {/* Charts — 3 loại pollution theo thời gian */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">
