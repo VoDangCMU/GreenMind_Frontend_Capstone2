@@ -58,28 +58,26 @@ export function DashboardFilters({
         ))}
       </div>
       <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-        📅 {rangeLabel}
+        {rangeLabel}
       </span>
 
-      {/* Urban area select */}
-      {urbanAreas.length > 0 && (
-        <>
-          <span className="text-xs font-medium tracking-widest text-gray-500 uppercase">Khu vực</span>
-          <select
-            id="filter-urban-area"
-            value={urbanAreaId}
-            onChange={(e) => onUrbanAreaChange(e.target.value)}
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
-          >
-            <option value="">Tất cả khu vực</option>
-            {urbanAreas.map((area) => (
-              <option key={area.id} value={area.id}>
-                {area.name} — {area.city}
-              </option>
-            ))}
-          </select>
-        </>
-      )}
+      {/* Urban area select — always visible */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium tracking-widest text-gray-500 uppercase">Khu vực</span>
+        <select
+          id="filter-urban-area"
+          value={urbanAreaId}
+          onChange={(e) => onUrbanAreaChange(e.target.value)}
+          className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+        >
+          <option value="">Tất cả khu vực</option>
+          {urbanAreas.map((area) => (
+            <option key={area.id} value={area.id}>
+              {area.name} — {area.city}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   )
 }
