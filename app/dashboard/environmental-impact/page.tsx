@@ -32,15 +32,15 @@ export default function EnvironmentalImpactPage() {
       const result = await fetchEnvironmentalData(range, areaId || undefined)
       if (!result) {
         setPayload(null)
-        setError("Không có dữ liệu cho khoảng thời gian này. Hãy nhấn \"Compute All Users\" để tính toán.")
+        setError("No data available for this period. Click \"Compute All Users\" to generate impact records.")
       } else {
         setPayload(result)
         setRecordCount((result as { recordCount?: number }).recordCount ?? null)
       }
     } catch (err) {
       const msg = axios.isAxiosError(err)
-        ? err.response?.data?.message ?? "Không thể tải dữ liệu"
-        : "Không thể tải dữ liệu"
+        ? err.response?.data?.message ?? "Failed to load data"
+        : "Failed to load data"
       setError(msg)
       setPayload(null)
     } finally {
@@ -80,10 +80,10 @@ export default function EnvironmentalImpactPage() {
         <div>
           <h1 className="text-3xl font-semibold text-foreground mb-1">Environmental Impact</h1>
           <p className="text-muted-foreground text-sm">
-            Tổng hợp tác động môi trường — tất cả người dùng
+            Aggregated environmental impact across all users
             {recordCount !== null && (
               <span className="ml-2 text-xs font-medium text-emerald-600">
-                ({recordCount} bản ghi)
+                ({recordCount} records)
               </span>
             )}
           </p>
@@ -132,7 +132,7 @@ export default function EnvironmentalImpactPage() {
       {/* Error state */}
       {!loading && error && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-          <p className="font-semibold mb-1"> Không có dữ liệu</p>
+          <p className="font-semibold mb-1">No data</p>
           <p>{error}</p>
         </div>
       )}
@@ -149,7 +149,7 @@ export default function EnvironmentalImpactPage() {
             </div>
           ) : !payload ? (
             <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
-              Không có dữ liệu
+              No data available
             </div>
           ) : (
             <PollutionBarChart timeSeries={payload.timeSeries} />

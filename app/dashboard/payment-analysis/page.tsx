@@ -34,10 +34,10 @@ const DAY_OPTIONS = [
 ]
 
 const STATUS_META: Record<PaymentStatus, { label: string; color: string; bg: string; text: string }> = {
-  succeeded: { label: "Thành công",  color: "#10b981", bg: "bg-emerald-50",  text: "text-emerald-700" },
-  pending:   { label: "Đang chờ",    color: "#f59e0b", bg: "bg-amber-50",    text: "text-amber-700"   },
-  failed:    { label: "Thất bại",    color: "#ef4444", bg: "bg-red-50",      text: "text-red-700"     },
-  refunded:  { label: "Hoàn tiền",   color: "#6366f1", bg: "bg-indigo-50",   text: "text-indigo-700"  },
+  succeeded: { label: "Succeeded", color: "#10b981", bg: "bg-emerald-50", text: "text-emerald-700" },
+  pending: { label: "Pending", color: "#f59e0b", bg: "bg-amber-50", text: "text-amber-700" },
+  failed: { label: "Failed", color: "#ef4444", bg: "bg-red-50", text: "text-red-700" },
+  refunded: { label: "Refunded", color: "#6366f1", bg: "bg-indigo-50", text: "text-indigo-700" },
 }
 
 function StatusBadge({ status }: { status: PaymentStatus }) {
@@ -87,7 +87,7 @@ function RevenueChart({ data }: { data: RevenuePoint[] }) {
       <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
         <defs>
           <linearGradient id="rev-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#10b981" stopOpacity={0.35} />
+            <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
             <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
           </linearGradient>
         </defs>
@@ -208,7 +208,7 @@ export default function PaymentAnalysisPage() {
         <div>
           <h1 className="text-3xl font-semibold text-foreground mb-1">Payment Analysis</h1>
           <p className="text-muted-foreground text-sm">
-            Phân tích thanh toán &amp; doanh thu
+            Payment &amp; revenue analytics
             {data?.isMock && (
               <span className="ml-2 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs text-amber-700 font-medium">
                 Demo data
@@ -245,52 +245,44 @@ export default function PaymentAnalysisPage() {
           ))}
         </div>
       ) : m && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <MetricCard
             id="pay-metric-revenue"
-            label="Tổng doanh thu"
+            label="Total Revenue"
             value={formatCents(m.totalRevenue)}
-            icon="💰"
+            icon="$"
             accent="text-emerald-500"
             accentBg="bg-emerald-50"
           />
           <MetricCard
             id="pay-metric-txn"
-            label="Giao dịch"
+            label="Transactions"
             value={m.totalTransactions.toLocaleString()}
-            icon="📊"
+            icon="#"
             accent="text-indigo-500"
             accentBg="bg-indigo-50"
           />
           <MetricCard
             id="pay-metric-rate"
-            label="Tỷ lệ thành công"
+            label="Success Rate"
             value={`${m.successRate}%`}
-            icon="✅"
+            icon="%"
             accent="text-teal-500"
             accentBg="bg-teal-50"
           />
           <MetricCard
             id="pay-metric-avg"
-            label="Trung bình/giao dịch"
+            label="Avg / Transaction"
             value={formatCents(m.avgTransactionValue)}
-            icon="📈"
+            icon="~"
             accent="text-blue-500"
             accentBg="bg-blue-50"
           />
           <MetricCard
-            id="pay-metric-refund"
-            label="Hoàn tiền"
-            value={formatCents(m.refundedAmount)}
-            icon="↩️"
-            accent="text-rose-500"
-            accentBg="bg-rose-50"
-          />
-          <MetricCard
             id="pay-metric-pending"
-            label="Đang chờ"
+            label="Pending"
             value={formatCents(m.pendingAmount)}
-            icon="⏳"
+            icon="…"
             accent="text-amber-500"
             accentBg="bg-amber-50"
           />
@@ -302,7 +294,7 @@ export default function PaymentAnalysisPage() {
 
         {/* Revenue area chart */}
         <section className="xl:col-span-2 rounded-2xl border bg-card p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Doanh thu theo ngày</h2>
+          <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Revenue by Day</h2>
           {loading || !data ? (
             <div className="flex h-72 items-center justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -314,7 +306,7 @@ export default function PaymentAnalysisPage() {
 
         {/* Status donut */}
         <section className="rounded-2xl border bg-card p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Phân loại trạng thái</h2>
+          <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Status Breakdown</h2>
           {loading || !data ? (
             <div className="flex h-56 items-center justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -327,7 +319,7 @@ export default function PaymentAnalysisPage() {
 
       {/* Transaction count bar chart */}
       <section className="rounded-2xl border bg-card p-5 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Số lượng giao dịch theo ngày</h2>
+        <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Transactions by Day</h2>
         {loading || !data ? (
           <div className="flex h-72 items-center justify-center">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -340,7 +332,7 @@ export default function PaymentAnalysisPage() {
       {/* Recent transactions table */}
       <section className="rounded-2xl border bg-card shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b">
-          <h2 className="text-sm font-semibold text-foreground tracking-wide uppercase">Giao dịch gần đây</h2>
+          <h2 className="text-sm font-semibold text-foreground tracking-wide uppercase">Recent Transactions</h2>
         </div>
         {loading || !data ? (
           <div className="space-y-3 p-5">
@@ -353,7 +345,7 @@ export default function PaymentAnalysisPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  {["ID", "Khách hàng", "Mô tả", "Số tiền", "Trạng thái", "Thời gian"].map(h => (
+                  {["ID", "Customer", "Description", "Amount", "Status", "Time"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {h}
                     </th>
@@ -390,28 +382,6 @@ export default function PaymentAnalysisPage() {
         )}
       </section>
 
-      {/* Stripe info card */}
-      <section className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-50 p-5 flex items-center gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm border text-2xl">
-          💳
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-foreground text-sm">Tích hợp Stripe</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Kết nối backend tại <code className="bg-white/70 px-1 rounded">POST /payments/create-checkout</code> để khởi tạo Stripe Checkout Session.
-            Thêm <code className="bg-white/70 px-1 rounded">NEXT_PUBLIC_STRIPE_PK</code> vào <code className="bg-white/70 px-1 rounded">.env.local</code> để dùng Stripe.js trực tiếp.
-          </p>
-        </div>
-        <a
-          href="https://dashboard.stripe.com"
-          target="_blank"
-          rel="noreferrer"
-          id="btn-stripe-dashboard"
-          className="shrink-0 rounded-xl border border-indigo-300 bg-white px-4 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 transition-colors shadow-sm"
-        >
-          Stripe Dashboard ↗
-        </a>
-      </section>
     </div>
   )
 }
