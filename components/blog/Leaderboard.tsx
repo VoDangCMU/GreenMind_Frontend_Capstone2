@@ -13,22 +13,23 @@ interface Props {
 }
 
 const PODIUM_ORDER = [1, 0, 2]
-const PODIUM_HEIGHT = ["h-14", "h-20", "h-12"]
-const AVATAR_SIZE = ["h-8 w-8", "h-10 w-10", "h-7 w-7"]
+// pos: 0=left(rank2), 1=center(rank1), 2=right(rank3)
+const PODIUM_HEIGHT = ["h-20", "h-28", "h-16"]
+const AVATAR_SIZE = ["h-10 w-10", "h-14 w-14", "h-9 w-9"]
 const RANK_BG = [
-  "bg-slate-100 border-slate-300",
-  "bg-amber-50 border-amber-300",
-  "bg-orange-50 border-orange-300",
+  "bg-slate-100 border-slate-300",   // pos 0: rank 2 (silver)
+  "bg-amber-50 border-amber-300",    // pos 1: rank 1 (gold)
+  "bg-orange-50 border-orange-300",  // pos 2: rank 3 (bronze)
 ]
 const AVATAR_RING = [
-  "ring-2 ring-slate-400",
-  "ring-4 ring-amber-400",
-  "ring-2 ring-orange-400",
+  "ring-2 ring-slate-400",  // pos 0: rank 2
+  "ring-4 ring-amber-400",  // pos 1: rank 1
+  "ring-2 ring-orange-400", // pos 2: rank 3
 ]
 const LABEL_COLOR = [
-  "text-slate-500",
-  "text-amber-500 font-bold",
-  "text-orange-500",
+  "text-slate-500",           // pos 0: rank 2
+  "text-amber-500 font-bold", // pos 1: rank 1
+  "text-orange-500",          // pos 2: rank 3
 ]
 
 export function Leaderboard({
@@ -42,7 +43,11 @@ export function Leaderboard({
   const top3 = leaderboard.slice(0, 3)
   const rest = leaderboard.slice(3)
   const hasLeaderboard = leaderboard.length > 0
-  const podiumOrder = top3.length === 3 ? PODIUM_ORDER : top3.map((_, index) => index)
+  // Always place rank1 at center (pos=1) so it gets the tallest podium
+  const podiumOrder =
+    top3.length >= 3 ? PODIUM_ORDER :
+    top3.length === 2 ? [1, 0] :   // rank2 left, rank1 center
+    [0]                             // only rank1 center
 
   const formatLocation = (location?: string) => location?.split(",")[0]?.trim() || ""
   const getLabel = (user: LeaderboardUser) => user.fullName || user.username

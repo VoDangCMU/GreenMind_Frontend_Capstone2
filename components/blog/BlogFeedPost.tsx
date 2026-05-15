@@ -161,8 +161,7 @@ export function BlogFeedPost({ blog: initialBlog, onEdit, onDelete }: Props) {
                     ) : (
                         <span>💬</span>
                     )}
-                    <span>{blog.comment_count ?? 0}</span>
-                    <span className="text-xs">{showComments ? "Hide" : "Comments"}</span>
+                    <span className="text-xs">{showComments ? "Ẩn bình luận" : "Bình luận"}</span>
                 </button>
 
                 {/* Edit / Delete */}
