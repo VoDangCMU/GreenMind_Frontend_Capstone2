@@ -1,5 +1,5 @@
 import axios from "axios"
-import type { EnvironmentalPayload, TimeRange, UrbanArea } from "@/types/environmental"
+import type { EnvironmentalPayload, TimeRange, UrbanArea, WardBounds } from "@/types/environmental"
 import { getAccessToken } from "@/lib/auth"
 
 const RANGE_DAY_COUNT: Record<TimeRange, number> = {
@@ -38,13 +38,13 @@ function isValidPayload(payload: unknown): payload is EnvironmentalPayload {
 
 /**
  * Fetch environmental impact data from the real API.
- * - Uses /environmental-impact/all to get an aggregate of ALL users (admin dashboard view)
- * - Optionally filter by urbanAreaId
- * - Returns null if not authenticated or if the API fails (no mock fallback)
+ * - Uses /environmental-impact/all (admin dashboard view)
+ * - Optionally filter by ward geographic bounds (latMin/latMax/lngMin/lngMax)
+ * - Returns null if not authenticated or if the API fails
  */
 export async function fetchEnvironmentalData(
   timeRange: TimeRange,
-  urbanAreaId?: string
+  bounds?: WardBounds
 ): Promise<(EnvironmentalPayload & { isMock: false; recordCount?: number }) | null> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://green-api.khoav4.com"
   const token = getAccessToken()
@@ -53,7 +53,12 @@ export async function fetchEnvironmentalData(
   const { startDate, endDate } = getDateRange(timeRange)
 
   const response = await axios.get(`${apiUrl}/environmental-impact/all`, {
-    params: { range: timeRange, startDate, endDate, ...(urbanAreaId ? { urbanAreaId } : {}) },
+    params: {
+      range: timeRange,
+      startDate,
+      endDate,
+      ...(bounds ? bounds : {}),
+    },
     headers: { Authorization: `Bearer ${token}` },
     timeout: 10000,
   })
