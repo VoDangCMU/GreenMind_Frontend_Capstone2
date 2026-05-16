@@ -60,6 +60,7 @@ export interface WasteReport {
   pollutionScore: number | null;
   pollutionLevel: string | null;
   campaignId: string | null;         // UUID liên kết Campaign
+  campaignName?: string | null;
 }
 
 // ─── Report (legacy — dùng cho ReportList từ API) ──────────────────────────

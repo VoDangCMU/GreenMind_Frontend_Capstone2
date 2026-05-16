@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import type { WasteReport, ReportStatus, UrbanArea } from "@/types/waste-report";
 import { reverseGeocode } from "@/lib/geocode";
+import { getAccessToken } from "@/lib/auth";
 
 interface ReportListProps {
   wasteReports: WasteReport[];
@@ -114,6 +115,8 @@ export function ReportDetailModal({
 
   const [address, setAddress] = useState<string | null>(null);
   const [loadingAddress, setLoadingAddress] = useState(false);
+  const [campaignName, setCampaignName] = useState<string | null>(report.campaignName ?? null);
+  const [loadingCampaignName, setLoadingCampaignName] = useState(false);
 
   useEffect(() => {
     if (report.lat !== 0 || report.lng !== 0) {
@@ -134,6 +137,48 @@ export function ReportDetailModal({
     }
   }, [report.lat, report.lng]);
 
+  useEffect(() => {
+    setCampaignName(report.campaignName ?? null);
+    setLoadingCampaignName(false);
+
+    if (!report.campaignId || report.campaignName) return;
+
+    const cachedKey = `campaign_name_${report.campaignId}`;
+    const cached = sessionStorage.getItem(cachedKey);
+    if (cached) {
+      setCampaignName(cached);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingCampaignName(true);
+
+    const token = getAccessToken();
+    fetch(`https://vodang-api.gauas.com/campaigns/${report.campaignId}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      cache: "no-store",
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const name = data?.name || data?.data?.name || null;
+        if (name) {
+          sessionStorage.setItem(cachedKey, name);
+          setCampaignName(name);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCampaignName(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCampaignName(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [report.campaignId, report.campaignName]);
+
   const reportedTime = (() => {
     try { return new Date(report.createdAt).toLocaleString("vi-VN"); } catch { return "N/A"; }
   })();
@@ -142,6 +187,7 @@ export function ReportDetailModal({
   const hasAiData = report.pollutionScore != null || report.pollutionLevel || report.segmentRatio != null;
 
   const reporterName = typeof report.reportedBy === "string" ? report.reportedBy : report.reportedBy?.fullName || report.reportedByName || "Unidentified";
+  const campaignDisplayName = campaignName || (loadingCampaignName ? "Loading campaign..." : "Campaign assigned");
 
   return (
     <div
@@ -362,14 +408,14 @@ export function ReportDetailModal({
                   <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0 text-xl" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-amber-500 font-medium mb-0.5">Campaign</p>
-                    <p className="text-sm font-mono text-amber-700 break-all">{report.campaignId}</p>
+                    <p className="text-sm font-semibold text-amber-700 break-words">{campaignDisplayName}</p>
                   </div>
                   <button
                     onClick={() => report.campaignId && onNavigateToCampaign?.(report.campaignId)}
                     className="shrink-0 flex items-center gap-2 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all whitespace-nowrap"
                   >
                     <MessageCircle className="w-4 h-4" />
-                    View Chat
+                    View Campaign
                   </button>
                 </div>
               )}
@@ -589,7 +635,7 @@ export function ReportList({
                         {hasCampaign ? (
                           <span className="text-[10px] text-amber-500 group-hover:text-amber-600 font-medium transition-colors flex items-center gap-1">
                             <MessageCircle className="w-3 h-3" />
-                            View Chat →
+                            View Campaign →
                           </span>
                         ) : focusedReportId === report.id ? (
                           <span className="text-[10px] text-indigo-600 font-medium flex items-center gap-1">
