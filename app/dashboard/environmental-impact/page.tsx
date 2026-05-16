@@ -2,16 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react"
 import axios from "axios"
-import type { TimeRange, EnvironmentalPayload } from "@/types/environmental"
+import type { TimeRange, EnvironmentalPayload, WardBounds } from "@/types/environmental"
 import { fetchEnvironmentalData } from "@/services/environmental.service"
 import { getAccessToken } from "@/lib/auth"
-import { StatsPanel } from "@/components/environmental-impact/StatsPanel"
 import { DashboardFilters } from "@/components/environmental-impact/DashboardFilters"
 import { PollutionBarChart } from "@/components/environmental-impact/PollutionBarChart"
 import { ImpactAreaChart } from "@/components/environmental-impact/ImpactAreaChart"
 
 export default function EnvironmentalImpactPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("month")
+  const [selectedWardId, setSelectedWardId] = useState<number | null>(null)
+  const [wardBounds, setWardBounds] = useState<WardBounds | null>(null)
   const [payload, setPayload] = useState<EnvironmentalPayload | null>(null)
   const [recordCount, setRecordCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -19,22 +20,22 @@ export default function EnvironmentalImpactPage() {
   const [computing, setComputing] = useState(false)
   const [computeMsg, setComputeMsg] = useState<string | null>(null)
 
-  const loadData = useCallback(async (range: TimeRange) => {
+  const loadData = useCallback(async (range: TimeRange, bounds: WardBounds | null) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchEnvironmentalData(range)
+      const result = await fetchEnvironmentalData(range, bounds ?? undefined)
       if (!result) {
         setPayload(null)
-        setError("Không có dữ liệu cho khoảng thời gian này. Hãy nhấn \"Compute All Users\" để tính toán.")
+        setError("No data available for this period.")
       } else {
         setPayload(result)
         setRecordCount((result as { recordCount?: number }).recordCount ?? null)
       }
     } catch (err) {
       const msg = axios.isAxiosError(err)
-        ? err.response?.data?.message ?? "Không thể tải dữ liệu"
-        : "Không thể tải dữ liệu"
+        ? err.response?.data?.message ?? "Failed to load data"
+        : "Failed to load data"
       setError(msg)
       setPayload(null)
     } finally {
@@ -42,9 +43,12 @@ export default function EnvironmentalImpactPage() {
     }
   }, [])
 
-  useEffect(() => { loadData(timeRange) }, [timeRange, loadData])
+  useEffect(() => { loadData(timeRange, wardBounds) }, [timeRange, wardBounds, loadData])
 
-  const handleTimeRangeChange = (range: TimeRange) => setTimeRange(range)
+  const handleWardChange = (wardId: number | null, bounds: WardBounds | null) => {
+    setSelectedWardId(wardId)
+    setWardBounds(bounds)
+  }
 
   const handleCompute = async () => {
     const token = getAccessToken()
@@ -60,7 +64,7 @@ export default function EnvironmentalImpactPage() {
       )
       const { success, skipped, failed } = res.data?.data ?? {}
       setComputeMsg(`Done — ${success ?? 0} computed, ${skipped ?? 0} skipped, ${failed ?? 0} failed`)
-      await loadData(timeRange)
+      await loadData(timeRange, wardBounds)
     } catch (err) {
       setComputeMsg(axios.isAxiosError(err) ? err.response?.data?.message ?? "Compute failed" : "Compute failed")
     } finally {
@@ -76,10 +80,13 @@ export default function EnvironmentalImpactPage() {
         <div>
           <h1 className="text-3xl font-semibold text-foreground mb-1">Environmental Impact</h1>
           <p className="text-muted-foreground text-sm">
-            Tổng hợp tác động môi trường — tất cả người dùng
+            AI-predicted pollution levels from waste scans
+            {selectedWardId !== null && (
+              <span className="ml-2 text-xs font-medium text-blue-600">— filtered by ward</span>
+            )}
             {recordCount !== null && (
               <span className="ml-2 text-xs font-medium text-emerald-600">
-                ({recordCount} bản ghi)
+                ({recordCount} scans)
               </span>
             )}
           </p>
@@ -106,27 +113,28 @@ export default function EnvironmentalImpactPage() {
 
       {/* Compute result toast */}
       {computeMsg && (
-        <div className={`rounded-lg border px-4 py-2.5 text-sm font-medium ${
-          computeMsg.includes("failed") || computeMsg.toLowerCase().includes("fail")
+        <div className={`rounded-lg border px-4 py-2.5 text-sm font-medium ${computeMsg.includes("failed") || computeMsg.toLowerCase().includes("fail")
             ? "border-red-200 bg-red-50 text-red-700"
             : "border-emerald-200 bg-emerald-50 text-emerald-700"
-        }`}>
+          }`}>
           {computeMsg}
         </div>
       )}
 
-      {/* Stats */}
-      {payload && <StatsPanel pollution={payload.pollution} impact={payload.impact} />}
-
       {/* Filters */}
       <section className="rounded-xl border bg-card p-5 shadow-sm">
-        <DashboardFilters timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} />
+        <DashboardFilters
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+          selectedWardId={selectedWardId}
+          onWardChange={handleWardChange}
+        />
       </section>
 
       {/* Error state */}
       {!loading && error && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-          <p className="font-semibold mb-1">⚠️ Không có dữ liệu</p>
+          <p className="font-semibold mb-1">No data</p>
           <p>{error}</p>
         </div>
       )}
@@ -143,7 +151,7 @@ export default function EnvironmentalImpactPage() {
             </div>
           ) : !payload ? (
             <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
-              Không có dữ liệu
+              No data available
             </div>
           ) : (
             <PollutionBarChart timeSeries={payload.timeSeries} />
@@ -160,7 +168,7 @@ export default function EnvironmentalImpactPage() {
             </div>
           ) : !payload ? (
             <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
-              Không có dữ liệu
+              No data available
             </div>
           ) : (
             <ImpactAreaChart timeSeries={payload.timeSeries} />

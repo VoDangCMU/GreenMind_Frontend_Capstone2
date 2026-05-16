@@ -138,6 +138,7 @@ interface MapViewProps {
   areas: UrbanArea[];
   reports: WasteReport[];
   reportsRef?: MutableRefObject<WasteReport[]>;
+  reportsVersion?: number;
   envAlerts: EnvAlert[];
   envAlertsRef?: MutableRefObject<EnvAlert[]>;
   selectedWardName: string | null;
@@ -176,6 +177,22 @@ const REPORT_COLORS: Record<string, { bg: string; border: string; pulse: boolean
   assigned: { bg: "#3b82f6", border: "#1d4ed8", pulse: false },
   done: { bg: "#10b981", border: "#059669", pulse: false },
 };
+
+const TARGET_REPORT_WARD_KEY = "hoa khanh";
+
+function normalizeReportWardName(value: string | null | undefined): string {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .trim();
+}
+
+function isTargetReportWard(wardName: string | null | undefined): boolean {
+  return normalizeReportWardName(wardName).includes(TARGET_REPORT_WARD_KEY);
+}
 
 // Island styling
 const ISLAND_STYLE: L.PathOptions = {
@@ -425,6 +442,7 @@ export function MapView({
   areas,
   reports,
   reportsRef: externalReportsRef,
+  reportsVersion = 0,
   envAlerts,
   envAlertsRef: externalEnvAlertsRef,
   selectedWardName,
@@ -492,6 +510,8 @@ export function MapView({
 
   // Track if initial map render is complete (to avoid re-rendering map on data refresh)
   const mapInitialRenderRef = useRef(false);
+  const initialViewportFitRef = useRef(false);
+  const previousFocusedReportRef = useRef<WasteReport | null>(null);
 
   // ── Inject keyframe once ────────────────────────────────────────────────
   useEffect(() => {
@@ -795,7 +815,7 @@ export function MapView({
       reportLayerRef.current.clearLayers();
 
       // Use reportsRef to avoid re-render when reports refresh
-      const filtered = reportsRef.current;
+      const filtered = reportsRef.current.filter((report) => isTargetReportWard(report.wardName));
 
       filtered.forEach((report) => {
         // Bỏ qua report có tọa độ (0,0) — dữ liệu không hợp lệ
@@ -847,13 +867,13 @@ export function MapView({
       const displayAddress = cached || (focusedAddress && focusedAddress !== "Không xác định được địa chỉ" ? focusedAddress : null);
 
       const buildPopupContent = (address: string) => `
-        <div style="font-family:system-ui;min-width:220px;padding:0;">
-          <div style="padding:8px 10px 4px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #e5e7eb;">
+        <div style="font-family:system-ui;width:205px;max-width:205px;padding:0;box-sizing:border-box;">
+          <div style="padding:6px 8px 4px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #e5e7eb;">
             <button
               onclick="window.dispatchEvent(new CustomEvent('_clearFocusedReport'))"
               style="
-                background:#10b981;color:white;font-weight:600;font-size:12px;
-                padding:5px 12px;border-radius:6px;border:none;cursor:pointer;
+                background:#10b981;color:white;font-weight:600;font-size:11px;
+                padding:4px 9px;border-radius:6px;border:none;cursor:pointer;
                 transition:background 0.15s;white-space:nowrap;
               "
               onmouseover="this.style.background='#059669'"
@@ -862,20 +882,20 @@ export function MapView({
               ← Back
             </button>
           </div>
-          <div style="padding:10px 12px 4px;">
-            <p style="font-size:14px;font-weight:700;color:#1f2937;margin:0;">${report.wardName}</p>
+          <div style="padding:7px 9px 2px;">
+            <p style="font-size:13px;font-weight:700;color:#1f2937;margin:0;line-height:1.25;">${report.wardName}</p>
           </div>
-          <div style="padding:4px 12px;font-size:12px;color:#374151;line-height:1.6;">
-            <div style="margin-bottom:4px;"><span style="font-weight:600;">Người báo cáo:</span> ${reporterName}</div>
-            <div style="margin-bottom:4px;"><span style="font-weight:600;">Địa chỉ:</span> ${displayAddress || "Đang tải..."}</div>
-            <div style="margin-bottom:6px;"><span style="font-weight:600;">Ngày tạo:</span> ${formatDate(report.createdAt)}</div>
+          <div style="padding:3px 9px;font-size:11px;color:#374151;line-height:1.35;max-height:112px;overflow-y:auto;overflow-wrap:anywhere;">
+            <div style="margin-bottom:3px;"><span style="font-weight:600;">Người báo cáo:</span> ${reporterName}</div>
+            <div style="margin-bottom:3px;"><span style="font-weight:600;">Địa chỉ:</span> ${displayAddress || "Đang tải..."}</div>
+            <div style="margin-bottom:4px;"><span style="font-weight:600;">Ngày tạo:</span> ${formatDate(report.createdAt)}</div>
           </div>
-          <div style="padding:6px 12px 10px;">
+          <div style="padding:5px 9px 8px;">
             <button
               onclick="window.dispatchEvent(new CustomEvent('viewReportDetail', {detail: '${report.id}'}))"
               style="
-                display:block;width:100%;background:#4f46e5;color:white;font-weight:600;font-size:13px;
-                padding:8px 16px;border-radius:8px;border:none;cursor:pointer;
+                display:block;width:100%;background:#4f46e5;color:white;font-weight:600;font-size:12px;
+                padding:6px 10px;border-radius:7px;border:none;cursor:pointer;
                 transition:background 0.15s;
               "
               onmouseover="this.style.background='#4338ca'"
@@ -887,10 +907,11 @@ export function MapView({
         </div>
       `;
 
-      const popupContent = buildPopupContent(focusedAddress);
+      const popupContent = buildPopupContent(displayAddress ?? "");
 
       marker.bindPopup(popupContent, {
-        maxWidth: 260,
+        minWidth: 205,
+        maxWidth: 205,
         className: "focused-report-popup",
         offset: [0, -10],
         closeButton: false,
@@ -904,9 +925,9 @@ export function MapView({
   );
 
   // Refs to hold callback functions - prevents dependency changes
-  const drawAlertDetailRef = useRef<(wardName: string) => void>();
-  const drawReportPinsRef = useRef<(wardName: string | null) => void>();
-  const drawFocusedReportRef = useRef<(report: WasteReport | null) => void>();
+  const drawAlertDetailRef = useRef<((wardName: string) => void) | null>(null);
+  const drawReportPinsRef = useRef<((wardName: string | null) => void) | null>(null);
+  const drawFocusedReportRef = useRef<((report: WasteReport | null) => void) | null>(null);
 
   // Keep refs in sync with callbacks
   drawAlertDetailRef.current = drawAlertDetail;
@@ -916,6 +937,10 @@ export function MapView({
   // ── Main render logic: switch between level 1 and level 2 ───────────────
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
+    const previousFocusedReport = previousFocusedReportRef.current;
+    const targetFocusedReport = focusedReport && isTargetReportWard(focusedReport.wardName)
+      ? focusedReport
+      : null;
 
     // Clear all layers first
     wardLayerRef.current?.clearLayers();
@@ -925,12 +950,12 @@ export function MapView({
       // ── Level 1: boundary polygons + report pins ──
 
       // Clear focused report layer when back
-      if (!focusedReport) {
+      if (!targetFocusedReport) {
         focusedReportLayerRef.current?.clearLayers();
       }
 
       // Nếu có focused report → chỉ hiện 1 marker đó, zoom vào tọa độ
-      if (focusedReport) {
+      if (targetFocusedReport) {
         reportLayerRef.current?.clearLayers();
 
         // Ẩn boundary layer để tránh click nhầm
@@ -938,12 +963,16 @@ export function MapView({
           mapRef.current.removeLayer(boundaryLayerRef.current);
         }
 
-        // Di chuyển map ngay lập tức đến tọa độ
+        // Keep the focused marker lower in the viewport so the popup does not
+        // collide with the top controls.
         const map = mapRef.current;
-        map.flyTo([focusedReport.lat, focusedReport.lng], 17, { duration: 0.3 });
+        const targetZoom = 17;
+        const reportPoint = map.project([targetFocusedReport.lat, targetFocusedReport.lng], targetZoom);
+        const offsetCenter = map.unproject(reportPoint.subtract([0, 110]), targetZoom);
+        map.flyTo(offsetCenter, targetZoom, { duration: 0.3 });
 
         // Vẽ marker ngay lập tức sau khi set view
-        drawFocusedReportRef.current?.(focusedReport);
+        drawFocusedReportRef.current?.(targetFocusedReport);
       } else {
         // Boundary layer luôn được hiện ở level 1
         if (boundaryLayerRef.current && !mapRef.current.hasLayer(boundaryLayerRef.current)) {
@@ -955,11 +984,14 @@ export function MapView({
 
         drawReportPinsRef.current?.(null);
 
-        // Zoom to reports area for smooth transition (same as on page load)
-        const validReports = reportsRef.current.filter(r => r.lat !== 0 && r.lng !== 0);
-        if (validReports.length > 0) {
-          const bounds = L.latLngBounds(validReports.map(r => L.latLng(r.lat, r.lng)));
-          mapRef.current.flyToBounds(bounds.pad(0.1), { duration: 0.5, maxZoom: 15 });
+        if (previousFocusedReport && !targetFocusedReport) {
+          const validReports = reportsRef.current.filter((r) => isTargetReportWard(r.wardName) && r.lat !== 0 && r.lng !== 0);
+          if (validReports.length > 0) {
+            const bounds = L.latLngBounds(validReports.map((r) => L.latLng(r.lat, r.lng)));
+            mapRef.current.flyToBounds(bounds.pad(0.1), { duration: 0.5, maxZoom: 15 });
+          } else {
+            mapRef.current.flyTo([16.065, 108.220], 13, { duration: 0.5 });
+          }
         }
       }
     } else {
@@ -981,13 +1013,33 @@ export function MapView({
         }
       }
     }
+
+    previousFocusedReportRef.current = targetFocusedReport;
   }, [
     mapLoaded,
     selectedWardName,
     areas,
     focusedReport,
-    reports,
+    reportsRef,
   ]);
+
+  // ── Data refresh: redraw report markers without moving the map ───────────
+  useEffect(() => {
+    if (!mapLoaded || !mapInitialRenderRef.current) return;
+    if (focusedReport && isTargetReportWard(focusedReport.wardName)) return;
+
+    drawReportPinsRef.current?.(selectedWardName);
+
+    // Fit to data once after the first fetch, then preserve user pan/zoom.
+    if (!initialViewportFitRef.current && !selectedWardName) {
+      const validReports = reportsRef.current.filter((r) => isTargetReportWard(r.wardName) && r.lat !== 0 && r.lng !== 0);
+      if (validReports.length > 0) {
+        const bounds = L.latLngBounds(validReports.map((r) => L.latLng(r.lat, r.lng)));
+        mapRef.current?.flyToBounds(bounds.pad(0.1), { duration: 0.5, maxZoom: 15 });
+        initialViewportFitRef.current = true;
+      }
+    }
+  }, [reportsVersion, mapLoaded, selectedWardName, focusedReport, reportsRef]);
 
   // ── Fetch boundaries 1 lần ngay khi map sẵn sàng ────────────────────────────
   useEffect(() => {
@@ -1040,8 +1092,12 @@ export function MapView({
   const normalCount = visibleAlerts.filter((a) => a.level === "normal").length;
   const warningCount = visibleAlerts.filter((a) => a.level === "warning").length;
   const criticalCount = visibleAlerts.filter((a) => a.level === "critical").length;
-  const pendingCount = reports.filter((r) => !selectedWardName || r.wardName === selectedWardName).filter(r => r.status === "pending").length;
-  const doneCount = reports.filter((r) => !selectedWardName || r.wardName === selectedWardName).filter(r => r.status === "done").length;
+  const reportCountSource = reportsRef.current.length > 0 ? reportsRef.current : reports;
+  const visibleReportCounts = reportCountSource.filter(
+    (r) => isTargetReportWard(r.wardName) && (!selectedWardName || r.wardName === selectedWardName)
+  );
+  const pendingCount = visibleReportCounts.filter(r => r.status === "pending").length;
+  const doneCount = visibleReportCounts.filter(r => r.status === "done").length;
 
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
@@ -1096,7 +1152,7 @@ export function MapView({
       )}
 
       {/* Hint (Level 1) */}
-      {mapLoaded && !selectedWardName && (
+      {mapLoaded && !selectedWardName && !focusedReport && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
           <span className="bg-white/90 backdrop-blur-sm border border-gray-100 shadow rounded-full px-4 py-1.5 text-xs text-gray-500 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />

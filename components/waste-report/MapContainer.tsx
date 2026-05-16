@@ -40,8 +40,10 @@ export default function MapContainer({
   // Use useRef to hold reports so MapView doesn't re-render on data refresh
   const reportsRef = useRef<WasteReport[]>([]);
   const envAlertsRef = useRef<EnvAlert[]>(envAlerts);
+  const initialReportsSetRef = useRef(false);
   const [initialReports, setInitialReports] = useState<WasteReport[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [reportsVersion, setReportsVersion] = useState(0);
 
   // Sync envAlerts to ref
   useEffect(() => {
@@ -90,10 +92,13 @@ export default function MapContainer({
 
       // Update ref for internal map updates (no re-render)
       reportsRef.current = validReports;
-      // Only update state on initial load, not on background polling
-      if (isInitialLoad) {
+      // Only seed MapView state once. Later polling updates reportsRef + version only,
+      // so Leaflet keeps the user's current center/zoom.
+      if (!initialReportsSetRef.current) {
         setInitialReports(validReports);
+        initialReportsSetRef.current = true;
       }
+      setReportsVersion((version) => version + 1);
       // Sync reports with parent for ReportList
       onReportsUpdate?.(validReports);
     } catch (err) {
@@ -124,6 +129,7 @@ export default function MapContainer({
       areas={areas}
       reports={initialReports}
       reportsRef={reportsRef}
+      reportsVersion={reportsVersion}
       envAlerts={envAlerts}
       envAlertsRef={envAlertsRef}
       selectedWardName={selectedWardName}
