@@ -33,7 +33,7 @@ function StatCard({ icon: Icon, label, value, gradient, subLabel }: {
                     {subLabel && <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{subLabel}</p>}
                 </div>
 
-                <div className={`shrink-0 p-2 rounded-lg bg-gradient-to-br ${gradient}`}>
+                <div className={`shrink-0 p-2 rounded-lg bg-linear-to-br ${gradient}`}>
                     <Icon className="w-4 h-4 text-white" />
                 </div>
             </div>
@@ -87,11 +87,10 @@ export default function HouseholdManagementPage() {
         }
 
         let cancelled = false;
-        setSelectedHouseholdHistory(undefined);
-        setHistoryLoading(true);
-        setHistoryError(null);
 
         const loadHouseholdHistory = async () => {
+            setHistoryLoading(true);
+            setHistoryError(null);
             try {
                 const records = await getHouseholdDetectionHistoryByHousehold(selectedHousehold.externalId!);
                 if (!cancelled) {
@@ -257,20 +256,17 @@ export default function HouseholdManagementPage() {
     }, [filteredHouseholds, searchQuery]);
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/20">
-            {/* Animated Background Elements */}
+        <div className="flex flex-col h-screen overflow-hidden bg-linear-to-br from-slate-100 via-slate-50 to-emerald-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/20">
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-gradient-to-br from-emerald-200/30 to-teal-300/20 blur-3xl animate-pulse-soft" />
-                <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-gradient-to-br from-cyan-200/20 to-blue-300/10 blur-3xl" />
+                <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-linear-to-br from-emerald-200/30 to-teal-300/20 blur-3xl animate-pulse-soft" />
+                <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-linear-to-br from-cyan-200/20 to-blue-300/10 blur-3xl" />
             </div>
 
-            {/* Header */}
             <header className="relative shrink-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border-b border-slate-200/50 dark:border-slate-700/50">
                 <div className="px-4 pt-3 pb-3">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                        {/* Title */}
                         <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 shadow-lg shadow-emerald-500/20">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 via-teal-500 to-cyan-500 shadow-lg shadow-emerald-500/20">
                                 <MapPin className="h-5 w-5 text-white" />
                             </div>
                             <div>
@@ -445,6 +441,10 @@ export default function HouseholdManagementPage() {
                                 emptyTitle="No households yet"
                                 emptySubtitle="Start tracking to see rankings"
                                 hideAvatar
+                                previewCount={100}
+                                expandedCount={100}
+                                showViewAll={false}
+                                autoFlow
                             />
                         </div>
                     </div>

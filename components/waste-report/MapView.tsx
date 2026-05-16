@@ -1110,6 +1110,7 @@ export function MapView({
     (r) => isTargetReportWard(r.wardName) && (!selectedWardName || r.wardName === selectedWardName)
   );
   const pendingCount = visibleReportCounts.filter(r => r.status === "pending").length;
+  const approvedCount = visibleReportCounts.filter(r => r.status === "approved").length;
   const doneCount = visibleReportCounts.filter(r => r.status === "done").length;
 
   return (
@@ -1177,13 +1178,11 @@ export function MapView({
       {/* Legend */}
       {mapLoaded && (
         <div className="absolute bottom-4 right-4 bg-white/92 backdrop-blur-sm rounded-xl border border-gray-100 shadow-sm p-3 text-xs space-y-2 z-[1000] min-w-[175px]">
-          <p className="font-semibold text-gray-600 text-xs uppercase tracking-wide">
-            {selectedWardName ? "Cảnh báo môi trường" : "Mức độ phường"}
-          </p>
-
-          {selectedWardName ? (
-            // Level 2 legend: env alert levels
+          {selectedWardName && (
             <>
+              <p className="font-semibold text-gray-600 text-xs uppercase tracking-wide">
+                Cảnh báo môi trường
+              </p>
               {[
                 { color: ALERT_CFG.normal.color, label: `Bình thường (${normalCount})` },
                 { color: ALERT_CFG.warning.color, label: `Cảnh báo (${warningCount})` },
@@ -1195,53 +1194,17 @@ export function MapView({
                 </div>
               ))}
             </>
-          ) : (
-            // Level 1 legend: boundary color meaning
-            <>
-              {[
-                { color: "#ef4444", label: "Nhiều báo cáo chờ" },
-                { color: "#f59e0b", label: "Có báo cáo chờ" },
-                { color: "#10b981", label: "Đã xử lý xong" },
-                { color: "#3b82f6", label: "Không có báo cáo" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-sm border-2 border-white shadow-sm flex-shrink-0" style={{ background: item.color }} />
-                  <span className="text-gray-500 whitespace-nowrap">{item.label}</span>
-                </div>
-              ))}
-            </>
-          )}
-
-          {/* Vietnam Islands indicator */}
-          {!selectedWardName && (
-            <div className="border-t border-gray-100 pt-2 mt-1">
-              <div className="flex items-center gap-2">
-                <span
-                  className="w-4 h-3 rounded-sm flex-shrink-0"
-                  style={{
-                    background: "#f97316",
-                    border: "2px solid #dc2626",
-                    borderStyle: "dashed",
-                  }}
-                />
-                <div>
-                  <p className="text-gray-600 whitespace-nowrap font-medium">
-                    Lãnh thổ Việt Nam
-                  </p>
-                  <p className="text-gray-400 text-[10px]">Hoàng Sa & Trường Sa</p>
-                </div>
-              </div>
-            </div>
           )}
 
           {/* Report pins */}
-          <div className="border-t border-gray-100 pt-2 mt-1 space-y-1.5">
+          <div className={`${selectedWardName ? "border-t border-gray-100 pt-2 mt-1" : ""} space-y-1.5`}>
             <p className="font-semibold text-gray-500 text-[10px] uppercase tracking-wide">
-              Báo cáo rác
+              Waste Reports
             </p>
             {[
-              { color: "#ef4444", label: `Chờ xử lý (${pendingCount})` },
-              { color: "#10b981", label: `Hoàn thành (${doneCount})` },
+              { color: "#ef4444", label: `Pending (${pendingCount})` },
+              { color: "#3b82f6", label: `Approved (${approvedCount})` },
+              { color: "#10b981", label: `Completed (${doneCount})` },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: item.color }} />

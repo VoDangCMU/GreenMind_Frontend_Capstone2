@@ -95,6 +95,7 @@ export default function MapContainer({
           pollutionScore: r.pollutionScore != null ? Number(r.pollutionScore) : null,
           pollutionLevel: r.pollutionLevel || null,
           campaignId: r.campaignId || null,
+          campaignName: r.campaign?.name || r.campaignName || null,
         } as WasteReport));
       }
 

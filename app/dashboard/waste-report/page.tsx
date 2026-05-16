@@ -194,6 +194,7 @@ export default function MonitoringPage() {
           report={selectedReportPopup}
           onClose={() => setSelectedReportPopup(null)}
           onCreateCampaign={handleCreateCampaign}
+          onNavigateToCampaign={handleNavigateToCampaign}
         />
       )}
 
