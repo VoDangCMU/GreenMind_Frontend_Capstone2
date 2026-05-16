@@ -1100,7 +1100,7 @@ export function MapView({
   const doneCount = visibleReportCounts.filter(r => r.status === "done").length;
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+    <div className="waste-report-map relative w-full h-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
       {/* Loading overlay */}
@@ -1269,6 +1269,10 @@ export function MapView({
           padding: 4px !important;
         }
         .monitoring-leaflet-popup .leaflet-popup-tip { opacity: 0.4; }
+        .waste-report-map .leaflet-marker-icon[src*="/marker-icon"],
+        .waste-report-map .leaflet-marker-shadow[src*="/marker-shadow"] {
+          display: none !important;
+        }
       `}</style>
     </div>
   );
