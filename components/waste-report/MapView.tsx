@@ -179,6 +179,8 @@ const REPORT_COLORS: Record<string, { bg: string; border: string; pulse: boolean
 };
 
 const TARGET_REPORT_WARD_KEY = "hoa khanh";
+const INITIAL_REPORT_BOUNDS_PADDING = 0.35;
+const INITIAL_REPORT_MAX_ZOOM = 14;
 
 function normalizeReportWardName(value: string | null | undefined): string {
   return (value ?? "")
@@ -511,6 +513,7 @@ export function MapView({
   // Track if initial map render is complete (to avoid re-rendering map on data refresh)
   const mapInitialRenderRef = useRef(false);
   const initialViewportFitRef = useRef(false);
+  const previousSelectedWardNameRef = useRef<string | null>(null);
   const previousFocusedReportRef = useRef<WasteReport | null>(null);
 
   // ── Inject keyframe once ────────────────────────────────────────────────
@@ -934,9 +937,24 @@ export function MapView({
   drawReportPinsRef.current = drawReportPins;
   drawFocusedReportRef.current = drawFocusedReport;
 
+  const fitToInitialReportViewport = useCallback((duration = 0.5) => {
+    const validReports = reportsRef.current.filter((r) => isTargetReportWard(r.wardName) && r.lat !== 0 && r.lng !== 0);
+
+    if (validReports.length > 0) {
+      const bounds = L.latLngBounds(validReports.map((r) => L.latLng(r.lat, r.lng)));
+      mapRef.current?.flyToBounds(bounds.pad(INITIAL_REPORT_BOUNDS_PADDING), {
+        duration,
+        maxZoom: INITIAL_REPORT_MAX_ZOOM,
+      });
+    } else {
+      mapRef.current?.flyTo([16.065, 108.220], 13, { duration });
+    }
+  }, [reportsRef]);
+
   // ── Main render logic: switch between level 1 and level 2 ───────────────
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
+    const previousSelectedWardName = previousSelectedWardNameRef.current;
     const previousFocusedReport = previousFocusedReportRef.current;
     const targetFocusedReport = focusedReport && isTargetReportWard(focusedReport.wardName)
       ? focusedReport
@@ -984,14 +1002,8 @@ export function MapView({
 
         drawReportPinsRef.current?.(null);
 
-        if (previousFocusedReport && !targetFocusedReport) {
-          const validReports = reportsRef.current.filter((r) => isTargetReportWard(r.wardName) && r.lat !== 0 && r.lng !== 0);
-          if (validReports.length > 0) {
-            const bounds = L.latLngBounds(validReports.map((r) => L.latLng(r.lat, r.lng)));
-            mapRef.current.flyToBounds(bounds.pad(0.1), { duration: 0.5, maxZoom: 15 });
-          } else {
-            mapRef.current.flyTo([16.065, 108.220], 13, { duration: 0.5 });
-          }
+        if ((previousFocusedReport && !targetFocusedReport) || previousSelectedWardName) {
+          fitToInitialReportViewport(0.5);
         }
       }
     } else {
@@ -1015,12 +1027,14 @@ export function MapView({
     }
 
     previousFocusedReportRef.current = targetFocusedReport;
+    previousSelectedWardNameRef.current = selectedWardName;
   }, [
     mapLoaded,
     selectedWardName,
     areas,
     focusedReport,
     reportsRef,
+    fitToInitialReportViewport,
   ]);
 
   // ── Data refresh: redraw report markers without moving the map ───────────
@@ -1034,12 +1048,11 @@ export function MapView({
     if (!initialViewportFitRef.current && !selectedWardName) {
       const validReports = reportsRef.current.filter((r) => isTargetReportWard(r.wardName) && r.lat !== 0 && r.lng !== 0);
       if (validReports.length > 0) {
-        const bounds = L.latLngBounds(validReports.map((r) => L.latLng(r.lat, r.lng)));
-        mapRef.current?.flyToBounds(bounds.pad(0.1), { duration: 0.5, maxZoom: 15 });
+        fitToInitialReportViewport(0.5);
         initialViewportFitRef.current = true;
       }
     }
-  }, [reportsVersion, mapLoaded, selectedWardName, focusedReport, reportsRef]);
+  }, [reportsVersion, mapLoaded, selectedWardName, focusedReport, reportsRef, fitToInitialReportViewport]);
 
   // ── Fetch boundaries 1 lần ngay khi map sẵn sàng ────────────────────────────
   useEffect(() => {
