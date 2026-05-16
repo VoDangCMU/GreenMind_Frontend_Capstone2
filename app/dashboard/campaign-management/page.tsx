@@ -23,7 +23,7 @@ import {
   Activity,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getAccessToken } from "@/lib/auth";
+import { apiGet } from "@/lib/auth";
 import {
   BarChart,
   Bar,
@@ -115,19 +115,12 @@ function CampaignManagementContent() {
     async function fetchCampaigns() {
       setLoading(true);
       try {
-        const token = getAccessToken();
-        const res = await fetch("https://vodang-api.gauas.com/campaigns/my-created-and-joined", {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          cache: "no-store",
-        });
-        if (res.ok) {
-          const apiData = await res.json();
-          // Handle new API response format with created and participated arrays
-          const createdCampaigns = apiData?.created ?? [];
-          const participatedCampaigns = apiData?.participated ?? [];
-          const rawList: any[] = [...createdCampaigns, ...participatedCampaigns];
-          setCampaigns(rawList);
-        }
+        const apiData = await apiGet("/campaigns/my-created-and-joined");
+        // Handle new API response format with created and participated arrays
+        const createdCampaigns = apiData?.created ?? [];
+        const participatedCampaigns = apiData?.participated ?? [];
+        const rawList: any[] = [...createdCampaigns, ...participatedCampaigns];
+        setCampaigns(rawList);
       } catch (error) {
         console.error("Failed to fetch campaigns:", error);
       } finally {
@@ -145,22 +138,15 @@ function CampaignManagementContent() {
       setCampaignAddress(null);
     }
     try {
-      const token = getAccessToken();
-      const res = await fetch(`https://vodang-api.gauas.com/campaigns/${id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        cache: "no-store",
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCampaignDetail(data);
-        if (!initialLoadDone) {
-          setInitialLoadDone(true);
-        }
-        // Reverse geocode the address
-        if (data.lat && data.lng) {
-          const addr = await reverseGeocode(data.lat, data.lng);
-          setCampaignAddress(addr);
-        }
+      const data = await apiGet(`/campaigns/${id}`);
+      setCampaignDetail(data);
+      if (!initialLoadDone) {
+        setInitialLoadDone(true);
+      }
+      // Reverse geocode the address
+      if (data.lat && data.lng) {
+        const addr = await reverseGeocode(data.lat, data.lng);
+        setCampaignAddress(addr);
       }
     } catch (error) {
       console.error("Failed to fetch campaign detail:", error);

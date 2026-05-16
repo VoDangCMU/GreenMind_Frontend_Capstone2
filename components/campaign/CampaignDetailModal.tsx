@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Campaign, CampaignParticipant } from "@/types/campaign";
-import { getAccessToken } from "@/lib/auth";
+import { apiGet } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, CheckCircle2, MapPin, UserCircle, Users, AlertCircle, Loader2, Activity, Clock, X, MessageCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -32,17 +32,7 @@ export function CampaignDetailModal({ isOpen, onClose, campaignId }: CampaignDet
     }
     setError(null);
     try {
-      const token = getAccessToken();
-      const res = await fetch(`https://vodang-api.gauas.com/campaigns/${campaignId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        throw new Error("Lỗi khi tải dữ liệu chiến dịch");
-      }
-
-      const data = await res.json();
+      const data = await apiGet(`/campaigns/${campaignId}`);
       setDetail(data);
       if (!initialLoadDone) {
         setInitialLoadDone(true);

@@ -11,12 +11,10 @@ import { Label }    from "@/components/ui/label";
 import { CampaignRegion } from "@/types/waste-report";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAccessToken } from "@/lib/auth";
+import { apiPost } from "@/lib/auth";
 import { AlertCircle, CheckCircle2, Loader2, MapPin } from "lucide-react";
 import { createBlog } from "@/services/blog.service";
 import { reverseGeocode } from "@/lib/geocode";
-
-const API_BASE = "https://vodang-api.gauas.com";
 
 interface CampaignModalProps {
   isOpen: boolean;
@@ -84,7 +82,6 @@ export function CampaignModal({ isOpen, onClose, region, onSuccess }: CampaignMo
     let newCampaignId: string = "";
 
     try {
-      const token = getAccessToken();
       const body = {
         name,
         description,
@@ -96,21 +93,7 @@ export function CampaignModal({ isOpen, onClose, region, onSuccess }: CampaignMo
         reportIds,
       };
 
-      const res = await fetch(`${API_BASE}/campaigns`, {
-        method:  "POST",
-        headers: {
-          "Content-Type":  "application/json",
-          "Authorization": token ? `Bearer ${token}` : "",
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Lỗi ${res.status}`);
-      }
-
-      const campaignData = await res.json();
+      const campaignData = await apiPost("/campaigns", body);
       newCampaignId = campaignData?.id ?? campaignData?.data?.id ?? "";
 
       // Auto-create a community blog post for this campaign (fire-and-forget)

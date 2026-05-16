@@ -1,5 +1,12 @@
 import axios, { AxiosRequestConfig } from 'axios';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://vodang-api.gauas.com';
+const BROWSER_API_BASE_URL = '/api/backend';
+
+const getApiBaseURL = () => {
+  return typeof window !== 'undefined' ? BROWSER_API_BASE_URL : API_BASE_URL;
+};
+
 // API utility functions for authentication
 export interface LoginResponse {
   message: string;
@@ -51,7 +58,7 @@ export const clearAuthData = () => {
 
 // Create axios instance for authenticated requests (main API)
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://green-api.khoav4.com',
+  baseURL: getApiBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -182,8 +189,7 @@ export const aiApiPost = async (url: string, data?: any, config?: AxiosRequestCo
 // Email/Password login
 export const loginWithEmail = async (payload: EmailLoginPayload): Promise<LoginResponse> => {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://green-api.khoav4.com';
-    const response = await axios.post(`${baseUrl}/auth/login/email`, payload, {
+    const response = await axios.post(`${getApiBaseURL()}/auth/login/email`, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -200,7 +206,7 @@ export const loginWithEmail = async (payload: EmailLoginPayload): Promise<LoginR
 // Google login
 export const loginWithGoogle = async (payload: GoogleLoginPayload): Promise<LoginResponse> => {
   try {
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/login/google`, payload, {
+    const response = await axios.post(`${getApiBaseURL()}/auth/login/google`, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
