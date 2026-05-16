@@ -174,7 +174,7 @@ const WARD_STATUS_CFG: Record<string, { color: string; border: string; label: st
 
 const REPORT_COLORS: Record<string, { bg: string; border: string; pulse: boolean }> = {
   pending: { bg: "#ef4444", border: "#b91c1c", pulse: true },
-  assigned: { bg: "#3b82f6", border: "#1d4ed8", pulse: false },
+  approved: { bg: "#3b82f6", border: "#1d4ed8", pulse: false },
   done: { bg: "#10b981", border: "#059669", pulse: false },
 };
 

@@ -86,9 +86,10 @@ function ChartCard({
   );
 }
 
-const REPORT_STATUS_CFG = {
-  pending:  { label: "Pending",     bg: "bg-red-50",     text: "text-red-700",     dot: "bg-red-400 animate-pulse"   },
-  done:     { label: "Completed",  bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-400" },
+const REPORT_STATUS_CFG: Record<WasteReport["status"], { label: string; bg: string; text: string; dot: string }> = {
+  pending:  { label: "Pending",    bg: "bg-red-50",      text: "text-red-700",     dot: "bg-red-400 animate-pulse" },
+  approved: { label: "Approved",   bg: "bg-blue-50",     text: "text-blue-700",    dot: "bg-blue-400" },
+  done:     { label: "Completed",  bg: "bg-emerald-50",  text: "text-emerald-700", dot: "bg-emerald-400" },
 };
 
 export function AreaDrawer({ area, wasteReports, onClose }: AreaDrawerProps) {

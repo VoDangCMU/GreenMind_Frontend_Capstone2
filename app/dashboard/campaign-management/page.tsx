@@ -86,6 +86,7 @@ function CampaignManagementContent() {
 
   // selectedCampaign = campaign từ URL (ưu tiên cao nhất) hoặc user tự chọn
   const selectedCampaign = (() => {
+    if (viewMode !== "detail") return null;
     if (urlCampaignId) {
       return campaigns.find((c) => c.id === urlCampaignId) ?? null;
     }
@@ -280,6 +281,19 @@ function CampaignManagementContent() {
     return sorted;
   }, [campaigns]);
 
+  const resetToCampaignList = () => {
+    setUserSelectedCampaign(null);
+    setViewMode("list");
+    setCampaignDetail(null);
+    setCampaignAddress(null);
+    setLoadingDetail(false);
+    setRightPanelMode("map");
+
+    if (urlCampaignId) {
+      router.replace("/dashboard/campaign-management", { scroll: false });
+    }
+  };
+
   // ─── LEFT PANEL CONTENT ─────────────────────────────────────────────────────
   const renderLeftPanel = () => {
     // Show detail or list view
@@ -290,12 +304,7 @@ function CampaignManagementContent() {
           <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white shrink-0">
             <div className="flex items-center justify-between mb-3">
               <button
-                onClick={() => {
-                  setUserSelectedCampaign(null);
-                  setViewMode("list");
-                  setCampaignDetail(null);
-                  setRightPanelMode("map");
-                }}
+                onClick={resetToCampaignList}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg shadow-sm transition-all"
               >
                 <ArrowLeft className="w-4 h-4" />
