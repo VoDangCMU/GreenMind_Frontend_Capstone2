@@ -1,7 +1,7 @@
 "use client"
 
+import { useMemo, useState } from "react"
 import { LeaderboardUser } from "@/services/blog.service"
-import { Trophy } from "lucide-react"
 
 interface Props {
   leaderboard: LeaderboardUser[]
@@ -10,6 +10,10 @@ interface Props {
   emptyTitle?: string
   emptySubtitle?: string
   hideAvatar?: boolean
+  previewCount?: number
+  expandedCount?: number
+  showViewAll?: boolean
+  autoFlow?: boolean
 }
 
 const PODIUM_ORDER = [1, 0, 2]
@@ -32,6 +36,52 @@ const LABEL_COLOR = [
   "text-orange-500",          // pos 2: rank 3
 ]
 
+function RankRow({
+  rank,
+  user,
+  hideAvatar,
+  getLabel,
+}: {
+  rank: string
+  user: LeaderboardUser
+  hideAvatar: boolean
+  getLabel: (user: LeaderboardUser) => string
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-muted/20 px-3 py-2">
+      <span className="w-5 text-center text-xs font-bold text-slate-400 shrink-0">{rank}</span>
+      {!hideAvatar && (
+        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold shrink-0">
+          {(user.fullName || user.username).charAt(0).toUpperCase()}
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-foreground text-xs whitespace-nowrap truncate">
+          {getLabel(user)}
+        </p>
+      </div>
+      <span className="text-xs font-semibold text-emerald-700 shrink-0">
+        {user.reportCount}
+      </span>
+    </div>
+  )
+}
+
+function formatRank(rank: number) {
+  const mod100 = rank % 100
+  if (mod100 >= 11 && mod100 <= 13) return `${rank}th`
+  switch (rank % 10) {
+    case 1:
+      return `${rank}st`
+    case 2:
+      return `${rank}nd`
+    case 3:
+      return `${rank}rd`
+    default:
+      return `${rank}th`
+  }
+}
+
 export function Leaderboard({
   leaderboard,
   title = "Contribution Leaderboard",
@@ -39,15 +89,25 @@ export function Leaderboard({
   emptyTitle = "No households yet",
   emptySubtitle = "Start tracking to see rankings",
   hideAvatar = false,
+  previewCount = 10,
+  expandedCount = 100,
+  showViewAll = true,
+  autoFlow = false,
 }: Props) {
-  const top3 = leaderboard.slice(0, 3)
-  const rest = leaderboard.slice(3)
+  const [expanded, setExpanded] = useState(false)
+  const visibleLimit = expanded ? expandedCount : previewCount
+  const visibleLeaderboard = useMemo(
+    () => leaderboard.slice(0, Math.min(visibleLimit, leaderboard.length)),
+    [leaderboard, visibleLimit],
+  )
+  const top3 = visibleLeaderboard.slice(0, 3)
+  const remaining = visibleLeaderboard.slice(3)
   const hasLeaderboard = leaderboard.length > 0
   // Always place rank1 at center (pos=1) so it gets the tallest podium
   const podiumOrder =
     top3.length >= 3 ? PODIUM_ORDER :
-    top3.length === 2 ? [1, 0] :   // rank2 left, rank1 center
-    [0]                             // only rank1 center
+      top3.length === 2 ? [1, 0] :
+        [0]
 
   const formatLocation = (location?: string) => location?.split(",")[0]?.trim() || ""
   const getLabel = (user: LeaderboardUser) => user.fullName || user.username
@@ -100,40 +160,31 @@ export function Leaderboard({
                 )
               })}
             </div>
-          </div>
+            {remaining.length > 0 && (
+              <div className={`${autoFlow ? "mt-4 grid grid-flow-row auto-rows-max gap-2" : "mt-4 flex flex-col gap-2"}`}>
+                {remaining.map((user) => (
+                  <RankRow
+                    key={user.userId}
+                    rank={formatRank(user.rank)}
+                    user={user}
+                    hideAvatar={hideAvatar}
+                    getLabel={getLabel}
+                  />
+                ))}
+              </div>
+            )}
 
-          {rest.length > 0 && (
-            <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-              {rest.map((user, idx) => (
-                <div
-                  key={user.userId}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm ${idx !== rest.length - 1 ? "border-b border-border/50" : ""} hover:bg-muted/40 transition-colors`}
-                >
-                  <span className="w-5 text-center text-xs font-bold text-muted-foreground shrink-0">
-                    {user.rank}
-                  </span>
-                  {!hideAvatar && (
-                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                      {(user.fullName || user.username).charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground text-xs whitespace-nowrap truncate">
-                      {getLabel(user)}
-                    </p>
-                    {user.location && (
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {formatLocation(user.location)}
-                      </p>
-                    )}
-                  </div>
-                  <span className="text-xs font-semibold text-emerald-600 shrink-0">
-                    {user.reportCount}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+            {showViewAll && leaderboard.length > previewCount && (
+              <button
+                type="button"
+                onClick={() => setExpanded((value) => !value)}
+                className="mt-3 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+              >
+                {expanded ? "Show less" : "View all"}
+              </button>
+            )}
+
+          </div>
         </>
       ) : (
         <div className="rounded-xl border border-dashed border-border p-8 text-center">
