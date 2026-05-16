@@ -56,6 +56,7 @@ export interface HouseholdImageHistory {
   id: string | number;
   uploadedAt: string;
   imageUrl: string;
+  resultImageUrl?: string;
   label: string;
   sender?: string;
   items?: WasteReportItem[];

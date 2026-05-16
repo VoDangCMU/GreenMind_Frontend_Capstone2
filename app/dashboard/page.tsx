@@ -52,7 +52,7 @@ export default function DashboardPage() {
         })
 
       setStats(overview)
-      setHouseholdLeaderboard(sortedHouseholds.slice(0, 10))
+      setHouseholdLeaderboard(sortedHouseholds.slice(0, 100))
     } catch (err: any) {
       console.error("Dashboard fetch error:", err)
       setError(err?.message || "Failed to load dashboard data")
@@ -76,14 +76,28 @@ export default function DashboardPage() {
   const totalActivities = stats?.total_activities ?? 0
   const avgPlastic = stats?.avgPlastic ?? 0
   const totalAreas = stats?.total_areas ?? stats?.areaCount ?? 0
-  const dashboardLeaderboard: LeaderboardUser[] = householdLeaderboard.map((household, idx) => ({
-    rank: idx + 1,
-    userId: `household-${household.id}`,
-    fullName: household.name,
-    username: household.name,
-    location: household.address,
-    reportCount: household.greenScore != null ? household.greenScore : household.reportCount,
-  }))
+  const dashboardLeaderboard: LeaderboardUser[] = householdLeaderboard.map((household, idx) => {
+    // Get the member who joined earliest (household head)
+    let headName = household.name;
+    const rawMembers = (household as any)._members;
+    if (rawMembers && rawMembers.length > 0) {
+      const sortedRaw = [...rawMembers].sort((a: any, b: any) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      headName = sortedRaw[0]?.fullName || sortedRaw[0]?.username || household.name;
+    } else if (household.members && household.members.length > 0) {
+      headName = household.members[0]?.name || household.name;
+    }
+
+    return {
+      rank: idx + 1,
+      userId: `household-${household.id}`,
+      fullName: headName,
+      username: headName,
+      location: household.name,
+      reportCount: household.greenScore != null ? household.greenScore : household.reportCount,
+    }
+  })
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -333,21 +347,19 @@ export default function DashboardPage() {
             </div>
 
             <div className="lg:col-span-4">
-              <div className="sticky top-24">
-                <Leaderboard
-                  leaderboard={dashboardLeaderboard}
-                  title="Top Households"
-                  subtitle="Households ranked by green score"
-                  emptyTitle="No households yet"
-                  emptySubtitle="Start tracking scores to see rankings"
-                  hideAvatar
-                />
-                <Link
-                  href="/dashboard/household-management"
-                  className="text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
-                >
-                  View all
-                </Link>
+              <div className="sticky top-24 h-full">
+                <div className="h-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-slate-700/50 shadow-xl overflow-hidden">
+                  <Leaderboard
+                    leaderboard={dashboardLeaderboard}
+                    title="Top Households"
+                    subtitle="Ranked by green score"
+                    emptyTitle="No households yet"
+                    emptySubtitle="Start tracking scores to see rankings"
+                    hideAvatar
+                    previewCount={10}
+                    expandedCount={100}
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -224,10 +224,30 @@ export async function getHouseholdGreenScoreHistory(householdId: string): Promis
     return [];
 }
 
+function extractImageUrlFromAiAnalysis(aiAnalysis: string, fallbackUrl: string): string {
+    try {
+        // Try to parse as JSON and extract url
+        const parsed = JSON.parse(aiAnalysis);
+        if (parsed?.url) return parsed.url;
+        if (parsed?.imageUrl) return parsed.imageUrl;
+        if (parsed?.resultUrl) return parsed.resultUrl;
+        if (parsed?.resultImageUrl) return parsed.resultImageUrl;
+        // If it's a string URL
+        if (typeof parsed === "string" && parsed.startsWith("http")) return parsed;
+    } catch {
+        // Not JSON, maybe it's a direct URL
+        if (aiAnalysis.startsWith("http")) return aiAnalysis;
+    }
+    return fallbackUrl;
+}
+
 export function mapHouseholdDetectionRecordsToImageHistory(records: ApiHouseholdDetectionRecord[]) {
+    // Filter only analyze_all records
+    const filteredRecords = records.filter((record) => record.detectType === "analyze_all");
+
     const groupedByUrl = new Map<string, ApiHouseholdDetectionRecord[]>();
 
-    records
+    filteredRecords
         .slice()
         .forEach((record) => {
             const url = String(record.imageUrl ?? "").trim();
@@ -245,6 +265,10 @@ export function mapHouseholdDetectionRecordsToImageHistory(records: ApiHousehold
         .map((group) => {
             const sortedGroup = group.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             const primary = sortedGroup[0];
+
+            // Extract image URL from aiAnalysis, fallback to resultImageUrl, then imageUrl
+            const resultImageUrl = extractImageUrlFromAiAnalysis(primary.aiAnalysis, undefined);
+            const finalImageUrl = resultImageUrl || (primary as any).resultImageUrl || (primary as any).resultUrl || primary.imageUrl;
 
             const mergedItems = group
                 .flatMap((record) => record.items ?? [])
@@ -272,7 +296,8 @@ export function mapHouseholdDetectionRecordsToImageHistory(records: ApiHousehold
             return {
                 id: primary.id,
                 uploadedAt: primary.createdAt,
-                imageUrl: primary.imageUrl,
+                imageUrl: finalImageUrl,
+                resultImageUrl: resultImageUrl || undefined,
                 label: "Lịch sử phát hiện",
                 sender: primary.detectedBy?.fullName || primary.detectedBy?.username || primary.detectedBy?.email || undefined,
                 items: mergedItems.length ? mergedItems : undefined,
