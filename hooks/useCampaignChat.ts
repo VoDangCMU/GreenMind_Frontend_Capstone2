@@ -27,7 +27,30 @@ export type ConnectionStatus =
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://vodang-api.gauas.com";
+const HTTP_API_URL =
+  typeof window !== "undefined" ? "/api/backend" : API_URL;
 const PAGE_SIZE = 20;
+const HISTORY_SYNC_INTERVAL_MS = 5000;
+
+function sortMessagesAsc(messages: ChatMessage[]) {
+  return [...messages].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+}
+
+function mergeMessages(current: ChatMessage[], incoming: ChatMessage[]) {
+  const byId = new Map<string, ChatMessage>();
+
+  for (const msg of current) {
+    byId.set(msg.id, msg);
+  }
+
+  for (const msg of incoming) {
+    byId.set(msg.id, msg);
+  }
+
+  return sortMessagesAsc(Array.from(byId.values()));
+}
 
 export function useCampaignChat(campaignId: string | null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -56,41 +79,49 @@ export function useCampaignChat(campaignId: string | null) {
   }, [messages]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
-  // FIX #2: Never mutate arrays. Always use [...arr].reverse() or slice().reverse()
-  function safeReverse<T>(arr: T[]): T[] {
-    return [...arr].reverse();
-  }
+  const fetchMessages = useCallback(async (id: string, skip = 0, take = 50) => {
+    const token = getAccessToken();
+    const res = await fetch(
+      `${HTTP_API_URL}/campaigns/${id}/messages?skip=${skip}&take=${take}`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        cache: "no-store",
+      }
+    );
+
+    if (!res.ok) {
+      throw res;
+    }
+
+    const data = await res.json();
+    return sortMessagesAsc(data?.data ?? []);
+  }, []);
 
   // ── Fetch history ────────────────────────────────────────────────────────
-  const fetchHistory = useCallback(async (id: string) => {
-    setLoadingHistory(true);
-    setError(null);
+  const fetchHistory = useCallback(async (id: string, mode: "replace" | "merge" = "replace") => {
+    if (mode === "replace") setLoadingHistory(true);
+    if (mode === "replace") setError(null);
     try {
-      const token = getAccessToken();
-      const res = await fetch(
-        `${API_URL}/campaigns/${id}/messages?skip=0&take=50`,
-        { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: "no-store" }
-      );
-
-      if (!res.ok) {
-        if (res.status === 403)
+      const list = await fetchMessages(id, 0, 50);
+      if (mode === "replace") {
+        setMessages(list);
+      } else {
+        setMessages((prev) => mergeMessages(prev, list));
+      }
+      if (list.length < 50) setHasMore(false);
+    } catch (err) {
+      if (mode === "replace") {
+        const status = err instanceof Response ? err.status : 0;
+        if (status === 403)
           setError("Bạn không có quyền xem chat của chiến dịch này.");
-        else if (res.status === 401)
+        else if (status === 401)
           setError("Vui lòng đăng nhập để xem chat.");
         else setError("Không thể tải lịch sử chat.");
-        return;
       }
-
-      const data = await res.json();
-      const list: ChatMessage[] = data?.data ?? [];
-      // Backend đã .reverse() rồi → trả về ASC (cũ → mới). Không reverse lại!
-      setMessages(list);
-    } catch {
-      setError("Lỗi kết nối khi tải lịch sử chat.");
     } finally {
-      setLoadingHistory(false);
+      if (mode === "replace") setLoadingHistory(false);
     }
-  }, []);
+  }, [fetchMessages]);
 
   // ── Load more ────────────────────────────────────────────────────────────
   const loadMore = useCallback(async () => {
@@ -98,30 +129,15 @@ export function useCampaignChat(campaignId: string | null) {
     setLoadingMore(true);
 
     try {
-      const token = getAccessToken();
       // FIX #1: Read from ref instead of stale closure.
       // messagesCountRef.current is always the latest value.
       const skipOffset = messagesCountRef.current;
-      const res = await fetch(
-        `${API_URL}/campaigns/${campaignId}/messages?skip=${skipOffset}&take=${PAGE_SIZE}`,
-        { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: "no-store" }
-      );
-
-      if (!res.ok) {
-        setLoadingMore(false);
-        return;
-      }
-
-      const data = await res.json();
-      const older: ChatMessage[] = data?.data ?? [];
+      const older = await fetchMessages(campaignId, skipOffset, PAGE_SIZE);
 
       if (older.length === 0) {
         setHasMore(false);
       } else {
-        // Backend trả DESC (mới nhất trước). older chứa tin cũ hơn current oldest.
-        // Reverse để chuyển sang ASC, rồi prepend: [...older ASC, ...prev ASC]
-        const olderAsc = [...older].reverse();
-        setMessages((prev) => [...olderAsc, ...prev]);
+        setMessages((prev) => mergeMessages(prev, older));
         if (older.length < PAGE_SIZE) setHasMore(false);
       }
     } catch {
@@ -129,7 +145,7 @@ export function useCampaignChat(campaignId: string | null) {
     } finally {
       setLoadingMore(false);
     }
-  }, [campaignId, loadingMore, hasMore]);
+  }, [campaignId, loadingMore, hasMore, fetchMessages]);
 
   // ── Socket.IO effect ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -147,12 +163,12 @@ export function useCampaignChat(campaignId: string | null) {
     fetchHistory(campaignId);
 
     const token = getAccessToken();
-    // FIX #3: Use websocket-only transport. When "polling" + "websocket" are
-    // both enabled, Socket.IO may create duplicate connections during the
-    // upgrade handshake, causing duplicate messages over both transports.
     const socket = io(API_URL, {
-      auth: { token: token ? `Bearer ${token}` : "" },
-      transports: ["websocket"],
+      auth: {
+        token: token ? `Bearer ${token}` : "",
+        accessToken: token ?? "",
+        authorization: token ? `Bearer ${token}` : "",
+      },
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
       reconnectionDelayMax: 10000,
@@ -200,30 +216,26 @@ export function useCampaignChat(campaignId: string | null) {
     // ── Message handler with full deduplication ────────────────────────────
     socket.on("new_message", (msg: ChatMessage) => {
       // FIX #3: Block events from stale sockets or wrong campaigns
-      if (!isActiveRef.current || campaignIdRef.current !== campaignId) return;
+      if (
+        !isActiveRef.current ||
+        campaignIdRef.current !== campaignId ||
+        (msg.campaignId && msg.campaignId !== campaignId)
+      )
+        return;
 
       setMessages((prev) => {
         // Primary dedup: by message UUID (set in DB, guaranteed unique)
         const byId = prev.some((m) => m.id === msg.id);
         if (byId) return prev;
 
-        // Secondary dedup: if same sender sent same content within 2 seconds,
-        // it's almost certainly a backend duplicate — discard
-        const now = Date.now();
-        const within2Sec = prev.some(
-          (m) =>
-            m.sender?.id === msg.sender?.id &&
-            m.content === msg.content &&
-            Math.abs(new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 2000
-        );
-        if (within2Sec) {
-          console.warn("[chat] Dropped probable duplicate:", msg.id);
-          return prev;
-        }
-
-        return [...prev, msg];
+        return sortMessagesAsc([...prev, msg]);
       });
     });
+
+    const historySyncInterval = setInterval(() => {
+      if (!isActiveRef.current || campaignIdRef.current !== campaignId) return;
+      void fetchHistory(campaignId, "merge");
+    }, HISTORY_SYNC_INTERVAL_MS);
 
     // ── Typing indicator ────────────────────────────────────────────────
     socket.on(
@@ -250,6 +262,7 @@ export function useCampaignChat(campaignId: string | null) {
       // events before disconnect() is called. This prevents race between
       // cleanup and arriving socket events.
       isActiveRef.current = false;
+      clearInterval(historySyncInterval);
       socket.disconnect();
       socketRef.current = null;
     };
@@ -268,12 +281,15 @@ export function useCampaignChat(campaignId: string | null) {
       });
       socketRef.current.emit("stop_typing", { campaignId });
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      setTimeout(() => {
+        void fetchHistory(campaignId, "merge");
+      }, 300);
       // Reset guard after a short delay — protects against rapid sends
       setTimeout(() => {
         isSendingRef.current = false;
       }, 500);
     },
-    [campaignId]
+    [campaignId, fetchHistory]
   );
 
   // ── Typing indicator ────────────────────────────────────────────────────
