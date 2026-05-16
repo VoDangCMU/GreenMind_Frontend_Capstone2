@@ -71,11 +71,8 @@ export default function HouseholdManagementPage() {
     };
 
     useEffect(() => {
-        // Auto refresh on mount after 3 seconds
-        const timer = setTimeout(() => {
-            fetchHouseholds();
-        }, 3000);
-        return () => clearTimeout(timer);
+        // Fetch immediately on mount
+        fetchHouseholds();
     }, []);
 
     useEffect(() => {
@@ -256,15 +253,15 @@ export default function HouseholdManagementPage() {
     }, [filteredHouseholds, searchQuery]);
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-linear-to-br from-slate-100 via-slate-50 to-emerald-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/20">
+        <div className="household-page-container flex flex-col h-full overflow-hidden bg-linear-to-br from-slate-100 via-slate-50 to-emerald-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/20">
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-linear-to-br from-emerald-200/30 to-teal-300/20 blur-3xl animate-pulse-soft" />
                 <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-linear-to-br from-cyan-200/20 to-blue-300/10 blur-3xl" />
             </div>
 
             <header className="relative shrink-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border-b border-slate-200/50 dark:border-slate-700/50">
-                <div className="px-4 pt-3 pb-3">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div className="px-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
                         <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 via-teal-500 to-cyan-500 shadow-lg shadow-emerald-500/20">
                                 <MapPin className="h-5 w-5 text-white" />
@@ -333,7 +330,7 @@ export default function HouseholdManagementPage() {
                     </div>
 
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 mt-2.5">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-1 mt-1">
                         <StatCard
                             icon={Users}
                             label="Total Households"
@@ -405,11 +402,11 @@ export default function HouseholdManagementPage() {
             </header>
 
             {/* Main Content */}
-            <div className="relative flex-1 min-h-0 p-2 lg:p-3 overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-3 h-full">
+            <div className="relative flex-1 min-h-0 p-1 lg:p-2 overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 h-full w-full">
                     {/* Map Section */}
-                    <div className="lg:col-span-3 h-full">
-                        <div className="relative h-full rounded-2xl overflow-hidden shadow-xl border border-white/20 dark:border-slate-700/50">
+                    <div className="lg:col-span-3 h-full w-full">
+                        <div className="relative h-full w-full rounded-2xl overflow-hidden shadow-xl border border-white/20 dark:border-slate-700/50">
 
                             {apiError && (
                                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-red-50 dark:bg-red-950/80 border border-red-200 dark:border-red-800 rounded-2xl px-5 py-2.5 shadow-xl">
@@ -432,8 +429,8 @@ export default function HouseholdManagementPage() {
                     </div>
 
                     {/* Leaderboard Panel */}
-                    <div className="lg:col-span-1 h-full overflow-hidden">
-                        <div className="h-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-slate-700/50 shadow-xl overflow-hidden">
+                    <div className="lg:col-span-1 h-full overflow-hidden w-full">
+                        <div className="h-full w-full bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-slate-700/50 shadow-xl overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
                             <Leaderboard
                                 leaderboard={leaderboard}
                                 title="Top Households"
@@ -506,6 +503,12 @@ export default function HouseholdManagementPage() {
                 @keyframes pulse-soft {
                     0%, 100% { opacity: 0.3; transform: scale(1); }
                     50% { opacity: 0.5; transform: scale(1.05); }
+                }
+                /* Prevent page scroll when on this page */
+                .household-page-container {
+                    height: 100%;
+                    width: 100%;
+                    max-width: 100vw;
                 }
             `}</style>
         </div>
