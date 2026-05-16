@@ -31,6 +31,22 @@ const FILTERS: { label: string; value: FilterMode }[] = [
   { label: "All Reports", value: "all" },
 ];
 
+const TARGET_WARD_KEY = "hoa khanh";
+
+function normalizeWardName(value: string | null | undefined): string {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .trim();
+}
+
+function isTargetWard(wardName: string | null | undefined): boolean {
+  return normalizeWardName(wardName).includes(TARGET_WARD_KEY);
+}
+
 // ─── Report Address (reverse geocode) ────────────────────────────────────────
 function ReportAddress({ lat, lng }: { lat: number; lng: number }) {
   const [address, setAddress] = useState<string | null>(null);
@@ -426,12 +442,12 @@ export function ReportList({
   // Báo cáo chờ tạo chiến dịch: pending, chưa có campaign, pollutionScore > 0.2
   // Sắp xếp từ cao → thấp theo pollutionScore
   const noCampaignReports = wasteReports
-    .filter(r => r.status === "pending" && !r.campaignId && (r.pollutionScore ?? 0) > 0.2)
+    .filter(r => isTargetWard(r.wardName) && r.status === "pending" && !r.campaignId && (r.pollutionScore ?? 0) > 0.2)
     .sort((a, b) => (b.pollutionScore ?? 0) - (a.pollutionScore ?? 0));
 
   // Báo cáo đã được duyệt (có chiến dịch)
   const approvedReports = wasteReports
-    .filter(r => r.status === "approved")
+    .filter(r => isTargetWard(r.wardName) && r.status === "approved")
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const filtered =
@@ -486,7 +502,7 @@ export function ReportList({
               <button
                 key={f.value}
                 onClick={() => onFilterChange?.(f.value)}
-                className={`flex-1 py-1.5 text-sm rounded-lg font-medium transition-all duration-150 whitespace-nowrap ${filter === f.value ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"
+                className={`flex-1 py-1.5 text-[11px] rounded-lg font-medium transition-all duration-150 whitespace-nowrap ${filter === f.value ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"
                   }`}
               >
                 {f.label}
