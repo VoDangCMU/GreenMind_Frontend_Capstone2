@@ -5,6 +5,14 @@ import type { WasteReport, UrbanArea, EnvAlert } from "@/types/waste-report";
 import { MapView } from "./MapView";
 import { getAccessToken } from "@/lib/auth";
 
+function normalizeReportStatus(status: unknown): WasteReport["status"] {
+  const normalized = String(status ?? "").toLowerCase();
+
+  if (normalized === "approved") return "approved";
+  if (normalized === "done") return "done";
+  return "pending";
+}
+
 interface MapContainerProps {
   areas: UrbanArea[];
   envAlerts: EnvAlert[];
@@ -75,7 +83,7 @@ export default function MapContainer({
           lng: r.lng ?? 0,
           wasteType: r.wasteType || "mixed",
           description: r.description || null,
-          status: (r.status === "pending" ? "pending" : r.status === "approved" ? "approved" : r.status === "done" || r.status === "resolved" ? "done" : "pending") as "pending" | "approved" | "done",
+          status: normalizeReportStatus(r.status),
           createdAt: r.createdAt || new Date().toISOString(),
           resolvedAt: r.resolvedAt || null,
           imageUrl: r.imageUrl || null,

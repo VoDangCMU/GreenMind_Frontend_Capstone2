@@ -47,6 +47,10 @@ function isTargetWard(wardName: string | null | undefined): boolean {
   return normalizeWardName(wardName).includes(TARGET_WARD_KEY);
 }
 
+function reportHasCampaign(report: WasteReport): boolean {
+  return !!report.campaignId;
+}
+
 // ─── Report Address (reverse geocode) ────────────────────────────────────────
 function ReportAddress({ lat, lng }: { lat: number; lng: number }) {
   const [address, setAddress] = useState<string | null>(null);
@@ -70,7 +74,7 @@ function ReportAddress({ lat, lng }: { lat: number; lng: number }) {
 
     setLoading(true);
     reverseGeocode(lat, lng).then((addr) => {
-      sessionStorage.setItem(cachedKey, addr);
+      if (addr) sessionStorage.setItem(cachedKey, addr);
       setAddress(addr);
       setLoading(false);
     });
@@ -123,7 +127,7 @@ export function ReportDetailModal({
 
       setLoadingAddress(true);
       reverseGeocode(report.lat, report.lng).then((addr) => {
-        sessionStorage.setItem(cachedKey, addr);
+        if (addr) sessionStorage.setItem(cachedKey, addr);
         setAddress(addr);
         setLoadingAddress(false);
       });
@@ -445,7 +449,7 @@ export function ReportList({
     .filter(r => isTargetWard(r.wardName) && r.status === "pending" && !r.campaignId && (r.pollutionScore ?? 0) > 0.2)
     .sort((a, b) => (b.pollutionScore ?? 0) - (a.pollutionScore ?? 0));
 
-  // Báo cáo đã được duyệt (có chiến dịch)
+  // Báo cáo đã được duyệt
   const approvedReports = wasteReports
     .filter(r => isTargetWard(r.wardName) && r.status === "approved")
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -525,7 +529,7 @@ export function ReportList({
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
               </div>
               <p className="text-xs font-medium text-blue-800 leading-relaxed">
-                Reports have been <strong className="font-bold">approved and assigned to campaigns</strong>. Awaiting actual collection.
+                Reports have been <strong className="font-bold">approved</strong>. Campaign chat opens when a campaign is assigned.
               </p>
             </div>
           )}
@@ -558,7 +562,7 @@ export function ReportList({
 
                 // Navigate to campaign if report has campaignId (approved with campaign)
                 // Otherwise open detail modal
-                const hasCampaign = !!report.campaignId;
+                const hasCampaign = reportHasCampaign(report);
 
                 return (
                   <div
