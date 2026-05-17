@@ -196,6 +196,17 @@ function isTargetReportWard(wardName: string | null | undefined): boolean {
   return normalizeReportWardName(wardName).includes(TARGET_REPORT_WARD_KEY);
 }
 
+function normalizeWardMatchName(value: string | null | undefined): string {
+  return normalizeReportWardName(value)
+    .replace(/^(phuong|xa|thi tran)\s+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isSameWardName(left: string | null | undefined, right: string | null | undefined): boolean {
+  return normalizeWardMatchName(left) === normalizeWardMatchName(right);
+}
+
 // Island styling
 const ISLAND_STYLE: L.PathOptions = {
   color: "#dc2626",
@@ -666,7 +677,7 @@ export function MapView({
     areas.forEach((ward) => {
       // Use reportsRef for dynamic pending count
       const pendingCount = reportsRef.current.filter(
-        (r) => r.wardName === ward.name && r.status === "pending"
+        (r) => isSameWardName(r.wardName, ward.name) && r.status === "pending"
       ).length;
       const icon = buildWardMarkerIcon(ward, pendingCount);
 
@@ -754,12 +765,10 @@ export function MapView({
                 // Tính màu dynamic từ reports hiện tại
                 const snap = reportsRef.current;
                 const wPending = snap.filter(
-                  (r) => r.wardName.toLowerCase().includes(ward.toLowerCase()) ||
-                    ward.toLowerCase().includes(r.wardName.toLowerCase())
+                  (r) => isSameWardName(r.wardName, ward)
                 ).filter(r => r.status === "pending").length;
                 const wTotal = snap.filter(
-                  (r) => r.wardName.toLowerCase().includes(ward.toLowerCase()) ||
-                    ward.toLowerCase().includes(r.wardName.toLowerCase())
+                  (r) => isSameWardName(r.wardName, ward)
                 ).length;
                 const hColor = wPending > 3 ? "#ef4444"
                   : wPending > 0 ? "#f59e0b"
@@ -782,8 +791,7 @@ export function MapView({
                 // Lọc danh sách reports thuộc phường hiện tại
                 const snap = reportsRef.current;
                 const wardReports = snap.filter(
-                  (r) => r.wardName.toLowerCase().includes(ward.toLowerCase()) ||
-                    ward.toLowerCase().includes(r.wardName.toLowerCase())
+                  (r) => isSameWardName(r.wardName, ward)
                 );
 
                 // Hiện Popup bự ở giữa màn hình (React state)
@@ -1107,7 +1115,7 @@ export function MapView({
   const criticalCount = visibleAlerts.filter((a) => a.level === "critical").length;
   const reportCountSource = reportsRef.current.length > 0 ? reportsRef.current : reports;
   const visibleReportCounts = reportCountSource.filter(
-    (r) => isTargetReportWard(r.wardName) && (!selectedWardName || r.wardName === selectedWardName)
+    (r) => isTargetReportWard(r.wardName) && (!selectedWardName || isSameWardName(r.wardName, selectedWardName))
   );
   const pendingCount = visibleReportCounts.filter(r => r.status === "pending").length;
   const approvedCount = visibleReportCounts.filter(r => r.status === "approved").length;
