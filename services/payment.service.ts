@@ -67,7 +67,7 @@ export function generateMockPayments(days = 30): PaymentPayload {
     return {
       id: `pay_${Math.random().toString(36).slice(2, 10)}`,
       amount,
-      currency: "usd",
+      currency: "vnd",
       status,
       customer: NAMES[seededValue(i, 0, NAMES.length - 1)],
       email: `user${i + 1}@example.com`,
@@ -159,10 +159,23 @@ export async function createCheckoutSession(payload: {
   return res.data?.data
 }
 
-export function formatCents(cents: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
+/**
+ * Format a VND amount (already whole dong, NOT cents).
+ * Use currency param to override (e.g. "USD" for Stripe USD charges).
+ */
+export function formatAmount(amount: number, currency = "VND"): string {
+  const isZeroDecimal = ["VND", "JPY", "KRW"].includes(currency.toUpperCase())
+  const value = isZeroDecimal ? amount : amount / 100
+  const locale = currency.toUpperCase() === "VND" ? "vi-VN" : "en-US"
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency,
+    currency: currency.toUpperCase(),
     minimumFractionDigits: 0,
-  }).format(cents / 100)
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+/** @deprecated Use formatAmount instead */
+export function formatCents(cents: number, currency = "USD"): string {
+  return formatAmount(cents, currency)
 }

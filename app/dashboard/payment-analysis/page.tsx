@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import {
   fetchPaymentData,
+  formatAmount,
   formatCents,
   type PaymentPayload,
   type PaymentStatus,
@@ -98,10 +99,10 @@ function RevenueChart({ data }: { data: RevenuePoint[] }) {
           tick={{ fontSize: 10, fill: "#9ca3af" }}
           interval={chartData.length > 14 ? Math.floor(chartData.length / 10) : 0}
         />
-        <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={v => `$${v}`} />
+        <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={v => `${(v / 1000).toFixed(0)}k ₫`} />
         <Tooltip
           contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
-          formatter={(v: number) => [`$${v}`, "Revenue"]}
+          formatter={(v: number) => [formatAmount(v * 1000, "VND"), "Doanh thu"]}
         />
         <Area
           type="monotone"
@@ -249,9 +250,9 @@ export default function PaymentAnalysisPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <MetricCard
             id="pay-metric-revenue"
-            label="Total Revenue"
-            value={formatCents(m.totalRevenue)}
-            icon="$"
+            label="Tổng doanh thu"
+            value={formatAmount(m.totalRevenue, "VND")}
+            icon="₫"
             accent="text-emerald-500"
             accentBg="bg-emerald-50"
           />
@@ -273,16 +274,16 @@ export default function PaymentAnalysisPage() {
           />
           <MetricCard
             id="pay-metric-avg"
-            label="Avg / Transaction"
-            value={formatCents(m.avgTransactionValue)}
+            label="Trung bình / giao dịch"
+            value={formatAmount(m.avgTransactionValue, "VND")}
             icon="~"
             accent="text-blue-500"
             accentBg="bg-blue-50"
           />
           <MetricCard
             id="pay-metric-pending"
-            label="Pending"
-            value={formatCents(m.pendingAmount)}
+            label="Chờ xử lý"
+            value={formatAmount(m.pendingAmount, "VND")}
             icon="…"
             accent="text-amber-500"
             accentBg="bg-amber-50"
@@ -364,7 +365,7 @@ export default function PaymentAnalysisPage() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{txn.description}</td>
                     <td className="px-4 py-3 font-semibold tabular-nums">
-                      {formatCents(txn.amount, txn.currency.toUpperCase())}
+                      {formatAmount(txn.amount, txn.currency.toUpperCase())}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={txn.status} />
