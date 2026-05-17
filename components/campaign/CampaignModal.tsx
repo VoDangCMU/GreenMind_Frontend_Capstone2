@@ -96,7 +96,7 @@ export function CampaignModal({ isOpen, onClose, region, onSuccess }: CampaignMo
       const campaignData = await apiPost("/campaigns", body);
       newCampaignId = campaignData?.id ?? campaignData?.data?.id ?? "";
 
-      // Auto-create a community blog post for this campaign (fire-and-forget)
+      // Auto-create a community blog post for this campaign
       const startFormatted = startDate ? new Date(startDate).toLocaleDateString("vi-VN") : "?";
       const endFormatted   = endDate   ? new Date(endDate).toLocaleDateString("vi-VN")   : "?";
       const blogContent = `<p><strong>${name}</strong></p>
@@ -105,11 +105,11 @@ export function CampaignModal({ isOpen, onClose, region, onSuccess }: CampaignMo
 <p>Khu vực: ${region.name}</p>
 ${newCampaignId ? `<p><a href="/dashboard/campaign-management?id=${newCampaignId}" target="_blank" rel="noopener">Xem chiến dịch: ${name}</a></p>` : ""}`;
 
-      createBlog({
+      await createBlog({
         title:   `[Chiến dịch] ${name}`,
         content: blogContent,
         tags:    ["chiến dịch", "tình nguyện"],
-      }).catch(() => { /* silent – campaign already created */ });
+      });
 
       setSuccess(true);
       setSuccessCampaignId(newCampaignId);
