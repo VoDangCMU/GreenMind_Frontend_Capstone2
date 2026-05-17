@@ -115,7 +115,7 @@ export function Leaderboard({
   return (
     <aside className="flex flex-col gap-4">
       {/* Header */}
-      <div className="px-5 pt-5">
+      <div className="px-5 pt-3">
         <h3 className="text-base font-bold text-foreground">{title}</h3>
         <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
       </div>
@@ -161,7 +161,7 @@ export function Leaderboard({
               })}
             </div>
             {remaining.length > 0 && (
-              <div className={`${autoFlow ? "mt-4 grid grid-flow-row auto-rows-max gap-2" : "mt-4 flex flex-col gap-2"}`}>
+              <div className={`mt-4 flex flex-col gap-2 overflow-y-auto max-h-64 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent`}>
                 {remaining.map((user) => (
                   <RankRow
                     key={user.userId}

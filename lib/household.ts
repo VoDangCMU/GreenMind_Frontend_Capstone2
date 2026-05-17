@@ -332,7 +332,7 @@ function resolveHouseholdPayload(response: ApiGetAllHouseholdsResponse | ApiHous
 }
 
 export async function getAllHouseholdProfiles(): Promise<HouseholdProfile[]> {
-    const PREFERRED_LIMIT = 5000;
+    const PREFERRED_LIMIT = 100;
     const MAX_PAGES = 200;
 
     const fetchAllPaged = async (limit: number): Promise<ApiHousehold[]> => {
