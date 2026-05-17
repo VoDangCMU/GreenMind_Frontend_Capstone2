@@ -83,10 +83,10 @@ function MetricCard({ id, label, value, sub, icon, accent, accentBg }: MetricCar
 //  Revenue area chart
 // ──────────────────────────────────────────────
 function RevenueChart({ data }: { data: RevenuePoint[] }) {
-  const chartData = data.map(d => ({ ...d, revenueK: +(d.revenue / 100).toFixed(2) }))
+  // revenue is already in VND (not cents), pass directly
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
+      <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
         <defs>
           <linearGradient id="rev-grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
@@ -97,16 +97,16 @@ function RevenueChart({ data }: { data: RevenuePoint[] }) {
         <XAxis
           dataKey="date"
           tick={{ fontSize: 10, fill: "#9ca3af" }}
-          interval={chartData.length > 14 ? Math.floor(chartData.length / 10) : 0}
+          interval={data.length > 14 ? Math.floor(data.length / 10) : 0}
         />
         <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={v => `${(v / 1000).toFixed(0)}k ₫`} />
         <Tooltip
           contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
-          formatter={(v: number) => [formatAmount(v * 1000, "VND"), "Doanh thu"]}
+          formatter={(v: number) => [formatAmount(v, "VND"), "Revenue"]}
         />
         <Area
           type="monotone"
-          dataKey="revenueK"
+          dataKey="revenue"
           stroke="#10b981"
           strokeWidth={2}
           fill="url(#rev-grad)"
@@ -200,8 +200,9 @@ function groupTransactions(txns: PaymentTransaction[]): GroupedTransaction[] {
   const map = new Map<string, GroupedTransaction>()
 
   for (const txn of txns) {
+    // Group by month: "mm/yyyy"
     const dateKey = new Date(txn.createdAt).toLocaleDateString("en-GB", {
-      day: "2-digit", month: "2-digit", year: "numeric",
+      month: "2-digit", year: "numeric",
     })
     // Use email as user id proxy (consistent identifier)
     const userKey = `${txn.email}__${dateKey}`
@@ -298,7 +299,7 @@ export default function PaymentAnalysisPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <MetricCard
             id="pay-metric-revenue"
-            label="Tổng doanh thu"
+            label="Total Revenue"
             value={formatAmount(m.totalRevenue, "VND")}
             icon="₫"
             accent="text-emerald-500"
@@ -322,7 +323,7 @@ export default function PaymentAnalysisPage() {
           />
           <MetricCard
             id="pay-metric-avg"
-            label="Trung bình / giao dịch"
+            label="Avg per Transaction"
             value={formatAmount(m.avgTransactionValue, "VND")}
             icon="~"
             accent="text-blue-500"
@@ -330,7 +331,7 @@ export default function PaymentAnalysisPage() {
           />
           <MetricCard
             id="pay-metric-pending"
-            label="Chờ xử lý"
+            label="Pending"
             value={formatAmount(m.pendingAmount, "VND")}
             icon="…"
             accent="text-amber-500"
@@ -343,7 +344,7 @@ export default function PaymentAnalysisPage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Revenue area chart */}
         <section className="xl:col-span-2 rounded-2xl border bg-card p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Revenue by Day</h2>
+          <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Revenue by Month</h2>
           {loading || !data ? (
             <div className="flex h-72 items-center justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -368,7 +369,7 @@ export default function PaymentAnalysisPage() {
 
       {/* Transaction count bar chart */}
       <section className="rounded-2xl border bg-card p-5 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Transactions by Day</h2>
+        <h2 className="mb-4 text-sm font-semibold text-foreground tracking-wide uppercase">Transactions by Month</h2>
         {loading || !data ? (
           <div className="flex h-72 items-center justify-center">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -414,10 +415,10 @@ export default function PaymentAnalysisPage() {
                       <td className="px-4 py-3 text-center text-xs text-muted-foreground">
                         {row.transactions.length > 1 ? (
                           <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
-                            {row.transactions.length} giao dịch
+                            {row.transactions.length} transactions
                           </span>
                         ) : (
-                          <span>{row.transactions.length} giao dịch</span>
+                          <span>{row.transactions.length} transaction</span>
                         )}
                       </td>
                       <td className="px-4 py-3 font-semibold tabular-nums">
