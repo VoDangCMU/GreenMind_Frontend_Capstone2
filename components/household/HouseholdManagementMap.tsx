@@ -151,7 +151,7 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
 
         const initMap = () => {
             if (!(window as any).trackasiagl) {
-                setTimeout(initMap, 100);
+                setTimeout(initMap, 50);
                 return;
             }
 
@@ -160,8 +160,8 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
             const map = new (window as any).trackasiagl.Map({
                 container: mapContainerRef.current!,
                 style: "https://maps.track-asia.com/styles/v2/simple.json?key=public_key",
-                center: { lat: 16.065, lng: 108.225 },
-                zoom: 13,
+                center: { lat: 16.0544, lng: 108.2022 },
+                zoom: 11,
             });
 
             mapRef.current = map;
@@ -270,7 +270,11 @@ export function HouseholdManagementMap({ households, selectedHouseholdId, onHous
 
         return () => {
             if (mapRef.current) {
-                mapRef.current.remove();
+                try {
+                    mapRef.current.remove();
+                } catch (e) {
+                    // Ignore cleanup errors
+                }
                 mapRef.current = null;
                 hasInitializedRef.current = false;
             }
