@@ -1178,7 +1178,7 @@ export function MapView({
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
           <span className="bg-white/90 backdrop-blur-sm border border-gray-100 shadow rounded-full px-4 py-1.5 text-xs text-gray-500 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            Click vào phường để xem biểu đồ thống kê báo cáo của các phường
+            Click a ward to view the report statistics chart
           </span>
         </div>
       )}
