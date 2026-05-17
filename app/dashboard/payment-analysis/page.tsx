@@ -185,6 +185,54 @@ function StatusDonut({ data }: { data: { status: PaymentStatus; count: number }[
 }
 
 // ──────────────────────────────────────────────
+//  Grouped transaction helper
+// ──────────────────────────────────────────────
+interface GroupedTransaction {
+  customer: string
+  email: string
+  date: string
+  transactions: PaymentTransaction[]
+  totalAmount: number
+  status: PaymentStatus
+}
+
+function groupTransactions(txns: PaymentTransaction[]): GroupedTransaction[] {
+  const map = new Map<string, GroupedTransaction>()
+
+  for (const txn of txns) {
+    const dateKey = new Date(txn.createdAt).toLocaleDateString("en-GB", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    })
+    // Use email as user id proxy (consistent identifier)
+    const userKey = `${txn.email}__${dateKey}`
+    const existing = map.get(userKey)
+
+    if (existing) {
+      existing.transactions.push(txn)
+      existing.totalAmount += txn.amount
+      // Keep most critical status (succeeded > pending > failed > refunded)
+      const statusOrder: PaymentStatus[] = ["succeeded", "pending", "failed", "refunded"]
+      if (statusOrder.indexOf(txn.status) < statusOrder.indexOf(existing.status)) {
+        existing.status = txn.status
+      }
+    } else {
+      map.set(userKey, {
+        customer: txn.customer,
+        email: txn.email,
+        date: dateKey,
+        transactions: [txn],
+        totalAmount: txn.amount,
+        status: txn.status,
+      })
+    }
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  )
+}
+
+// ──────────────────────────────────────────────
 //  Main page
 // ──────────────────────────────────────────────
 export default function PaymentAnalysisPage() {
@@ -341,47 +389,50 @@ export default function PaymentAnalysisPage() {
               <div key={i} className="h-10 rounded-lg bg-muted animate-pulse" />
             ))}
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  {["ID", "Customer", "Description", "Amount", "Status", "Time"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {data.recentTransactions.map(txn => (
-                  <tr key={txn.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                      {txn.stripeId?.slice(0, 14) ?? txn.id.slice(0, 14)}…
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-foreground">{txn.customer}</p>
-                      <p className="text-xs text-muted-foreground">{txn.email}</p>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{txn.description}</td>
-                    <td className="px-4 py-3 font-semibold tabular-nums">
-                      {formatAmount(txn.amount, txn.currency.toUpperCase())}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={txn.status} />
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(txn.createdAt).toLocaleDateString("en-GB", {
-                        day: "2-digit", month: "2-digit", year: "numeric",
-                        hour: "2-digit", minute: "2-digit",
-                      })}
-                    </td>
+        ) : (() => {
+          const grouped = groupTransactions(data.recentTransactions)
+          return (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    {["Customer", "Date", "Items", "Total Amount", "Status"].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {grouped.map((row, idx) => (
+                    <tr key={`${row.email}-${row.date}-${idx}`} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-foreground">{row.customer}</p>
+                        <p className="text-xs text-muted-foreground">{row.email}</p>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{row.date}</td>
+                      <td className="px-4 py-3 text-center text-xs text-muted-foreground">
+                        {row.transactions.length > 1 ? (
+                          <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
+                            {row.transactions.length} giao dịch
+                          </span>
+                        ) : (
+                          <span>{row.transactions.length} giao dịch</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-semibold tabular-nums">
+                        {formatAmount(row.totalAmount, row.transactions[0].currency.toUpperCase())}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={row.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        })()}
       </section>
     </div>
   )
