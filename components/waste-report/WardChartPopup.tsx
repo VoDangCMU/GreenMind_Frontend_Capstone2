@@ -30,19 +30,60 @@ interface WardChartPopupProps {
   onClose?: () => void;
 }
 
+function normalizeWardName(value: string | null | undefined): string {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/^(phuong|xa|thi tran)\s+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isSameWardName(left: string | null | undefined, right: string | null | undefined): boolean {
+  return normalizeWardName(left) === normalizeWardName(right);
+}
+
+function normalizeStatus(status: unknown): WasteReport["status"] {
+  const normalized = String(status ?? "").toLowerCase();
+  if (normalized === "approved") return "approved";
+  if (normalized === "done") return "done";
+  return "pending";
+}
+
 export function WardChartPopup({ wardName, reports, allReports, onClose }: WardChartPopupProps) {
+  const wardReports = useMemo(() => {
+    const source = allReports && allReports.length > 0 ? allReports : reports;
+    return source.filter((r) => isSameWardName(r.wardName, wardName));
+  }, [allReports, reports, wardName]);
+
   const stats = useMemo(() => {
-    const wPending = reports.filter((r) => r.status === "pending").length;
-    const wApproved = reports.filter((r) => r.status === "approved").length;
-    const wDone = reports.filter((r) => r.status === "done").length;
-    const wTotal = reports.length;
+    const wPending = wardReports.filter((r) => normalizeStatus(r.status) === "pending").length;
+    const wApproved = wardReports.filter((r) => normalizeStatus(r.status) === "approved").length;
+    const wDone = wardReports.filter((r) => normalizeStatus(r.status) === "done").length;
+    const wTotal = wardReports.length;
     return { wPending, wApproved, wDone, wTotal };
-  }, [reports]);
+  }, [wardReports]);
 
   const [globalReports, setGlobalReports] = useState<ChartReport[]>([]);
   const [loadingChart, setLoadingChart] = useState(true);
 
   useEffect(() => {
+    if (allReports && allReports.length > 0) {
+      setGlobalReports(
+        allReports.map((r) => ({
+          id: String(r.id),
+          wardName: String(r.wardName || "Không rõ"),
+          createdAt: String(r.createdAt || new Date().toISOString()),
+          status: normalizeStatus(r.status),
+        }))
+      );
+      setLoadingChart(false);
+      return;
+    }
+
     async function fetchData() {
       try {
         const token = getAccessToken();
@@ -56,7 +97,7 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
             id: String(r.id),
             wardName: String(r.wardName || "Không rõ"),
             createdAt: String(r.createdAt || new Date().toISOString()),
-            status: String(r.status || "pending"),
+            status: normalizeStatus(r.status),
           }));
           setGlobalReports(mapped);
         }
@@ -67,7 +108,7 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
       }
     }
     fetchData();
-  }, []);
+  }, [allReports]);
 
   const top10Wards = useMemo(() => {
     if (globalReports.length === 0) return [wardName];
@@ -197,18 +238,18 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
 
   return (
     <div className="font-sans flex flex-col w-full h-full">
-      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
-        <span className="text-base font-bold text-gray-900">{wardName}</span>
+      <div className="flex items-center gap-4 mb-4 pb-2 border-b border-gray-100">
+        <span className="text-base font-bold text-gray-900 min-w-0">{wardName}</span>
         {stats.wPending > 0 ? (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100 shrink-0">
             {stats.wPending} chờ xử lý
           </span>
         ) : stats.wTotal > 0 ? (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 shrink-0">
             OK
           </span>
         ) : (
-          <span className="text-[10px] text-gray-400">Không có dữ liệu</span>
+          <span className="text-[10px] text-gray-400 shrink-0">Không có dữ liệu</span>
         )}
         {onClose && (
           <button

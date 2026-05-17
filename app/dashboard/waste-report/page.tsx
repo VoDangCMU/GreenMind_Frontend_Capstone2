@@ -192,7 +192,7 @@ export default function MonitoringPage() {
       {selectedReportPopup && (
         <ReportDetailModal
           report={selectedReportPopup}
-          onClose={() => setSelectedReportPopup(null)}
+          onClose={handleClearFocusedReport}
           onCreateCampaign={handleCreateCampaign}
           onNavigateToCampaign={handleNavigateToCampaign}
         />
