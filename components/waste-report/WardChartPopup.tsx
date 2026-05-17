@@ -242,7 +242,7 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
         <span className="text-base font-bold text-gray-900 min-w-0">{wardName}</span>
         {stats.wPending > 0 ? (
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100 shrink-0">
-            {stats.wPending} chờ xử lý
+            {stats.wPending} pending
           </span>
         ) : stats.wTotal > 0 ? (
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 shrink-0">
@@ -267,15 +267,15 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="bg-red-50 rounded-xl p-3 text-center flex flex-col justify-center">
             <div className="text-lg font-extrabold text-red-500 leading-tight">{stats.wPending}</div>
-            <div className="text-xs text-gray-500 mt-1">Chờ xử lý</div>
+            <div className="text-xs text-gray-500 mt-1">Pending</div>
           </div>
           <div className="bg-blue-50 rounded-xl p-3 text-center flex flex-col justify-center">
             <div className="text-lg font-extrabold text-blue-500 leading-tight">{stats.wApproved}</div>
-            <div className="text-xs text-gray-500 mt-1">Đã duyệt</div>
+            <div className="text-xs text-gray-500 mt-1">Approved</div>
           </div>
           <div className="bg-emerald-50 rounded-xl p-3 text-center flex flex-col justify-center">
             <div className="text-lg font-extrabold text-emerald-500 leading-tight">{stats.wDone}</div>
-            <div className="text-xs text-gray-500 mt-1">Hoàn thành</div>
+            <div className="text-xs text-gray-500 mt-1">Completed</div>
           </div>
         </div>
       ) : (
@@ -286,9 +286,9 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
 
       <div className="flex items-center justify-between gap-4 mb-4 mt-2">
         <div className="flex flex-col gap-1">
-          <h3 className="text-base font-bold text-slate-800">Top 10 Wards Trend</h3>
+          <h3 className="text-base font-bold text-slate-800">Waste Report Frequency by {timeView === "day" ? "day" : timeView === "month" ? "month" : "year"}</h3>
           <p className="text-sm text-slate-500">
-            Biểu đồ top 10 phường có lượng báo cáo cao nhất trong toàn hệ thống.
+            Top 10 wards with the highest number of reports across the system.
           </p>
         </div>
 
@@ -302,7 +302,7 @@ export function WardChartPopup({ wardName, reports, allReports, onClose }: WardC
                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50 border border-transparent"
                 }`}
             >
-              {t === "day" ? "Ngày" : t === "month" ? "Tháng" : "Năm"}
+              {t === "day" ? "Day" : t === "month" ? "Month" : "Year"}
             </button>
           ))}
         </div>
