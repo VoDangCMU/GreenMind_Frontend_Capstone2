@@ -127,7 +127,7 @@ export default function MonitoringPage() {
               Live
             </span>
             <span className="text-xs text-gray-400 font-medium">
-              Cập nhật: {new Date().toLocaleTimeString("vi-VN", {
+              Updated: {new Date().toLocaleTimeString("vi-VN", {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
