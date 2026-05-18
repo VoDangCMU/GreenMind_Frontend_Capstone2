@@ -143,10 +143,10 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight">
-                <span className="block text-foreground">Growing</span>
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight gap-4 flex">
+                <span className="block text-foreground">Green</span>
                 <span className="block bg-linear-to-r from-emerald-500 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
-                  Together
+                  Mind
                 </span>
               </h1>
 
